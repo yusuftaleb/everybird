@@ -19,6 +19,12 @@ type Props = {
   autoFocus?: boolean
 }
 
+/** Long enough to search: two characters, or one Han or kana character (鹰 and 鹤 are whole names). */
+export const searchable = (q: string) => {
+  const s = q.trim()
+  return s.length >= 2 || /^[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]$/u.test(s)
+}
+
 /** Type-ahead over eBird common and scientific names; each result is a button. */
 export function SpeciesSearch({ species, label, showLabel = true, onPick, limit = 8, autoFocus }: Props) {
   const id = useId()
@@ -26,7 +32,7 @@ export function SpeciesSearch({ species, label, showLabel = true, onPick, limit 
   const [q, setQ] = useState('')
   const names = useNames()
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `names` is read through the module, not a prop
-  const hits = useMemo(() => (q.trim().length >= 2 ? species.search(q, limit) : []), [q, species, limit, names])
+  const hits = useMemo(() => (searchable(q) ? species.search(q, limit) : []), [q, species, limit, names])
   return (
     <div className="eb-search">
       <label htmlFor={id} className={showLabel ? 'eb-label' : 'eb-sr'}>{label}</label>
@@ -55,7 +61,7 @@ export function SpeciesSearch({ species, label, showLabel = true, onPick, limit 
           ))}
         </ul>
       )}
-      {q.trim().length >= 2 && hits.length === 0 && <p className="eb-note">{t.import.search.none}</p>}
+      {searchable(q) && hits.length === 0 && <p className="eb-note">{t.import.search.none}</p>}
     </div>
   )
 }

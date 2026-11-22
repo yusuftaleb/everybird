@@ -26,14 +26,14 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /(filters|stress)\.spec\.ts/ },
     // The flow matrix (flows.spec.ts: every way in, filters, card, share, backup; each engine samples two widths, MATRIX=full
     // walks all five), the timeline, the share dialog, Settings (page heads, Tick by hand), the top bar's headroom and About
-    // (its "How it works" poster and stage) and the Red List status (status.spec.ts) in Safari's engine too.
-    { name: "webkit", use: { ...devices["Desktop Safari"] }, testMatch: /(flows|timeline|share|settings|responsive|dock-sweep|sticker-loading|welcome|headroom|about|text-size|count-hole|status)\.spec\.ts/ },
+    // (its "How it works" poster and stage) in Safari's engine too.
+    { name: "webkit", use: { ...devices["Desktop Safari"] }, testMatch: /(flows|timeline|share|settings|sticker-loading|welcome|headroom|about|count-hole|compare)\.spec\.ts/ },
     // Gecko: the flow matrix and the specs that drive the dropdowns, the timeline, the share dialog, Settings, About, the
-    // shared view, the theme and the Red List status. The first-visit welcome (welcome.spec.ts) runs in Chromium and WebKit.
+    // shared view and the theme. The first-visit welcome (welcome.spec.ts) runs in Chromium and WebKit.
     {
       name: "firefox",
       use: { ...devices["Desktop Firefox"] },
-      testMatch: /(flows|timeline|places|share|share-link|settings|about|smoke|status)\.spec\.ts/,
+      testMatch: /(flows|timeline|places|share|share-link|settings|about|smoke)\.spec\.ts/,
     },
     // The frame-timing test runs on its own, after everything else, so other workers can't steal its CPU.
     {

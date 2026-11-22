@@ -244,6 +244,9 @@ export function keysOf(seen: SeenIndex | undefined, e: ListEntry): Set<string> {
   return k
 }
 
+const FNV_SEED = 2166136261
+/** Each species' entry's hash (its code, places, dates and months), for seenSig. */
+const entryHash = new WeakMap<SeenEntry, number>()
 /** FNV-1a over a string, as 8 hex digits. */
 function hash(h: number, s: string): number {
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619)
@@ -301,16 +304,15 @@ export function buildSeen(records: SourceRecord[], edits: Edits, rules: Rules, l
   for (const r of edits.added) add({ ...r, source: 'manual', seen: undefined })
 
   const byCode = new Map<string, SeenEntry>()
-  let h = 2166136261
   for (const e of list) {
     const entries = agg.places(e.code)
     if (!entries) continue
     const places: SeenPlace[] = []
     const keys = new Set<string>()
-    h = hash(h, e.code)
+    let h = hash(FNV_SEED, e.code)
     let first = true
     for (const [k, d] of entries) {
-      // The signature hashes the stored entries "date|key" joined by commas, as it always has (without building them).
+      // The species' hash covers its stored entries "date|key" joined by commas (without building them).
       if (!first) h = hash(h, ',')
       first = false
       h = hash(hash(hash(h, d), '|'), k)
@@ -331,7 +333,20 @@ export function buildSeen(records: SourceRecord[], edits: Edits, rules: Rules, l
       }
       if (!months.length) months = undefined
     }
-    byCode.set(e.code, months ? { places, keys, months } : { places, keys })
+    const entry: SeenEntry = months ? { places, keys, months } : { places, keys }
+    entryHash.set(entry, h)
+    byCode.set(e.code, entry)
   }
-  return { byCode, full, sig: `${byCode.size}:${h.toString(16)}` }
+  return { byCode, full, sig: seenSig(list, byCode) }
+}
+
+/** `SeenIndex.sig` for `byCode` (built by buildSeen, in `list`'s order): each species' own hash, chained in list
+ *  order. The store's card actions (store.ts) rebuild it after patching a few species, without decoding anything. */
+export function seenSig(list: readonly ListEntry[], byCode: ReadonlyMap<string, SeenEntry>): string {
+  let h = FNV_SEED
+  for (const e of list) {
+    const entry = byCode.get(e.code)
+    if (entry) h = Math.imul(h ^ (entryHash.get(entry) ?? 0), 16777619) >>> 0
+  }
+  return `${byCode.size}:${h.toString(16)}`
 }

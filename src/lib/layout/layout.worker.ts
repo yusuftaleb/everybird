@@ -1,12 +1,19 @@
 // Layout worker: owns the sticker masks and runs packBest off the main thread.
 //
 // Protocol (structured-clone friendly):
-//   main -> worker  { type: 'setList', id, entries: [{ code, mass, ord }] }
-//                   { type: 'layout', id, key, codes, layout, mode, refBase?, fixedStage?, targets?, fit? }
-//                   { type: 'image', id, entries: [{ code, mass, ord }], aspect, hole?, maxTile? }
+//   main -> worker  { type: 'setList', id, entries: [{ code, mass, ord }], masks? }  (masks: every entry's, by order
+//                                                             then code, so the masks file isn't fetched)
+//                   { type: 'layout', id, key, codes, layout, mode, refBase?, fixedStage?, targets?, fit?, oval?, free? }
+//                   { type: 'image', id, entries: [{ code, mass, ord }], aspect, hole?, maxTile?, captions?, oval?, free?, trueSize? }
 //                                                             (share images; no setList needed)
+//                   { type: 'provisional', id, key, entries, layout, oval?, free? }
+//                                                             (provisional.ts: a big list's quick full collage; no setList
+//                                                             needed, a short-lived second worker)
+//                   { type: 'warm' }                           (warmLayoutWorker: fetch the masks now; no reply)
 //   worker -> main  { type: 'ready', id }                      (setList done: masks loaded)
-//                   { type: 'result', id, key, layout, mode, base, W, H, codes, boxes }
+//                   { type: 'result', id, key, layout, mode, base, W, H, codes, boxes, degraded? }
+//                                                             (degraded: some masks failed to load and their species
+//                                                             packed as FALLBACK_MASK; the layout client never stores it)
 //                   { type: 'image', id, W, H, codes, boxes }  (packFrame: these birds only, evened out, the hole
 //                                                             (count-box.ts Hole) and maxTile as fractions of the frame's width)
 //                   { type: 'error', id, message }
@@ -16,35 +23,41 @@
 // `fit` (filtered states): the result's stage height is trimmed about the count (pack.ts fitStage), so W/H
 // can be smaller than fixedStage. Relative sizes are always computed over the whole list (setList), per mode.
 //
+// `oval`: inside the ellipse inscribed in the stage (a layout: packBest's, the page's Oval) or the frame (an image:
+// packFrame's, the share images' Oval); `free`: the Free arrangement, packed as Fit was before it filled the rectangle;
+// neither: Fit. arrangement.ts.
+//
 // Species without a mask (st:false in species.v1.json, drawn as a silhouette icon) get FALLBACK_MASK: a solid
 // ellipse on a square 24 x 24 grid (aspect 1), so they pack as round blobs, and are sized by the outline they draw
 // (OUTLINE_SHAPE, see relSizes), not by the ellipse.
 import { EXP, EXP_TRUE, LAYOUTS, OUTLINE_SHAPE } from './constants'
 import { decodeMask, MASK, type Mask } from './mask'
-import { packBest, packFrame, relSizes, type PackBird } from './pack'
+import { packBest, packFrame, relSizes, type Box, type PackBird } from './pack'
+import { provisionalPack } from './provisional'
 import type { Hole } from './count-box'
-import { fetchAllMasks } from '../data-url'
+import { fetchAllMasks, type MaskTable } from '../data-url'
 
 export type ListEntryMsg = { code: string; mass: number; ord: string }
 export type LayoutName = 'wide' | 'medium' | 'narrow'
 export type WorkerRequest =
-  | { type: 'setList'; id: number; entries: ListEntryMsg[] }
+  | { type: 'setList'; id: number; entries: ListEntryMsg[]; masks?: Record<string, MaskTable> }
   | {
       type: 'layout'; id: number; key: string; codes: string[]; layout: LayoutName; mode: 'even' | 'true'
-      refBase?: number; fixedStage?: [number, number]; targets?: Float32Array; fit?: boolean
+      refBase?: number; fixedStage?: [number, number]; targets?: Float32Array; fit?: boolean; oval?: boolean; free?: boolean
     }
-  | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number; hole?: Hole; maxTile?: number; captions?: { w: number; h: number }[] }
+  | { type: 'image'; id: number; entries: ListEntryMsg[]; aspect: number; hole?: Hole; maxTile?: number; captions?: { w: number; h: number; ring?: number }[]; oval?: boolean; free?: boolean; trueSize?: boolean }
+  | { type: 'provisional'; id: number; key: string; entries: ListEntryMsg[]; layout: LayoutName; oval?: boolean; free?: boolean }
 export type WorkerReply =
   | { type: 'ready'; id: number }
   | {
       type: 'result'; id: number; key: string; layout: LayoutName; mode: 'even' | 'true'
-      base: number; W: number; H: number; codes: string[]; boxes: Float32Array
+      base: number; W: number; H: number; codes: string[]; boxes: Float32Array; degraded?: true
     }
   | { type: 'image'; id: number; W: number; H: number; codes: string[]; boxes: Float32Array }
   | { type: 'error'; id: number; message: string }
 
-export type MaskTable = Record<string, [number, number, string]>
-/** Loads one order's masks (code -> [w, h, base64 bits]). Injectable for tests. */
+export type { MaskTable }
+/** Loads one order's masks (code -> mask, decoded or [w, h, base64 bits]). Injectable for tests. */
 export type MaskLoader = (order: string) => Promise<MaskTable>
 
 function ellipseMask(): Mask {
@@ -60,11 +73,11 @@ function ellipseMask(): Mask {
 }
 export const FALLBACK_MASK: Mask = ellipseMask()
 
-// All orders come from one file (masks.v2.json, one request); an order missing from it has no masks.
+// All orders come from one file (masks.v3.bin, one request); an order missing from it has no masks.
 export const fetchOrderMasks: MaskLoader = async (order) => (await fetchAllMasks())[order] ?? {}
 
 // rel: relative sizes over the whole list per mode (smallest bird of the list = 1), shared by every state.
-type ListState = { ids: Map<string, number>; birds: Map<string, PackBird>; rel: { even: Map<number, number>; true: Map<number, number> } }
+type ListState = { ids: Map<string, number>; birds: Map<string, PackBird>; rel: { even: Map<number, number>; true: Map<number, number> }; degraded: boolean }
 
 /** Each entry as a PackBird (id = its index), with its sticker mask or FALLBACK_MASK. */
 export async function loadBirds(entries: ListEntryMsg[], load: MaskLoader): Promise<Map<string, PackBird>> {
@@ -86,10 +99,18 @@ export async function loadBirds(entries: ListEntryMsg[], load: MaskLoader): Prom
 }
 
 async function buildList(entries: ListEntryMsg[], load: MaskLoader): Promise<ListState> {
-  const birds = await loadBirds(entries, load)
+  let degraded = false
+  const birds = await loadBirds(entries, (o) => load(o).catch((e) => { degraded = true; throw e }))
   const ids = new Map([...birds].map(([code, b]) => [code, b.id]))
   const all = [...birds.values()]
-  return { ids, birds, rel: { even: relSizes(all, EXP), true: relSizes(all, EXP_TRUE) } }
+  return { ids, birds, rel: { even: relSizes(all, EXP), true: relSizes(all, EXP_TRUE) }, degraded }
+}
+
+/** A layout's boxes in `codes` order, flat [x, y, w, h] * n. */
+function flatBoxes(codes: string[], birds: Map<string, PackBird>, boxes: Map<number, Box>): Float32Array {
+  const out = new Float32Array(codes.length * 4)
+  codes.forEach((c, i) => out.set(boxes.get(birds.get(c)!.id)!, i * 4))
+  return out
 }
 
 /** The message handler, with mask loading injected. Messages must be handed over in arrival order. */
@@ -114,20 +135,28 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks) {
         const captions = msg.captions
           ? new Map(codes.map((c, i) => [birds.get(c)!.id, msg.captions![i]]))
           : undefined
-        const r = packFrame([...birds.values()], msg.aspect, { hole: msg.hole, maxTile: msg.maxTile, captions })
-        const boxes = new Float32Array(codes.length * 4)
-        codes.forEach((c, i) => boxes.set(r.boxes.get(birds.get(c)!.id)!, i * 4))
-        return { type: 'image', id: msg.id, W: r.W, H: r.H, codes, boxes }
+        const r = packFrame([...birds.values()], msg.aspect, { hole: msg.hole, maxTile: msg.maxTile, captions, ...(msg.oval ? { oval: true } : {}), ...(msg.free ? { free: true } : {}), ...(msg.trueSize ? { mode: 'true' as const } : {}) })
+        return { type: 'image', id: msg.id, W: r.W, H: r.H, codes, boxes: flatBoxes(codes, birds, r.boxes) }
+      }
+      if (msg.type === 'provisional') {
+        const { birds, degraded } = await buildList(msg.entries, load)
+        const layout = LAYOUTS.find((l) => l.name === msg.layout)
+        if (!layout) throw new Error(`unknown layout ${msg.layout}`)
+        const r = provisionalPack([...birds.values()], layout, { ...(msg.oval ? { oval: true } : {}), ...(msg.free ? { free: true } : {}) })
+        const codes = [...birds.keys()]
+        return { type: 'result', id: msg.id, key: msg.key, layout: msg.layout, mode: 'even', base: r.base, W: r.W, H: r.H, codes, boxes: flatBoxes(codes, birds, r.boxes), ...(degraded ? { degraded: true as const } : {}) }
       }
       if (msg.type === 'setList') {
-        const p = buildList(msg.entries, load)
+        // Masks sent with the list (every bird's, the landing sample's) stand in for the masks file, uncached here.
+        const given = msg.masks
+        const p = buildList(msg.entries, given ? async (o) => given[o] ?? {} : load)
         list = p
         p.catch(() => {}) // surfaced to layout requests below
         await p
         return { type: 'ready', id: msg.id }
       }
       if (!list) throw new Error('layout requested before setList')
-      const { birds, rel } = await list
+      const { birds, rel, degraded } = await list
       const known: string[] = []
       const pack: PackBird[] = []
       const centres: number[] = []
@@ -142,11 +171,9 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks) {
       if (!layout) throw new Error(`unknown layout ${msg.layout}`)
       const targets = msg.targets ? new Map(pack.map((b, i) => [b.id, [centres[2 * i], centres[2 * i + 1]] as [number, number]])) : undefined
       const r = packBest(pack, layout, msg.mode, {
-        targets, refBase: msg.refBase, fixedStage: msg.fixedStage, rel: rel[msg.mode], fit: msg.fit,
+        targets, refBase: msg.refBase, fixedStage: msg.fixedStage, rel: rel[msg.mode], fit: msg.fit, ...(msg.oval ? { oval: true } : {}), ...(msg.free ? { free: true } : {}),
       })
-      const boxes = new Float32Array(known.length * 4)
-      pack.forEach((b, i) => boxes.set(r.boxes.get(b.id)!, i * 4))
-      return { type: 'result', id: msg.id, key: msg.key, layout: msg.layout, mode: msg.mode, base: r.base, W: r.W, H: r.H, codes: known, boxes }
+      return { type: 'result', id: msg.id, key: msg.key, layout: msg.layout, mode: msg.mode, base: r.base, W: r.W, H: r.H, codes: known, boxes: flatBoxes(known, birds, r.boxes), ...(degraded ? { degraded: true as const } : {}) }
     } catch (e) {
       return { type: 'error', id: msg.id, message: e instanceof Error ? e.message : String(e) }
     }
@@ -157,11 +184,13 @@ export function createLayoutHandler(loadOrder: MaskLoader = fetchOrderMasks) {
 const scope = globalThis as unknown as {
   WorkerGlobalScope?: unknown
   postMessage(m: unknown, transfer?: Transferable[]): void
-  onmessage: ((e: MessageEvent<WorkerRequest>) => void) | null
+  onmessage: ((e: MessageEvent<WorkerRequest | { type: 'warm' }>) => void) | null
 }
 if (typeof scope.WorkerGlobalScope !== 'undefined' && globalThis instanceof (scope.WorkerGlobalScope as typeof Object)) {
   const handle = createLayoutHandler()
-  scope.onmessage = (e) => {
+  scope.onmessage = (e: MessageEvent<WorkerRequest | { type: 'warm' }>) => {
+    // warmLayoutWorker (layout-client.ts): start the masks download now; the first setList finds it under way.
+    if (e.data.type === 'warm') return void fetchAllMasks().catch(() => {})
     void handle(e.data).then((r) => scope.postMessage(r, r.type === 'result' || r.type === 'image' ? [r.boxes.buffer] : []))
   }
 }

@@ -1,4 +1,5 @@
 import { createStore, del, get, set, type UseStore } from 'idb-keyval'
+import { clearLayouts } from '../layout/layout-store'
 import type { BigYear } from './big-year'
 import { DEFAULT_RULES } from './model'
 import { SLOTS, slotSource } from './model'
@@ -43,6 +44,12 @@ export type ScythebillDetails = {
   rows?: number
   at?: string
 }
+export type IgoterraDetails = {
+  kind: 'csv'
+  file?: string
+  rows?: number
+  at?: string
+}
 /**
  * What each connected source is, for "Your sources" on a return visit and its Refresh. A slot with records but no
  * entry here was imported before v3: its details are unknown.
@@ -55,6 +62,7 @@ export type SourceDetails = {
   'obsorg-list'?: ObsOrgDetails & RegionMapping
   sheet?: SheetDetails & RegionMapping
   scythebill?: ScythebillDetails & RegionMapping
+  igoterra?: IgoterraDetails & RegionMapping
 }
 
 /** Records imported through the shared, source-aware region mapping. Older raw codes lack this marker. */
@@ -70,7 +78,9 @@ export type DetailsFor<S extends Slot> = S extends 'inat'
         ? SheetDetails & RegionMapping
         : S extends 'scythebill'
           ? ScythebillDetails & RegionMapping
-          : never
+          : S extends 'igoterra'
+            ? IgoterraDetails & RegionMapping
+            : never
 
 /**
  * The stored list. v2 (Task PL) added seen-here (`SourceRecord.seen`, `Unmatched.seen`); a v1 list is the same shape
@@ -108,7 +118,7 @@ export const STORAGE_KEY = 'everybird:v1'
 export function emptySaved(): Saved {
   return {
     v: 5,
-    records: { ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], sheet: [], scythebill: [], manual: [] },
+    records: { ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], sheet: [], scythebill: [], igoterra: [], manual: [] },
     unmatched: [],
     edits: { removed: [], added: [], marks: {}, fixes: {} },
     rules: { ...DEFAULT_RULES },
@@ -204,7 +214,8 @@ export async function load(): Promise<Saved | null> {
 export async function forget(): Promise<'forgotten' | 'failed'> {
   memory = null
   try {
-    await del(STORAGE_KEY, getStore())
+    // The stored collages (layout-store.ts) go with the list they were packed from.
+    await Promise.all([del(STORAGE_KEY, getStore()), clearLayouts()])
     return 'forgotten'
   } catch {
     memoryOnly = true

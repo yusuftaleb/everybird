@@ -1,20 +1,22 @@
 'use client'
-import { CaretDown, LockSimple } from '@phosphor-icons/react'
-import { memo, useEffect, useRef, useState, type ReactNode } from 'react'
+import { memo, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { revealInScroller } from '@/components/dialog-utils'
 import type { ImportJobs } from '@/components/app/use-import-jobs'
+import { fmt } from '@/i18n/core'
 import { useI18n } from '@/i18n/I18nProvider'
-import { countParts, type SourceCounts } from '@/lib/list/source-counts'
+import { slotConnected, type SourceCounts } from '@/lib/list/source-counts'
 import type { Action } from '@/lib/list/store'
 import type { Slot } from '@/lib/list/model'
 import type { Saved } from '@/lib/list/storage'
 import type { SpeciesIndex } from '@/lib/species/load'
-import type { Regions } from '@/lib/species/types'
+import { AddPanels } from './add-panel'
 import { EbirdDrop, type EbirdConnected } from './EbirdDrop'
 import { InatForm } from './InatForm'
 import { ObsOrgDrop, type ObsOrgConnected } from './ObsOrgDrop'
+import { IgoterraDrop } from './IgoterraDrop'
 import { ScythebillDrop } from './ScythebillDrop'
 import { SheetDrop } from './SheetDrop'
-import { TickList } from './TickList'
+import { useNoStrayDrop } from './FileDropzone'
 import { SourceRow } from './SourceLine'
 import './import.css'
 
@@ -22,78 +24,85 @@ type Props = {
   saved: Saved
   dispatch: (a: Action) => void
   species: SpeciesIndex
-  regions: Regions
   /** The imports in flight, kept above the routes (EverybirdProvider). */
   jobs: ImportJobs
   disabled?: boolean
-  /** After the rows, before the privacy line (the match report). */
-  children?: ReactNode
-  /** Codes already on the list (Tick by hand shows them ticked). */
-  onList: ReadonlySet<string>
   /** What each source brings to the collage (source-counts.ts), for each row's status. */
   counts: SourceCounts
-  /** Instead of the section's note, when the list has species: the summary line (Settings' see-collage line). */
-  summary?: ReactNode
   /** The Places panel's lifer-only note (placesNoteFor), so the eBird rows say the same. */
   placesNote?: 'add' | 'reimport'
-}
-
-const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-
-/**
- * Tick by hand's disclosure: the list mounts on first open and grows into place (its height animates from 0; with
- * reduced motion it appears at once). While it animates the panel clips; once open it doesn't, so the list's sticky
- * "Add N" bar can stick to the screen. Closed, it is `hidden` (out of the tab order and the accessibility tree).
- */
-function useDisclosure() {
-  const [open, setOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
-  // 'idle' (settled open or closed), 'opening', 'closing'
-  const [phase, setPhase] = useState<'idle' | 'opening' | 'closing'>('idle')
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
-  const settle = () => { if (timer.current) clearTimeout(timer.current); timer.current = null; setPhase('idle') }
-  const toggle = () => {
-    const next = !open
-    setMounted(true)
-    setOpen(next)
-    if (reducedMotion()) return settle()
-    setPhase(next ? 'opening' : 'closing')
-    // transitionend can be missed (tab hidden, nothing to animate): settle anyway.
-    if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(settle, 450)
-  }
-  return { open, mounted, phase, toggle, settle }
+  /** The Add birds dialog as a phone's sheet: an open Add panel takes the list's place, under a path back to it. */
+  drill?: boolean
 }
 
 const speciesIn = (records: { code: string }[]) => new Set(records.map((r) => r.code)).size
 
-/** One source's group on "Your list" (the focus target after a Remove: way-ebird, way-inat, way-obsorg, way-tick). */
+/** One source's group (the focus target after a Remove: way-ebird, way-inat, way-obsorg, …). It draws no box: its
+ *  cells sit in the list's grid (import.css). */
 function Group({ id, label, children }: { id: string; label: string; children: ReactNode }) {
   return <div className="eb-srcgroup" id={id} tabIndex={-1} role="group" aria-label={label}>{children}</div>
 }
 
 /**
- * Settings > "Your list": one quiet row per source (eBird life list, MyEBirdData, iNaturalist, the observation.org
- * life list and observations, Ticked by hand): its name and status on two lines, one button on the right, a ⋯ menu
- * once connected; adding opens the source's panel (its guidance and how-to inside) under the row. They combine into
- * one list; each import replaces only its own slot. The two file groups (eBird, observation.org) read one file at a
- * time: while either reads, both are disabled, and any file lands in the row of its kind. `children` follow the rows
- * (the match report).
+ * The grid's frame while the bird data loads (Settings, the Add birds dialog): every source's title, "Not added" and a
+ * disabled Add, in the grid's own cells and hairlines, so the page never shows a blank box.
  */
-export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, regions, jobs, disabled, children, onList, counts, summary, placesNote }: Props) {
-  const tick = useDisclosure()
+export function ImportFrame() {
   const { t } = useI18n()
+  const o = t.import.obsorg.rows
+  const groups: [string, string[]][] = [
+    ['way-ebird', [t.import.ebird.listTitle, 'MyEBirdData']], ['way-inat', ['iNaturalist']], ['way-sheet', [t.import.sheet.title]],
+    ['way-obsorg', [o['obsorg-list'].title, o.obsorg.title]], ['way-scythebill', [t.import.scythebill.title]], ['way-igoterra', [t.import.igoterra.title]],
+  ]
+  return (
+    <div className="eb-srclist" aria-busy="true" data-testid="sources-wait">
+      {groups.map(([id, titles]) => (
+        <div key={id} className="eb-srcgroup" id={id}>
+          {titles.map((title) => (
+            <SourceRow
+              key={title} title={title} parts={[t.import.notAdded]} disabled
+              primary={<button type="button" className="eb-btn eb-btn-quiet eb-btn-sm" disabled aria-label={fmt(t.import.addLabel, { title })}>{t.import.add}</button>}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Settings > Your list and the Add birds dialog's "Import a file": the eight sources (eBird life list, MyEBirdData,
+ * iNaturalist, the spreadsheet; then the observation.org life list and observations, Scythebill, iGoTerra) as a grid of
+ * cells in one group (four columns on Settings' wide column, two, one on phones, in that order; import.css). A cell is
+ * the source's name and status on two lines and its button, with a ⋯ menu once connected; adding opens the source's
+ * panel (its guidance and how-to inside) under the whole grid, in a box of its own, its Add button pressed. One panel
+ * is open at a time (`AddPanels`): opening one closes the other, though a read, a review or a fetch in progress keeps
+ * its own open. They combine into one list; each import replaces only its own slot. The file groups read one file at a
+ * time: while one reads, all are disabled, and any file lands in the row of its kind. With `drill` (the Add birds
+ * sheet on a phone) an open panel shows in place of the list, its first field or button focused, under the path "All
+ * sources / <source>", whose first step folds it and focuses the source's Add again (as the Taxa sheet's path goes back).
+ */
+export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species, jobs, disabled, counts, placesNote, drill = false }: Props) {
+  const { t } = useI18n()
+  useNoStrayDrop()
   const ebirdConnected: EbirdConnected[] = (['ebird', 'ebird-list'] as const)
-    .filter((slot) => (saved.records[slot]?.length ?? 0) > 0 || saved.unmatched.some((u) => (u.slot ?? u.source) === slot))
+    .filter((slot) => slotConnected(saved, slot))
     .map((slot) => ({ slot, details: saved.sources?.[slot] }))
   const obsorgConnected: ObsOrgConnected[] = (['obsorg-list', 'obsorg'] as const)
-    .filter((slot) => (saved.records[slot]?.length ?? 0) > 0 || saved.unmatched.some((u) => (u.slot ?? u.source) === slot))
+    .filter((slot) => slotConnected(saved, slot))
     .map((slot) => ({ slot, details: saved.sources?.[slot] }))
-  const inatOn = saved.records.inat.length > 0 || saved.unmatched.some((u) => u.source === 'inat')
-  const sheetOn = (saved.records.sheet?.length ?? 0) > 0 || saved.unmatched.some((u) => (u.slot ?? u.source) === 'sheet')
-  const scythebillOn = (saved.records.scythebill?.length ?? 0) > 0 || saved.unmatched.some((u) => (u.slot ?? u.source) === 'scythebill')
-  const focusWay = (id: string) => requestAnimationFrame(() => document.getElementById(id)?.focus({ preventScroll: true }))
+  const inatOn = slotConnected(saved, 'inat')
+  const sheetOn = slotConnected(saved, 'sheet')
+  const scythebillOn = slotConnected(saved, 'scythebill')
+  const igoterraOn = slotConnected(saved, 'igoterra')
+  // Looked up inside this list: on Settings the Add birds dialog can hold a second one, with the same group ids.
+  const root = useRef<HTMLDivElement>(null)
+  const focusWay = (id: string) => requestAnimationFrame(() => {
+    const way = root.current?.querySelector<HTMLElement>(`#${id}`)
+    way?.focus({ preventScroll: true })
+    // A boxless (display: contents) group can't take focus in every browser: then its first button does.
+    if (way && document.activeElement !== way) way.querySelector<HTMLElement>('button:not(:disabled)')?.focus({ preventScroll: true })
+  })
   const remove = (slot: Exclude<Slot, 'manual'>) => {
     dispatch({ type: 'remove-source', source: slot })
     focusWay(
@@ -105,31 +114,63 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             ? 'way-sheet'
             : slot === 'scythebill'
               ? 'way-scythebill'
-              : 'way-ebird',
+              : slot === 'igoterra'
+                ? 'way-igoterra'
+                : 'way-ebird',
     )
   }
   // One file at a time across all file groups.
-  const fileBusy = jobs.ebird.busy || jobs.obsorg.busy || jobs.sheet.busy || jobs.scythebill.busy
+  const fileBusy = jobs.ebird.busy || jobs.obsorg.busy || jobs.sheet.busy || jobs.scythebill.busy || jobs.igoterra.busy
   // When a file last landed, in either group: the file groups fold their Add panels (an iNaturalist fetch, running
   // beside them, leaves an open panel alone).
   const [fileLandedAt, setFileLandedAt] = useState<number | undefined>(undefined)
   if (jobs.landed && jobs.landed.slot !== 'inat' && jobs.landed.at !== fileLandedAt) setFileLandedAt(jobs.landed.at)
-  const listEmpty = Object.values(saved.records).every((r) => r.length === 0) && saved.edits.added.length === 0
-  const ticked = counts.rows.manual
-  // Arriving at /settings#sources (the welcome's "Make mine"): keyboard and screen-reader focus starts at the sources,
-  // not at the top of the document.
-  const section = useRef<HTMLElement>(null)
-  useEffect(() => {
-    if (window.location.hash === '#sources') section.current?.focus({ preventScroll: true })
-  }, [])
-
+  // The one open Add panel. A file landing, or a file source coming or going, folds a file source's panel (an open
+  // iNaturalist panel stays); a fetch landing under a new username folds iNaturalist's.
+  const [panel, setPanel] = useState<string | null>(null)
+  const fileMark = `${[...ebirdConnected, ...obsorgConnected].map((c) => c.slot).join()}|${sheetOn}|${scythebillOn}|${igoterraOn}|${fileLandedAt ?? ''}`
+  const inatMark = inatOn ? saved.sources?.inat?.user ?? '' : ''
+  const [marks, setMarks] = useState({ fileMark, inatMark })
+  if (marks.fileMark !== fileMark || marks.inatMark !== inatMark) {
+    setMarks({ fileMark, inatMark })
+    if (panel !== null && (panel === 'inat' ? marks.inatMark !== inatMark : marks.fileMark !== fileMark)) setPanel(null)
+  }
+  const shared = useMemo((): [string | null, typeof setPanel] => [panel, setPanel], [panel])
+  const drilled = drill && panel !== null
+  const o = t.import.obsorg.rows
+  const titles: Record<string, string> = {
+    'ebird-list': t.import.ebird.listTitle, ebird: 'MyEBirdData', inat: 'iNaturalist', sheet: t.import.sheet.title,
+    'obsorg-list': o['obsorg-list'].title, obsorg: o.obsorg.title, scythebill: t.import.scythebill.title, igoterra: t.import.igoterra.title,
+  }
+  // Drilled in: the panel's first field (else its first button) takes focus from the Add button the list hides, in the
+  // press's own commit, so a phone opens its keyboard for it.
+  useLayoutEffect(() => {
+    if (!drilled) return
+    const pane = root.current?.querySelector<HTMLElement>('.eb-src-panel:not([hidden])')
+    if (!pane || pane.contains(document.activeElement)) return
+    const first = pane.querySelector<HTMLElement>('input:not([type="file"]):not(:disabled), textarea:not(:disabled)')
+      ?? pane.querySelector<HTMLElement>('button:not(:disabled)')
+    first?.focus({ preventScroll: true })
+    revealInScroller(first)
+  }, [drilled, panel])
+  // Back to the list: the panel folds and its source's Add (the button that controls it) takes focus again.
+  const back = () => {
+    const id = root.current?.querySelector<HTMLElement>('.eb-src-panel:not([hidden])')?.id
+    setPanel(null)
+    if (id) requestAnimationFrame(() => root.current?.querySelector<HTMLElement>(`[aria-controls="${CSS.escape(id)}"]`)?.focus({ preventScroll: true }))
+  }
   return (
-    <section ref={section} id="sources" className="eb-block eb-import" aria-labelledby="eb-sources-h" tabIndex={-1}>
-      <div className="eb-block-head">
-        <h2 id="eb-sources-h" className="eb-h2">{t.import.head}</h2>
-        {summary ?? <p className="eb-note">{t.import.combine}</p>}
-      </div>
-      <div className="eb-srclist">
+    <AddPanels.Provider value={shared}>
+      {drilled && (
+        <p className="eb-path eb-src-path" data-testid="sources-path">
+          <span className="eb-path-item"><button type="button" onClick={back}>{t.import.allSources}</button></span>
+          <span className="eb-path-item">
+            <span className="eb-path-sep" aria-hidden="true">/</span>
+            <span aria-current="location">{titles[panel] ?? ''}</span>
+          </span>
+        </p>
+      )}
+      <div ref={root} className="eb-srclist" data-drill={drilled || undefined}>
         <Group id="way-ebird" label={t.import.ebirdGroup}>
           <EbirdDrop
             job={jobs.ebird}
@@ -140,7 +181,6 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             saved={saved}
             species={species}
             counts={counts}
-            landedAt={fileLandedAt}
             loaded={{ full: speciesIn(saved.records.ebird), quick: speciesIn(saved.records['ebird-list'] ?? []) }}
             placesNote={placesNote}
           />
@@ -156,18 +196,6 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             onRemove={() => remove('inat')}
             saved={saved}
             counts={counts.rows.inat}
-          />
-        </Group>
-        <Group id="way-obsorg" label={t.import.obsorg.group}>
-          <ObsOrgDrop
-            job={jobs.obsorg}
-            onFile={(f) => void jobs.readObsOrg(f)}
-            disabled={disabled || fileBusy}
-            landedAt={fileLandedAt}
-            connected={obsorgConnected}
-            onRemove={remove}
-            saved={saved}
-            counts={counts}
           />
         </Group>
         <Group id="way-sheet" label={t.import.sheet.title}>
@@ -188,6 +216,17 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             landedAt={fileLandedAt}
           />
         </Group>
+        <Group id="way-obsorg" label={t.import.obsorg.group}>
+          <ObsOrgDrop
+            job={jobs.obsorg}
+            onFile={(f) => void jobs.readObsOrg(f)}
+            disabled={disabled || fileBusy}
+            connected={obsorgConnected}
+            onRemove={remove}
+            saved={saved}
+            counts={counts}
+          />
+        </Group>
         <Group id="way-scythebill" label={t.import.scythebill.title}>
           <ScythebillDrop
             job={jobs.scythebill}
@@ -198,49 +237,21 @@ export const ImportPanel = memo(function ImportPanel({ saved, dispatch, species,
             onRemove={() => remove('scythebill')}
             saved={saved}
             counts={counts.rows.scythebill}
-            landedAt={fileLandedAt}
           />
         </Group>
-        <Group id="way-tick" label={t.tick.title}>
-          <SourceRow
-            title={t.tick.title}
-            parts={ticked.species ? [] : [t.import.noneYet]}
-            counts={ticked.species ? countParts(ticked, t) : undefined}
-            primary={
-              <button
-                type="button"
-                className="eb-btn eb-btn-quiet eb-btn-sm eb-disclose-btn"
-                aria-expanded={tick.open}
-                aria-controls="tick"
-                aria-label={t.tick.label}
-                disabled={disabled}
-                onClick={tick.toggle}
-              >
-                {t.tick.button}
-                <CaretDown aria-hidden="true" focusable="false" weight="bold" />
-              </button>
-            }
-          >
-            {/* The panel is always in the DOM (hidden until opened), so aria-controls="tick" always names an element;
-                the list itself mounts on first open. */}
-            <div
-              id="tick"
-              className="eb-disclose"
-              data-open={tick.open || undefined}
-              data-phase={tick.phase === 'idle' ? undefined : tick.phase}
-              hidden={!tick.open && tick.phase === 'idle'}
-              onTransitionEnd={(e) => { if (e.target === e.currentTarget) tick.settle() }}
-            >
-              <div className="eb-disclose-inner">
-                {tick.mounted && <TickList species={species} regions={regions} edits={saved.edits} dispatch={dispatch} onList={onList} listEmpty={listEmpty} />}
-              </div>
-            </div>
-          </SourceRow>
+        <Group id="way-igoterra" label={t.import.igoterra.title}>
+          <IgoterraDrop
+            job={jobs.igoterra}
+            onFile={(f) => void jobs.readIgoterra(f)}
+            disabled={disabled || fileBusy}
+            connected={igoterraOn}
+            details={saved.sources?.igoterra}
+            onRemove={() => remove('igoterra')}
+            saved={saved}
+            counts={counts.rows.igoterra}
+          />
         </Group>
       </div>
-      {children}
-      {/* The section's footnote, where files and usernames are handed over; the full privacy note is on About. */}
-      <p className="eb-privacy"><LockSimple aria-hidden="true" focusable="false" weight="bold" />{t.import.privacy}</p>
-    </section>
+    </AddPanels.Provider>
   )
 })

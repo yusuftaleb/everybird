@@ -3,12 +3,12 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { fetchBytes } from './fetch-sources'
-import type { BirdGroup, GroupsFile, SearchLang } from '../../src/lib/search/groups'
+import type { BirdGroup, GroupLang as SearchLang, GroupsFile } from '../../src/lib/search/groups'
 import { inGroup } from '../../src/lib/search/groups'
 import type { SpeciesFile } from '../../src/lib/species/types'
 
 export type ApiGroup = { groupName: string; groupOrder: number; taxonOrderBounds: [number, number][] }
-export const GROUP_LOCALES = { en: 'en', es: 'es', pt: 'pt_BR', nl: 'nl' } as const
+export const GROUP_LOCALES = { en: 'en', es: 'es', pt: 'pt_BR', nl: 'nl', pl: 'pl', fr: 'fr', de: 'de', sv: 'sv', da: 'da', ru: 'ru', 'zh-Hans': 'zh_SIM', 'zh-Hant': 'zh' } as const
 const idOf = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 export function buildGroups(sources: Record<SearchLang, ApiGroup[]>, species: SpeciesFile): GroupsFile {

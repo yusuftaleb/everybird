@@ -1,5 +1,5 @@
 'use client'
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { fileMessage, type FileJob, type SheetReview } from '@/components/app/use-import-jobs'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
@@ -9,6 +9,7 @@ import type { Saved, SheetDetails } from '@/lib/list/storage'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { displayName } from '@/lib/species/names'
 import { FileDropzone, useFileDrop } from './FileDropzone'
+import { useAddPanel } from './add-panel'
 import { notCounted } from './NotCounted'
 import { sheetLine, SourceRow } from './SourceLine'
 
@@ -50,16 +51,25 @@ export function SheetDrop({
   const id = useId()
   const { t } = useI18n()
   const s = t.import.sheet
-  const [open, setOpen] = useState(false)
+  // The open Add panel, shared by every source (one at a time; ImportPanel folds it when a file lands).
+  const [panel, setPanel] = useAddPanel()
+  const open = panel === 'sheet'
+  const setOpen = (on: boolean) => setPanel('sheet', on)
   const [paste, setPaste] = useState('')
   const input = useRef<HTMLInputElement>(null)
-  const { busy, rows, error } = job
+  const reviewBox = useRef<HTMLDivElement>(null)
+  const pasteBox = useRef<HTMLTextAreaElement>(null)
+  // The review replaces the panel the birder was in (its paste button or picker is gone): focus moves to the review,
+  // named by its summary, so it is announced; Cancel brings them back to the paste box.
+  useEffect(() => {
+    if (review) reviewBox.current?.focus()
+  }, [review])
+  const { busy, error } = job
 
   const marker = `${connected ? '1' : '0'}|${landedAt ?? ''}`
   const [lastMarker, setLastMarker] = useState(marker)
   if (lastMarker !== marker) {
     setLastMarker(marker)
-    setOpen(false)
     setPaste('')
   }
 
@@ -72,7 +82,8 @@ export function SheetDrop({
   const off = disabled || busy
   const pick = () => input.current?.click()
   const line = connected ? sheetLine(details, t) : null
-  const showPanel = open || !!review || busy || !!error
+  // A read or a review in progress keeps the panel open; so does its error, until another source's panel is opened.
+  const showPanel = open || !!review || busy || (!!error && panel === null)
 
   const unmatchedRows = review ? review.result.unmatched.filter((u) => u.reason === 'no-match') : []
   const shownUnmatched = unmatchedRows.slice(0, REVIEW_CAP)
@@ -84,6 +95,7 @@ export function SheetDrop({
         ...(review.duplicates > 0 ? [plural(s.review.duplicates, review.duplicates, { n: formatInt(review.duplicates, t.num) })] : []),
         ...(review.notSpeciesCount > 0 ? [plural(s.review.notSpecies, review.notSpeciesCount, { n: formatInt(review.notSpeciesCount, t.num) })] : []),
         ...(review.unmatchedCount > 0 ? [plural(s.review.unmatched, review.unmatchedCount, { n: formatInt(review.unmatchedCount, t.num) })] : []),
+        ...(review.noDate > 0 ? [plural(s.review.noDate, review.noDate, { n: formatInt(review.noDate, t.num) })] : []),
       ]
     : []
 
@@ -116,7 +128,6 @@ export function SheetDrop({
         what={connected ? s.what : undefined}
         disabled={off}
         onRemove={onRemove}
-        menu={connected ? [{ label: t.import.replace, keepFocus: true, onSelect: () => setOpen(true) }] : undefined}
         primary={
           connected ? (
             <button
@@ -126,7 +137,7 @@ export function SheetDrop({
               aria-expanded={showPanel}
               aria-controls={`${id}-panel`}
               aria-label={fmt(t.import.replaceLabel, { name: line!.name })}
-              onClick={() => setOpen((v) => !v)}
+              onClick={() => setOpen(!open)}
             >
               {t.import.replace}
             </button>
@@ -138,7 +149,7 @@ export function SheetDrop({
               aria-expanded={showPanel}
               aria-controls={`${id}-panel`}
               aria-label={fmt(t.import.addLabel, { title: s.title })}
-              onClick={() => setOpen((v) => !v)}
+              onClick={() => setOpen(!open)}
             >
               {t.import.add}
             </button>
@@ -147,8 +158,8 @@ export function SheetDrop({
       >
         <div id={`${id}-panel`} className="eb-src-panel" hidden={!showPanel} role="group" aria-label={fmt(t.import.addLabel, { title: s.title })}>
           {review ? (
-            <div className="eb-sheet-review" data-testid="sheet-review">
-              <p className="eb-sheet-summary">{summaryParts.join(' · ')}</p>
+            <div ref={reviewBox} className="eb-sheet-review" data-testid="sheet-review" role="group" tabIndex={-1} aria-labelledby={`${id}-summary`}>
+              <p id={`${id}-summary`} className="eb-sheet-summary">{summaryParts.join(' · ')}</p>
               {shownUnmatched.length > 0 && (
                 <>
                   <ul className="eb-note eb-sheet-unmatched">
@@ -177,6 +188,7 @@ export function SheetDrop({
                   onClick={() => {
                     onCancel()
                     setOpen(true)
+                    requestAnimationFrame(() => pasteBox.current?.focus())
                   }}
                 >
                   {s.review.cancel}
@@ -190,6 +202,7 @@ export function SheetDrop({
               <div className="eb-sheet-pastebox">
                 <label htmlFor={`${id}-paste`} className="eb-sr">{s.pasteLabel}</label>
                 <textarea
+                  ref={pasteBox}
                   id={`${id}-paste`}
                   className="eb-input eb-sheet-paste"
                   rows={4}
@@ -213,9 +226,7 @@ export function SheetDrop({
           )}
         </div>
       </SourceRow>
-      <p className="eb-status eb-src-status" role="status">
-        {busy ? (rows ? plural(t.import.ebird.readingRows, rows, { n: formatInt(rows, t.num) }) : t.import.ebird.reading) : ''}
-      </p>
+      {/* A read's progress is the import toast's (ImportToast), never in the grid. */}
       {error && <p className="eb-error eb-src-status" role="alert" data-testid="sheet-error">{fileMessage(error, t)}</p>}
     </div>
   )

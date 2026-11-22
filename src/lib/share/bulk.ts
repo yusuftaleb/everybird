@@ -1,29 +1,41 @@
-import { zipSync } from 'fflate'
+import { Zip, ZipPassThrough } from 'fflate'
+import { safeName, zipEntryName } from '@/lib/file-name'
 import { filterPlaceKeys, seenBasis, type Filter } from '@/lib/list/filters'
 import { inRange } from '@/lib/list/in-range'
 import type { ListEntry } from '@/lib/list/model'
 import { countryKeyOf, keysOfPlace, placeName } from '@/lib/list/place-keys'
-import { seenOf, type SeenIndex } from '@/lib/list/seen'
+import { hasSeenMonths, seenOf, type SeenIndex } from '@/lib/list/seen'
 import { monthOrd, sightingKeys, whereOf } from '@/lib/list/sighting'
 import { continentOfPlace, type ContinentId } from '@/lib/places/continents'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { familyName } from '@/lib/species/names'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
-import { abortError, packForImage, type ImagePack, type PackSpec } from './image'
+import { planCaptions, type TextMeasurer } from './captions'
+import type { Arrangement } from '@/lib/arrangement'
+import { abortError, cardLayout, goalText, imagePackSpec, packForImage, renderShareImage, type CardFormat, type CountSize, type ImagePack, type ImageFormat, type PackSpec, type ShareImageOpts } from './image'
 import type { makePoster as MakePoster, Poster, PosterOpts } from './poster'
+import { printDesign, type PrintSize } from './print'
 
-export const BULK_BATCH_SIZE = 1000
+/** The Birds per poster (or image) choices when splitting by number of birds: all of them in one, or at most this many. */
+export const BULK_BATCH_OPTIONS = [100, 250, 500, 1000] as const
+export type BulkBatch = (typeof BULK_BATCH_OPTIONS)[number] | 'all'
+
+/** An older most-birds-per-poster number (it was a free box) as a choice: the nearest one at or above it, else All. */
+export function batchChoice(n: unknown): BulkBatch {
+  if (n === 'all' || typeof n !== 'number' || !Number.isFinite(n)) return 'all'
+  return BULK_BATCH_OPTIONS.find((o) => o >= n) ?? 'all'
+}
 
 export type BulkSplit = 'batches' | 'family' | 'order' | 'country' | 'continent' | 'province' | 'year'
 
-export type BulkGroup = {
+type BulkGroup = {
   id: string
   label: string
   stem: string
   entries: ListEntry[]
 }
 
-export type BulkGroupsOpts = {
+type BulkGroupsOpts = {
   species: SpeciesIndex
   regions: Regions
   seen?: SeenIndex
@@ -33,30 +45,34 @@ export type BulkGroupsOpts = {
   familyLabel?: (row: Pick<SpeciesRow, 'fam' | 'famCom'>) => string
   orderLabel?: (ord: string) => string
   locale?: string
+  /** Splitting by number of birds: the most per poster or image (default All: one group of every bird). */
+  batchSize?: BulkBatch
+  /**
+   * Splitting by place or year (round 6, item 21, Export in batches' "Count repeat sightings"): true (the default) puts
+   * a bird in every country, continent, province or year where it was seen; false only in its lifer's (the place and
+   * date it was first recorded), so each bird is in one group and the groups add up to the list.
+   */
+  repeats?: boolean
+  /** A year group's label line ("2026 lifers", "2026 year list"); the year alone by default. Its file keeps the year. */
+  yearLabel?: (year: string) => string
 }
 
-const RESERVED_WINDOWS = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i
+/** Whether a list has repeat sightings for Export in batches to count: places beyond the lifers' (seen-here) or month sets. */
+export function hasRepeats(seen: SeenIndex | undefined): boolean {
+  return !!seen && (seen.full || hasSeenMonths(seen))
+}
+
 const YEAR_RE = /^(\d{4})/
 
+/** A group's file stem inside the ZIP: its shown name made safe (safeName), letters of every script kept. */
 export function sanitizeGroupStem(label: string, fallback = 'group'): string {
-  const ascii = label
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[/\\]+/g, ' ')
-    .replace(/\.{2,}/g, ' ')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80)
-    .replace(/-+$/g, '')
-  const base = ascii || fallback
-  return RESERVED_WINDOWS.test(base) ? `${base}-group` : base
+  return safeName(label) || fallback
 }
 
-function uniqueStems(groups: { id: string; label: string; entries: ListEntry[] }[]): BulkGroup[] {
+function uniqueStems(groups: { id: string; label: string; stem?: string; entries: ListEntry[] }[]): BulkGroup[] {
   const used = new Set<string>()
   return groups.map((g, i) => {
-    const base = sanitizeGroupStem(g.label, `group-${i + 1}`)
+    const base = g.stem ?? sanitizeGroupStem(g.label, `group-${i + 1}`)
     let stem = base
     let n = 2
     while (used.has(stem)) {
@@ -97,13 +113,17 @@ export function bulkGroups(split: BulkSplit, entries: readonly ListEntry[], opts
   if (!sorted.length) return []
 
   if (split === 'batches') {
-    const out: { id: string; label: string; entries: ListEntry[] }[] = []
-    for (let i = 0; i < sorted.length; i += BULK_BATCH_SIZE) {
-      const n = Math.floor(i / BULK_BATCH_SIZE) + 1
+    const choice = batchChoice(opts.batchSize ?? 'all')
+    const size = choice === 'all' ? sorted.length : choice
+    const out: { id: string; label: string; stem: string; entries: ListEntry[] }[] = []
+    for (let i = 0; i < sorted.length; i += size) {
+      const n = Math.floor(i / size) + 1
       out.push({
         id: `batch-${n}`,
         label: opts.batchLabel ? opts.batchLabel(n) : `Batch ${n}`,
-        entries: sorted.slice(i, i + BULK_BATCH_SIZE),
+        // The file says which birds it holds, in taxonomic order: "birds-101-200".
+        stem: `birds-${i + 1}-${Math.min(i + size, sorted.length)}`,
+        entries: sorted.slice(i, i + size),
       })
     }
     return uniqueStems(out)
@@ -138,13 +158,18 @@ export function bulkGroups(split: BulkSplit, entries: readonly ListEntry[], opts
   const loOrd = fromBound ? monthOrd(fromBound) : Number.NEGATIVE_INFINITY
   const hiOrd = toBound ? monthOrd(toBound) : Number.POSITIVE_INFINITY
 
+  const repeats = opts.repeats ?? true
   if (split === 'country' || split === 'continent' || split === 'province') {
     const buckets = new Map<string, { label: string; entries: ListEntry[]; seen: Set<string> }>()
     for (const e of sorted) {
-      const here = where ? sightingKeys(e, opts.seen, where) : undefined
-      for (const p of seenOf(opts.seen, e)) {
+      const here = repeats && where ? sightingKeys(e, opts.seen, where) : undefined
+      // Lifers only: the one place it was first recorded (the list is already the filter's birds); a province without
+      // its country takes the province code's.
+      const country = e.place?.country || e.place?.sub1?.split('-')[0]
+      const places = repeats ? seenOf(opts.seen, e) : country ? [{ ...e.place, country }] : []
+      for (const p of places) {
         if (here && !here.has(p.sub2 ? `${p.sub1 ?? p.country}|${p.sub2}` : (p.sub1 ?? p.country))) continue
-        if (!placeMatches(p)) continue
+        if (repeats && !placeMatches(p)) continue
         if (split === 'country') {
           const id = countryKeyOf(p)
           addToBucket(buckets, id, placeName(id, opts.regions, opts.continents), e)
@@ -167,7 +192,14 @@ export function bulkGroups(split: BulkSplit, entries: readonly ListEntry[], opts
   }
 
   const buckets = new Map<string, { label: string; entries: ListEntry[]; seen: Set<string> }>()
+  const yearLabel = opts.yearLabel ?? ((y: string) => y)
   for (const e of sorted) {
+    if (!repeats) {
+      // Lifers only: the year it was first recorded.
+      const m = e.date ? YEAR_RE.exec(e.date) : null
+      if (m) addToBucket(buckets, m[1], yearLabel(m[1]), e)
+      continue
+    }
     const months = opts.seen?.byCode.get(e.code)?.months
     const years = new Set<string>()
     if (months) {
@@ -191,17 +223,46 @@ export function bulkGroups(split: BulkSplit, entries: readonly ListEntry[], opts
         if (m && (!hasTime || inRange(p.date, fromBound, toBound))) years.add(m[1])
       }
     }
-    for (const y of years) addToBucket(buckets, y, y, e)
+    for (const y of years) addToBucket(buckets, y, yearLabel(y), e)
   }
   const items = [...buckets.entries()]
-    .map(([id, b]) => ({ id, label: b.label, entries: b.entries }))
+    .map(([id, b]) => ({ id, label: b.label, entries: b.entries, stem: id }))
     .sort((a, b) => a.id.localeCompare(b.id))
   return uniqueStems(items)
 }
 
-export type BulkPosterOpts = Omit<PosterOpts, 'entries' | 'pack' | 'filterLabel' | 'species'>
+/** `filterLabel` and `goal` are the view's: each poster's label line is that, then its group ("Canada · Herons"). */
+type BulkPosterOpts = Omit<PosterOpts, 'entries' | 'pack' | 'species'>
 
-export type BulkZipOpts = {
+type BulkPackOpts = {
+  size: PrintSize
+  landscape: boolean
+  /** The poster has a title line. */
+  named: boolean
+  /** Show latest lifer (default on): a portrait poster keeps room for the lifer's own line in its foot (cardLayout). */
+  latest?: boolean
+  countSize: CountSize
+  /** The Big Year goal's target: the label under the count reads "/ 300 SPECIES", so its hole is sized for that. */
+  target?: number
+  showNames: boolean
+  species: SpeciesIndex
+  nameOf?: (row: SpeciesRow) => string
+  measure?: TextMeasurer
+  arrangement?: Arrangement
+  trueSize?: boolean
+}
+
+/** What to pack for one group's poster (every poster has its group's label line), with names planned for its own birds. */
+export function bulkPackSpec(entries: ListEntry[], o: BulkPackOpts): PackSpec {
+  const format: CardFormat = o.landscape ? 'printLandscape' : 'print'
+  const content = { name: o.named, filter: true, latest: o.latest !== false, count: entries.length, target: o.target, countSize: o.countSize }
+  if (!o.showNames) return imagePackSpec(format, content, o.size, undefined, o.arrangement, o.trueSize)
+  const L = cardLayout(format, content, printDesign(o.size, o.landscape))
+  const plan = planCaptions(entries, o.species, o.size, L.collage.w, o.nameOf, o.measure)
+  return imagePackSpec(format, content, o.size, plan.ok ? plan : undefined, o.arrangement, o.trueSize)
+}
+
+type BulkZipOpts = {
   groups: readonly BulkGroup[]
   kind: 'png' | 'pdf'
   poster: BulkPosterOpts
@@ -214,43 +275,112 @@ export type BulkZipOpts = {
   }
 }
 
-export async function makeBulkZip(opts: BulkZipOpts): Promise<Blob> {
-  const { groups, kind, poster: posterOpts, species, packSpec, onProgress, deps } = opts
-  const { signal } = posterOpts
+/** The view's label line, which each file's label line starts with ("Canada · Herons"). */
+function viewLabel(o: Pick<BulkPosterOpts, 'filterLabel' | 'goal' | 'strings'>): string {
+  return o.filterLabel?.trim() || (o.goal ? goalText(o.goal, o.strings) : '')
+}
+const groupLabel = (view: string, group: BulkGroup) => [view, group.label].filter(Boolean).join(' · ')
+
+/**
+ * One file per group, written into a ZIP as each is done: its bytes go straight into Blob parts (which the browser may
+ * keep off the JS heap) and are dropped, so finished files are never held twice and nothing copies the whole archive.
+ */
+async function zipGroups(
+  groups: readonly BulkGroup[],
+  signal: AbortSignal | undefined,
+  onProgress: BulkZipOpts['onProgress'],
+  file: (group: BulkGroup, check: () => void) => Promise<{ ext: string; bytes: Uint8Array }>,
+): Promise<Blob> {
   const check = () => { if (signal?.aborted) throw abortError() }
   check()
+  const parts: Blob[] = []
+  let zipError: Error | null = null
+  const zip = new Zip((err, chunk) => {
+    if (err) zipError = err
+    else parts.push(new Blob([chunk as Uint8Array<ArrayBuffer>]))
+  })
+  const total = groups.length
+  try {
+    for (let i = 0; i < total; i++) {
+      check()
+      const group = groups[i]
+      const { ext, bytes } = await file(group, check)
+      check()
+      const entry = new ZipPassThrough(zipEntryName(i, total, group.stem, ext))
+      zip.add(entry)
+      entry.push(bytes, true)
+      if (zipError) throw zipError
+      onProgress?.(i + 1, total, group)
+    }
+    check()
+    zip.end()
+    if (zipError) throw zipError
+  } catch (e) {
+    zip.terminate()
+    parts.length = 0
+    throw e
+  }
+  return new Blob(parts, { type: 'application/zip' })
+}
+
+/** The ZIP, and how many of its posters asked for names but have none (they didn't fit). */
+export async function makeBulkZip(opts: BulkZipOpts): Promise<{ blob: Blob; namesDropped: number }> {
+  const { groups, kind, poster: posterOpts, species, packSpec, onProgress, deps } = opts
+  const { signal } = posterOpts
+  if (signal?.aborted) throw abortError()
   const packFn = deps?.pack ?? packForImage
   const makePosterFn = deps?.makePoster ?? (await import('./poster')).makePoster
-  const files: Record<string, Uint8Array> = {}
-  const total = groups.length
-  for (let i = 0; i < total; i++) {
-    check()
-    const group = groups[i]
-    const spec = packSpec(group.entries, group)
-    const pack = await packFn(group.entries, species, spec, signal)
+  const view = viewLabel(posterOpts)
+  let namesDropped = 0
+  const blob = await zipGroups(groups, signal, onProgress, async (group, check) => {
+    const pack = await packFn(group.entries, species, packSpec(group.entries, group), signal)
     check()
     let p: Poster | null = null
     try {
-      p = await makePosterFn(
-        {
-          ...posterOpts,
-          entries: group.entries,
-          species,
-          pack,
-          filterLabel: group.label,
-        },
-        () => {},
-      )
+      p = await makePosterFn({ ...posterOpts, entries: group.entries, species, pack, filterLabel: groupLabel(view, group) }, () => {})
       check()
-      const blob = await p.file(kind)
-      check()
-      files[`${group.stem}.${kind}`] = new Uint8Array(await blob.arrayBuffer())
-      onProgress?.(i + 1, total, group)
+      const bytes = new Uint8Array(await (await p.file(kind)).arrayBuffer())
+      if (p.namesDropped) namesDropped++
+      return { ext: kind, bytes }
     } finally {
       p?.dispose()
     }
+  })
+  return { blob, namesDropped }
+}
+
+/** The share images' options for every group's image (`filterLabel` and `goal` are the view's, as BulkPosterOpts). */
+type BulkImageOpts = Omit<ShareImageOpts, 'entries' | 'pack' | 'species' | 'format'> & { format: ImageFormat }
+
+type ImageZipOpts = {
+  groups: readonly BulkGroup[]
+  image: BulkImageOpts
+  species: SpeciesIndex
+  onProgress?: BulkZipOpts['onProgress']
+  deps?: {
+    pack?: (entries: ListEntry[], species: SpeciesIndex, spec: PackSpec, signal?: AbortSignal) => Promise<ImagePack>
+    render?: (opts: ShareImageOpts) => Promise<Blob>
   }
-  check()
-  const zipped = zipSync(files, { level: 0 })
-  return new Blob([zipped as Uint8Array<ArrayBuffer>], { type: 'application/zip' })
+}
+
+/**
+ * What to pack for one group's share image: the dialog's own pack for its format, with the group's label line, and the
+ * latest lifer row unless it is off (a group with no dated bird has none either; its collage then keeps the row's room).
+ */
+export function bulkImagePackSpec(entries: ListEntry[], o: Pick<BulkImageOpts, 'format' | 'name' | 'goal' | 'countSize' | 'arrangement' | 'latest' | 'trueSize'>): PackSpec {
+  return imagePackSpec(o.format, { name: !!o.name?.trim(), filter: true, latest: o.latest !== false, count: entries.length, target: o.goal?.target, countSize: o.countSize }, undefined, undefined, o.arrangement, o.trueSize)
+}
+
+/** A ZIP of one share image (PNG) per group, in the dialog's format and with its options. */
+export async function makeImageZip(opts: ImageZipOpts): Promise<Blob> {
+  const { groups, image, species, onProgress, deps } = opts
+  const packFn = deps?.pack ?? packForImage
+  const render = deps?.render ?? renderShareImage
+  const view = viewLabel(image)
+  return zipGroups(groups, image.signal, onProgress, async (group, check) => {
+    const pack = await packFn(group.entries, species, bulkImagePackSpec(group.entries, image), image.signal)
+    check()
+    const png = await render({ ...image, entries: group.entries, species, pack, filterLabel: groupLabel(view, group) })
+    return { ext: 'png', bytes: new Uint8Array(await png.arrayBuffer()) }
+  })
 }

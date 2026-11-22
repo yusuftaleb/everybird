@@ -6,13 +6,11 @@ import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { STICKER_BASE } from '@/lib/sticker-url'
 import { TOTAL } from './how-it-works-data'
-import { demoStickerUrl, poster, POSTER_STICKERS, Scene } from './HowItWorksScene'
+import { demoSticker, poster, POSTER_EAGER, POSTER_STICKERS, Scene } from './HowItWorksScene'
 import { LookContext, type Layout } from './stageshow/looks'
 
 // The live scene (the Stageshow kit and the script) loads on its own, after the page: the poster stands in until then.
 const loadStage = () => import('./HowItWorksStage')
-/** The biggest stickers of the poster are preloaded from the document's head; the rest follow as the poster parses. */
-const PRELOAD = 6
 /** How long the poster holds in view before the story starts, and how long it waits at most for its stickers. */
 const HOLD_MS = 600
 const STICKERS_MS = 3000
@@ -21,19 +19,19 @@ const SIZE: Record<Layout, [number, number]> = { wide: [720, 470], compact: [358
 
 /**
  * The figure's first frame, server-rendered: the collage made, every sticker around its count (the scene's poster
- * state), in both designs; the slot's width picks one (under 560px the compact one, as the stage does) and scales it
- * to the slot. Layout and text are there with the page's HTML; each sticker fades in as it decodes. It is the whole
+ * state), in both designs; the slot's width picks one (under 560px the compact one, as the stage does) and zooms it
+ * to the slot, past its design size too (up to 2x, as the stage's fill), laid out at that size so it stays sharp. Layout and text are there with the page's HTML; each sticker fades in as it decodes. It is the whole
  * figure under reduced motion.
  */
 export function HowItWorksPoster() {
   const box = useRef<HTMLDivElement>(null)
-  // Where CSS can't divide lengths (calc(100cqw / 720px)), the scale is measured once mounted.
+  // Where CSS can't make the ratio (tan(atan2(100cqw, 720px)), how-it-works.css), the zoom is measured once mounted.
   useLayoutEffect(() => {
     const el = box.current
-    if (!el || CSS.supports('scale', 'calc(100cqw / 720px)')) return
+    if (!el || CSS.supports('scale', 'tan(atan2(100cqw, 720px))')) return
     const fit = () => {
       const w = el.clientWidth
-      el.style.setProperty('--k', String(Math.min(1, w / (w < 560 ? 358 : 720))))
+      el.style.setProperty('--k', String(Math.min(2, w / (w < 560 ? 358 : 720))))
     }
     fit()
     const ro = new ResizeObserver(fit)
@@ -63,15 +61,20 @@ const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: redu
  * hidden) tells the same story in words. The slot's height is set in CSS for both designs (about.css), and the static
  * poster fills it from the first paint, so the figure never shows an empty box and nothing shifts. Once the figure is
  * in view (and its poster's stickers are in, or a few seconds have passed) the live stage mounts under the poster and
- * the poster fades away as the story starts; the stage pauses off screen and in a hidden tab. Under reduced motion the
- * poster is all there is.
+ * the poster fades away as the story starts; the stage pauses off screen and in a hidden tab, and a quiet Pause beside
+ * the credit stops it (its still frame) until Play. Under reduced motion the poster is all there is.
  */
 export function HowItWorksDemo() {
   const { t } = useI18n()
   preconnect(STICKER_BASE)
-  for (const code of POSTER_STICKERS.slice(0, PRELOAD)) preload(demoStickerUrl(code), { as: 'image' })
+  for (const code of POSTER_STICKERS.slice(0, POSTER_EAGER)) {
+    const img = demoSticker(code)
+    preload(img.src, { as: 'image', imageSrcSet: img.srcSet, imageSizes: img.sizes })
+  }
   const slot = useRef<HTMLDivElement>(null)
-  const [Stage, setStage] = useState<ComponentType | null>(null)
+  const [Stage, setStage] = useState<ComponentType<{ paused?: boolean }> | null>(null)
+  // The viewer's Pause (WCAG 2.2.2: a loop that runs as long as it is on screen can be stopped); Play starts it afresh.
+  const [paused, setPaused] = useState(false)
   const [posterGone, setPosterGone] = useState(false)
   const [fading, setFading] = useState(false)
 
@@ -81,15 +84,17 @@ export function HowItWorksDemo() {
     let live = true
     let timer = 0
     // The live scene's code, fetched once the page has loaded (at an idle moment), so it never competes with the page.
-    const code = new Promise<ComponentType>((resolve) => {
+    const code = new Promise<ComponentType<{ paused?: boolean }>>((resolve) => {
       const go = () => void loadStage().then((m) => resolve(m.default))
       const idle = () => ('requestIdleCallback' in window ? window.requestIdleCallback(go, { timeout: 2000 }) : setTimeout(go, 200))
       if (document.readyState === 'complete') idle()
       else window.addEventListener('load', idle, { once: true })
     })
-    // The poster's stickers: every one decoded (or failed), or STICKERS_MS, whichever comes first.
+    // The shown design's stickers: every one decoded (or failed), or STICKERS_MS, whichever comes first. The other design
+    // is display: none, and its lazy stickers never load.
+    const shown = [...el.querySelectorAll<HTMLElement>('[data-poster]')].filter((d) => d.getClientRects().length > 0)
     const stickers = Promise.race([
-      Promise.all([...el.querySelectorAll<HTMLImageElement>('[data-poster] img')].map((img) => img.decode().catch(() => {}))),
+      Promise.all(shown.flatMap((d) => [...d.querySelectorAll('img')]).map((img) => img.decode().catch(() => {}))),
       new Promise((r) => window.setTimeout(r, STICKERS_MS)),
     ])
     const io = new IntersectionObserver(([e]) => {
@@ -114,12 +119,20 @@ export function HowItWorksDemo() {
   return (
     <figure className="eb-howto">
       <div ref={slot} className="eb-howto-slot" aria-hidden="true" data-testid="howto-demo" data-live={Stage ? '' : undefined}>
-        {Stage && <Stage />}
+        {Stage && <Stage paused={paused} />}
         {!posterGone && <div className="eb-howto-poster" data-fading={fading || undefined}><HowItWorksPoster /></div>}
       </div>
-      <p className="eb-howto-credit">
-        {rich(t.demo.credit, { link: (chunk) => <a href="https://github.com/alchaincyf/huashu-bird-sticker" target="_blank" rel="noopener noreferrer">{chunk}</a> })}
-      </p>
+      <div className="eb-howto-foot">
+        <p className="eb-howto-credit">
+          {rich(t.demo.credit, { link: (chunk) => <a href="https://github.com/alchaincyf/huashu-bird-sticker" target="_blank" rel="noopener noreferrer">{chunk}</a> })}
+        </p>
+        {/* Only once the live stage runs (never under reduced motion, where the poster is all there is). */}
+        {Stage && (
+          <button type="button" className="eb-textbtn eb-howto-pause" onClick={() => setPaused(!paused)} data-testid="howto-pause">
+            {paused ? t.demo.play : t.demo.pause}
+          </button>
+        )}
+      </div>
       <figcaption className="eb-sr">{fmt(t.demo.caption, { total: formatInt(TOTAL, t.num) })}</figcaption>
     </figure>
   )

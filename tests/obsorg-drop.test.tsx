@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ObsOrgDrop, type ObsOrgConnected } from '@/components/import/ObsOrgDrop'
 import { obsorgExcluded } from '@/components/import/obsorg-copy'
+import { EN_UI } from '@/i18n/messages/en-ui'
 import { fmt } from '@/i18n/core'
 import { en } from '@/i18n/messages/en'
 import type { Slot, Unmatched } from '@/lib/list/model'
@@ -20,7 +21,7 @@ afterEach(() => {
 
 const none: RowCount = { species: 0, only: 0, onlyIn: 'here' }
 function countsWith(rows: Partial<Record<Slot, RowCount>>): SourceCounts {
-  const all = { ebird: none, 'ebird-list': none, inat: none, obsorg: none, 'obsorg-list': none, sheet: none, scythebill: none, manual: none, ...rows }
+  const all = { ebird: none, 'ebird-list': none, inat: none, obsorg: none, 'obsorg-list': none, sheet: none, scythebill: none, igoterra: none, manual: none, ...rows }
   return { total: 0, rows: all, parts: [] }
 }
 const named = (row: number, sci: string, com?: string): Unmatched => ({ source: 'obsorg', slot: 'obsorg-list', row, sci, ...(com ? { com } : {}), reason: 'not-species' })
@@ -84,9 +85,38 @@ describe('ObsOrgDrop: the two observation.org rows', () => {
     expect(why).toHaveTextContent("2 rows couldn't be matched to this year's eBird taxonomy. Fix them")
     expect(within(row).getByRole('button', { name: `Replace ${FILE}` })).toBeInTheDocument()
     fireEvent.click(within(row).getByRole('button', { name: 'More for observation.org life list' }))
-    expect(screen.getByRole('menuitem', { name: 'Replace' })).toBeInTheDocument()
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Remove']) // Replace is the button beside it
     fireEvent.click(screen.getByRole('menuitem', { name: 'Remove' }))
-    expect(within(row).getByRole('group', { name: 'Remove your observation.org life list' })).toHaveTextContent(/^Remove your observation\.org life list\? Its birds leave your collage/)
+    // The confirmation is a dialog portalled to the body (ConfirmDialog), not a box in the row.
+    expect(screen.getByRole('alertdialog', { name: /^Remove your observation\.org life list/ })).toHaveTextContent(/^Remove your observation\.org life list\? Its birds leave your collage/)
+  })
+
+  it('"why?" opens a popover over the grid: it closes on Esc (focus back on why?), a press outside, focus leaving, or why? again', () => {
+    render(<ObsOrgDrop job={idle} onFile={() => {}} connected={lifeList} saved={lifeListSaved()} counts={countsWith({ 'obsorg-list': { species: 6, only: 2, onlyIn: 'here' } })} onRemove={() => {}} />)
+    const row = screen.getByTestId('source-obsorg-list')
+    const btn = within(row).getByRole('button', { name: 'Why 7 skipped?' })
+    const pop = within(row).getByTestId('not-counted')
+    // In the cell, not under the row: nothing in the grid moves when it opens.
+    expect(pop.parentElement).toHaveClass('eb-src-main')
+    expect(pop).toHaveClass('eb-whypop')
+    btn.focus()
+    fireEvent.click(btn)
+    expect(pop).toBeVisible()
+    fireEvent.keyDown(pop, { key: 'Escape' })
+    expect(pop).not.toBeVisible()
+    expect(btn).toHaveFocus()
+    fireEvent.click(btn)
+    fireEvent.pointerDown(pop)
+    expect(pop).toBeVisible() // a press inside keeps it
+    fireEvent.pointerDown(document.body)
+    expect(pop).not.toBeVisible()
+    fireEvent.click(btn)
+    fireEvent.blur(btn, { relatedTarget: document.body })
+    expect(pop).not.toBeVisible()
+    fireEvent.click(btn)
+    fireEvent.click(btn)
+    expect(pop).not.toBeVisible()
+    expect(btn).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('without details: the fallback name and "Details unknown"', () => {
@@ -195,14 +225,15 @@ describe('ObsOrgDrop: the two observation.org rows', () => {
     expect(screen.queryByRole('group', { name: 'Add observation.org observations' })).toBeNull()
   })
 
-  it('a dropped file is read; while busy, the status shows here', () => {
+  it('a dropped file is read; while busy, the grid shows no progress (the import toast does: round 6 item 7)', () => {
     const onFile = vi.fn()
     const file = new File(['x'], 'o.csv', { type: 'text/csv' })
     const { rerender } = render(<ObsOrgDrop job={idle} onFile={onFile} />)
     fireEvent.drop(screen.getByTestId('obsorg-drop'), { dataTransfer: { files: [file], types: ['Files'] } })
     expect(onFile).toHaveBeenCalledWith(file)
     rerender(<ObsOrgDrop job={{ busy: true, rows: 1200, error: null }} onFile={onFile} />)
-    expect(screen.getByRole('status')).toHaveTextContent('Reading your file… 1,200 rows')
+    expect(screen.getByTestId('obsorg-drop')).not.toHaveTextContent(/Reading your file/)
+    expect(screen.getByTestId('obsorg-drop')).toHaveAttribute('data-busy')
     rerender(<ObsOrgDrop job={{ ...idle, error: 'obsorg-no-birds' }} onFile={onFile} />)
     expect(screen.getByRole('alert')).toHaveTextContent('No birds in this file.')
     // Disabled (the eBird rows are reading a file): a drop is not taken.
@@ -214,12 +245,12 @@ describe('ObsOrgDrop: the two observation.org rows', () => {
 
 describe('observation.org copy', () => {
   it('the excluded sentence: each part left out at 0, one and other', () => {
-    expect(obsorgExcluded(0, 0)).toBeNull()
-    expect(obsorgExcluded(1, 0)).toBe("1 observation marked as an escape isn't counted.")
-    expect(obsorgExcluded(0, 1)).toBe("1 observation marked uncertain isn't counted.")
-    expect(obsorgExcluded(0, 3)).toBe("3 observations marked uncertain aren't counted.")
-    expect(obsorgExcluded(1, 1)).toBe("1 observation marked as an escape and 1 marked uncertain aren't counted.")
-    expect(obsorgExcluded(2, 1)).toBe("2 observations marked as escapes and 1 marked uncertain aren't counted.")
+    expect(obsorgExcluded(0, 0, EN_UI)).toBeNull()
+    expect(obsorgExcluded(1, 0, EN_UI)).toBe("1 observation marked as an escape isn't counted.")
+    expect(obsorgExcluded(0, 1, EN_UI)).toBe("1 observation marked uncertain isn't counted.")
+    expect(obsorgExcluded(0, 3, EN_UI)).toBe("3 observations marked uncertain aren't counted.")
+    expect(obsorgExcluded(1, 1, EN_UI)).toBe("1 observation marked as an escape and 1 marked uncertain aren't counted.")
+    expect(obsorgExcluded(2, 1, EN_UI)).toBe("2 observations marked as escapes and 1 marked uncertain aren't counted.")
   })
   it("the match report's place for each export's rows", () => {
     expect(fmt(en.ui.import.obsorg.whereList, { row: 13 })).toBe('observation.org life list row 13')

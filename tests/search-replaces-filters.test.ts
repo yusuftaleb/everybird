@@ -1,5 +1,5 @@
 // Smart search: a search REPLACES the filters (it never stacks onto the previous search's or the manual ones), the
-// bird group shows once, and "Filters · N" counts it.
+// bird group shows once, and the Filters button's count badge counts it.
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { filterChips } from '@/lib/list/chips'

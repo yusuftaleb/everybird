@@ -1,7 +1,7 @@
 import type { Ui } from '@/i18n/messages/en'
 
 // The collage's title (Settings > "Name your collage", `Saved.name`): written by the birder and used verbatim, on the
-// collage page, in the share dialog, on share images and in share links. Empty: "My collage" on the page and no title
+// collage page, in the share dialog, on share images and in share links. Empty: "My birds" on the page and no title
 // on shares. Before v4 the field asked for a person's name and the app added "'s birds"; migrateSaved (storage.ts)
 // turns such an old name into that title once, so nobody sees a change.
 
@@ -10,7 +10,7 @@ export const TITLE_MAX = 40
 const SUFFIX = "'s birds"
 
 /** Trimmed, at most TITLE_MAX characters (code points), trimmed again. */
-export function cleanTitle(s: string): string {
+function cleanTitle(s: string): string {
   return Array.from(s.trim()).slice(0, TITLE_MAX).join('').trim()
 }
 
@@ -20,7 +20,7 @@ export function cleanTitle(s: string): string {
  * a year (1900–2099), is possessive ("'s " or "’s ", or ends in "'s"), or starts "My " or holds " of " ("My year",
  * "Birds of Kenya"). A bare name ("Ada", "Sam Birder") does none of these.
  */
-export function looksLikeTitle(name: string): boolean {
+function looksLikeTitle(name: string): boolean {
   const s = name.toLowerCase()
   return (
     /\b(birds?|birding|lists?|life|lifers?)\b/.test(s) ||
@@ -42,7 +42,7 @@ export function titleFromOldName(name: string): string {
   return `${Array.from(n).slice(0, room).join('').trimEnd()}${SUFFIX}`
 }
 
-/** The collage page's title: the saved title, or the language's "My collage" (`t.collage.untitled`). */
+/** A list's title for display: the saved title, or the language's "My birds" (`t.collage.untitled`). The collage page itself is always titled "My birds" (CollagePage). */
 export function pageTitle(name: string | undefined, t: Ui): string {
   return name?.trim() || t.collage.untitled
 }

@@ -6,8 +6,18 @@ import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
 import { nl } from '@/i18n/messages/nl'
 import { pt } from '@/i18n/messages/pt'
+import { pl } from '@/i18n/messages/pl'
+import { fr } from '@/i18n/messages/fr'
+import { de } from '@/i18n/messages/de'
+import { it as italian } from '@/i18n/messages/it'
+import { sv } from '@/i18n/messages/sv'
+import { da } from '@/i18n/messages/da'
+import { ru } from '@/i18n/messages/ru'
+import { ja } from '@/i18n/messages/ja'
+import { zhHans } from '@/i18n/messages/zh-Hans'
+import { zhHant } from '@/i18n/messages/zh-Hant'
 import { OG_CACHE_COMPLETE, OG_CACHE_DEGRADED, ogCacheControl, ogDescription, ogName, ogResponseOptions, ogTitle, pickOgBirds, shareTitle, pickOgStickers, tryDecodeShare } from '@/lib/share/og'
-import { coversLatin1, parseFontFaces, pickFaces, serverNames } from '@/lib/share/og-server'
+import { coversLatin1, coversPolishExtra, parseFontFaces, pickFaces, serverNames } from '@/lib/share/og-server'
 
 const T = en.ui
 
@@ -61,7 +71,7 @@ describe('metadata strings', () => {
     expect(ogTitle(p(undefined, 3), T)).toBe('A life list: 3 species')
     expect(ogTitle(p('  ', 1), T)).toBe('A life list: 1 species')
     expect(ogTitle(p(undefined, 1234), T)).toBe('A life list: 1,234 species')
-    expect(ogTitle(null, T)).toBe('Everybird')
+    expect(ogTitle(null, T)).toBe("This link didn't open · Everybird")
     expect(ogTitle(p('Ada', 2), T)).not.toMatch(/—/)
   })
   it("the page h1 (and the card's title): the title verbatim, an old bare name as \"<name>'s life list\"", () => {
@@ -73,7 +83,7 @@ describe('metadata strings', () => {
   })
   it('describes what Everybird is, for someone who has never heard of it: the shared page\'s lede, one source', () => {
     expect(ogDescription(T)).toBe("Everybird turns a birder's life list into a sticker collage.")
-    for (const m of [en, es, pt, nl]) expect(ogDescription(m.ui)).toBe(m.ui.shared.lede)
+    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans, zhHant]) expect(ogDescription(m.ui)).toBe(m.ui.shared.lede)
     expect(ogName({}, es.ui)).toBe(es.ui.shared.untitled)
   })
   it('titles in Spanish and Portuguese: a new title verbatim, numbers with the language\'s separator', () => {
@@ -82,7 +92,7 @@ describe('metadata strings', () => {
     expect(ogTitle(p(undefined, 1), es.ui)).toBe('Una lista de vida: 1 especie')
     expect(ogTitle(p(undefined, 1234), pt.ui)).toBe('Uma lista de vida: 1.234 espécies')
     expect(ogTitle(p(undefined, 3), nl.ui)).toBe('Een levenslijst: 3 soorten')
-    expect(ogTitle(null, pt.ui)).toBe('Everybird')
+    expect(ogTitle(null, pt.ui)).toBe(`${pt.ui.shared.brokenTitle} · Everybird`)
     expect(ogName({ name: 'Aves de 2026', titled: true }, pt.ui)).toBe('Aves de 2026')
     expect(ogName({}, es.ui)).toBe('La lista de vida de un observador de aves')
     expect(ogName({}, pt.ui)).toBe('A lista de vida de um observador de aves')
@@ -111,19 +121,20 @@ describe('parseFontFaces', () => {
   })
 })
 
-describe('the card fonts cover Latin-1', () => {
+describe('the card fonts cover Latin-1 and Polish', () => {
   // Google answers some user agents with one face per subset (unicode-range); the card must take the one with
-  // Latin-1's accented letters (á, ã, ç, é, ë, ñ, ú), or "Última especie nueva" would draw in the fallback font.
+  // Latin-1's accented letters (á, ã, ç, é, ë, ñ, ú), or "Última especie nueva" would draw in the fallback font;
+  // and, since that face alone has no Polish letters (ą, ć, ę, ł, ń, ś, ź, ż), also the face that does, so "Kolaż
+  // Ady" draws them too (satori tries each font registered for a family and weight in turn).
   const css = `@font-face { font-family: 'Geist Mono'; font-weight: 400; src: url(https://g/ext.ttf) format('truetype'); unicode-range: U+0100-02BA, U+1E00-1EFF; }
 @font-face { font-family: 'Geist Mono'; font-weight: 400; src: url(https://g/latin.ttf) format('truetype'); unicode-range: U+0000-00FF, U+0131, U+0152-0153; }
 @font-face { font-family: 'Satoshi'; font-weight: 500; src: url(https://f/s.ttf) format('truetype'); }`
   it('keeps the unicode-range a face declares', () => {
     expect(parseFontFaces(css).map((f) => f.range)).toEqual(['U+0100-02BA, U+1E00-1EFF', 'U+0000-00FF, U+0131, U+0152-0153', undefined])
   })
-  it('chooses the face whose range covers U+00C0 to U+00FF; a face without a range covers everything', () => {
+  it('chooses the face whose range covers U+00C0 to U+00FF, plus one for Polish\'s extra letters; a face without a range covers everything', () => {
     const picked = pickFaces(parseFontFaces(css), [{ family: 'Geist Mono', weight: 400 }, { family: 'Satoshi', weight: 500 }])
-    expect(picked.map((f) => f.url)).toEqual(['https://g/latin.ttf', 'https://f/s.ttf'])
-    for (const f of picked) expect(coversLatin1(f.range)).toBe(true)
+    expect(picked.map((f) => f.url)).toEqual(['https://g/latin.ttf', 'https://g/ext.ttf', 'https://f/s.ttf'])
   })
   it('reads ranges, split spans and wildcards', () => {
     expect(coversLatin1('U+0000-00FF')).toBe(true)
@@ -131,6 +142,11 @@ describe('the card fonts cover Latin-1', () => {
     expect(coversLatin1('U+00??')).toBe(true)
     expect(coversLatin1('U+0000-007F')).toBe(false)
     expect(coversLatin1('U+0100-024F')).toBe(false)
+  })
+  it('a face covers Polish\'s extra letters when its range touches any of them; no range covers everything', () => {
+    expect(coversPolishExtra('U+0100-02BA, U+1E00-1EFF')).toBe(true)
+    expect(coversPolishExtra('U+0000-00FF, U+0131, U+0152-0153')).toBe(false)
+    expect(coversPolishExtra(undefined)).toBe(true)
   })
 })
 
@@ -167,6 +183,9 @@ describe('ogResponseOptions', () => {
     expect(ogResponseOptions(f, { placed: 60, expected: 60 }).headers['cache-control']).toBe(OG_CACHE_COMPLETE)
     expect(ogResponseOptions(f, { placed: 59, expected: 60 }).headers['cache-control']).toContain('s-maxage=60')
     expect(ogResponseOptions(f.slice(1), { placed: 60, expected: 60 }).headers['cache-control']).toContain('s-maxage=60')
+    // A Russian card also needs Noto Sans 500 and 700 for its Cyrillic.
+    expect(ogResponseOptions(f, { placed: 60, expected: 60, lang: 'ru' }).headers['cache-control']).toContain('s-maxage=60')
+    expect(ogResponseOptions([...f, f[0], f[0]], { placed: 60, expected: 60, lang: 'ru' }).headers['cache-control']).toBe(OG_CACHE_COMPLETE)
   })
 })
 
@@ -227,9 +246,10 @@ describe('the link preview in the page\'s language', () => {
 })
 
 describe('the link preview footer', () => {
-  it('link previews carry the footer line without the date stamp', () => {
+  it('link previews carry the credits link without the date stamp (beside the collage, alone on its line under the wordmark)', () => {
     const src = readFileSync(resolve('app/[lang]/s/[token]/opengraph-image.tsx'), 'utf8')
-    expect(src).toContain('{FOOTER_LINE}')
+    expect(src.match(/\{FOOTER_LINE\}/g)).toHaveLength(2)
+    expect(src).not.toMatch(/SITE_LABEL|STICKER_CREDIT|Stickers:/)
     expect(src).not.toMatch(/stampDate|withStamp|share\/stamp/)
   })
 })

@@ -2,9 +2,9 @@
 // landscape flag, through the same fakes as poster.test.ts (no canvas, worker or network). Portrait is unchanged.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { en } from '@/i18n/messages/en'
-import { prepareCard, type ImagePack } from '@/lib/share/image'
+import { POSTER_FOOT, SMALL_INLINE, prepareCard, type ImagePack } from '@/lib/share/image'
 import {
-  PRINT_CM, PRINT_IN, PRINT_PT, PRINT_PX, isUsSize, printCm, printDesign, printDesignH, printFileStem, printIn, printPt, printPx, printScale, stripRanges, type PrintSize,
+  PRINT_CM, PRINT_IN, PRINT_PT, PRINT_PX, isUsSize, printCm, printDesign, printDesignH, printFormat, printIn, printPt, printPx, printScale, stripRanges, type PrintSize,
 } from '@/lib/share/print'
 import { makePoster, posterRows, type EncoderPort, type PosterDeps } from '@/lib/share/poster'
 import type { PrintStickers } from '@/lib/share/print-stickers'
@@ -17,7 +17,7 @@ afterEach(() => vi.unstubAllGlobals())
 const SIZES: PrintSize[] = ['A4', 'A3', 'A2', 'A1', 'US12x18', 'US18x24', 'US24x36']
 
 describe('the landscape sizes', () => {
-  it('swaps width and height: A4 landscape is 1754 × 1240 px, the same ISO or US size turned', () => {
+  it('swaps width and height: A4 landscape is 3508 × 2480 px, the same ISO or US size turned', () => {
     for (const s of SIZES) {
       expect(printPx(s, true)).toEqual([PRINT_PX[s][1], PRINT_PX[s][0]])
       expect(printPt(s, true)).toEqual([PRINT_PT[s][1], PRINT_PT[s][0]])
@@ -26,8 +26,9 @@ describe('the landscape sizes', () => {
       expect(printPx(s, false)).toEqual(PRINT_PX[s])
       expect(printPt(s, false)).toEqual(PRINT_PT[s])
     }
-    expect(printPx('A4', true)).toEqual([1754, 1240])
-    expect(printPx('US24x36', true)).toEqual([5400, 3600])
+    expect(printPx('A4', true)).toEqual([3508, 2480])
+    expect(printPx('A2', true)).toEqual([7016, 4961])
+    expect(printPx('US24x36', true)).toEqual([10800, 7200])
     expect(printIn('US24x36', true)).toEqual([36, 24])
     expect(printPt('A4', true)[0]).toBeCloseTo(841.89, 2)
     expect(printPt('A4', true)[1]).toBeCloseTo(595.28, 2)
@@ -46,17 +47,17 @@ describe('the landscape sizes', () => {
     }
   })
 
-  it('names the files: everybird-a2.png, everybird-24x36in.png, and -landscape beside them', () => {
-    expect(printFileStem('A2')).toBe('everybird-a2')
-    expect(printFileStem('A2', true)).toBe('everybird-a2-landscape')
-    expect(printFileStem('A4', true)).toBe('everybird-a4-landscape')
-    expect(printFileStem('US12x18')).toBe('everybird-12x18in')
-    expect(printFileStem('US18x24', true)).toBe('everybird-18x24in-landscape')
-    expect(printFileStem('US24x36')).toBe('everybird-24x36in')
-    expect(printFileStem('US24x36', true)).toBe('everybird-24x36in-landscape')
+  it('names the poster formats: a2, 24x36in, and -landscape beside them', () => {
+    expect(printFormat('A2')).toBe('a2')
+    expect(printFormat('A2', true)).toBe('a2-landscape')
+    expect(printFormat('A4', true)).toBe('a4-landscape')
+    expect(printFormat('US12x18')).toBe('12x18in')
+    expect(printFormat('US18x24', true)).toBe('18x24in-landscape')
+    expect(printFormat('US24x36')).toBe('24x36in')
+    expect(printFormat('US24x36', true)).toBe('24x36in-landscape')
   })
 
-  it('lays a landscape card out at its own width and the same 1080 height, with the latest row stacked', async () => {
+  it('lays a landscape card out at its own width and the same 1080 height, with the poster\'s one-line foot and the latest lifer\'s row above it', async () => {
     const row = (code: string, to: number) => ({ code, com: code, sci: code, ord: 'Struthioniformes', fam: 'Struthionidae', famCom: 'Ostriches', to, g: 100000, gSrc: 'family', st: true, ar: 1, q: true }) as SpeciesRow
     const codes = ['synl0', 'synl1', 'synl2']
     const sp = buildSpeciesIndex(codes.map((c, i) => row(c, i + 1)))
@@ -64,9 +65,14 @@ describe('the landscape sizes', () => {
     const pack: ImagePack = { W: 1000, H: 800, boxes: new Map(codes.map((c, i) => [c, [200 + i * 250, 300, 160, 120]])) }
     const card = await prepareCard({ format: 'printLandscape', printSize: 'A2', theme: 'light', entries: es, species: sp, pack, now: new Date(2026, 10, 15), strings: en.ui }, printScale('A2'))
     expect([card.L.W, card.L.H]).toEqual([printDesign('A2', true)[0], 1080])
-    // The landscape poster keeps the row stacked above the hairline (a long name won't fit beside the credit).
-    expect(card.L.latest?.oneLine).toBe(false)
-    expect(card.L.footer.y).toBe(1080 - 64 - 30)
+    // The latest lifer is the images' one-line row above the hairline (round 6, item 24), its sticker in the row's square;
+    // the foot is the wordmark, the credits link and the date on one line, at the full size.
+    expect(card.L.latest).toMatchObject({ x: 64, icon: SMALL_INLINE.icon, inline: true })
+    expect(Math.max(card.lifer!.w, card.lifer!.h)).toBe(SMALL_INLINE.icon)
+    expect(card.latest).toMatchObject({ name: 'synl0', label: 'Latest lifer · May 2024' })
+    expect([card.footerLine, card.stamp]).toEqual(['everybird.yusuftaleb.com/credits', '15 Nov 2026'])
+    expect(card.credit).toEqual({ size: POSTER_FOOT.line, brand: true })
+    expect(card.L.footer.y).toBe(1080 - 64 - POSTER_FOOT.brand)
   })
 })
 
@@ -125,11 +131,11 @@ describe('makePoster, landscape', () => {
     })
   }
 
-  it('portrait is unchanged: A4 is 1240 × 1754 with the portrait page', async () => {
+  it('portrait is unchanged: A4 is 2480 × 3508 with the portrait page', async () => {
     const { deps, enc } = fakeDeps()
     const poster = await makePoster({ size: 'A4', theme: 'light', entries: pentries, species: psp, pack: ppack, now: new Date(2026, 10, 15), strings: en.ui }, () => {}, deps)
     expect(poster.landscape).toBe(false)
-    expect(enc.begin).toHaveBeenCalledWith(1240, 1754)
+    expect(enc.begin).toHaveBeenCalledWith(2480, 3508)
     await poster.file('pdf')
     expect(enc.file).toHaveBeenCalledWith('pdf', PRINT_PT.A4)
     poster.dispose()

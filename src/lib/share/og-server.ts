@@ -1,8 +1,9 @@
 // Server side of the link preview: species and masks read from public/data (from disk on Node, from the Worker's static
 // assets on Cloudflare: public-text.ts), fonts from Fontshare and Google (cached in memory), sticker bytes fetched with a
 // timeout, converted to PNG (sticker-png.ts) and embedded as data URLs.
-import type { MaskLoader, MaskTable } from '@/lib/layout/layout.worker'
-import { readPublicText } from './public-text'
+import type { MaskLoader } from '@/lib/layout/layout.worker'
+import { readMaskFile, type MaskSet } from '@/lib/layout/mask-file'
+import { readPublicBytes, readPublicText } from './public-text'
 import { stickerPng } from './sticker-png'
 import { stickerUrl } from '@/lib/sticker-url'
 import { baseOfLang } from '@/lib/species/name-locales'
@@ -38,21 +39,20 @@ export function serverNames(lang: string): Promise<Record<string, string> | null
   return p.catch(() => null)
 }
 
-const maskTables = new Map<string, Promise<MaskTable>>()
-/** The layout worker's MaskLoader, reading the order's file from disk (loadBirds falls back to ellipses on failure). */
-export const serverMasks: MaskLoader = (order) => {
-  let p = maskTables.get(order)
-  if (!p) {
-    p = readPublicText(dataFile('masks', `${order}.v1.json`)).then((t) => JSON.parse(t) as MaskTable)
-    maskTables.set(order, p)
-    p.catch(() => maskTables.delete(order))
+let masksP: Promise<MaskSet> | null = null
+/** The layout worker's MaskLoader: every order from masks.v3.bin, read once per server process (a failure is not kept;
+ *  loadBirds falls back to ellipses). */
+export const serverMasks: MaskLoader = async (order) => {
+  if (!masksP) {
+    masksP = readPublicBytes(dataFile('masks.v3.bin')).then(readMaskFile)
+    masksP.catch(() => { masksP = null })
   }
-  return p
+  return (await masksP)[order] ?? {}
 }
 
 // --- fonts ---
 
-export type OgFont = { name: string; data: ArrayBuffer; weight: 400 | 500 | 700; style: 'normal' }
+type OgFont = { name: string; data: ArrayBuffer; weight: 400 | 500 | 700; style: 'normal' }
 const FONT_TIMEOUT_MS = 2000
 const FONT_RETRY_MS = 30_000
 const UA = 'Mozilla/5.0 (X11; U; Linux x86_64) AppleWebKit/533.0 (KHTML, like Gecko) Version/4.0 Safari/533.0' // old: Google answers with TTF
@@ -63,7 +63,7 @@ async function get(url: string, ms: number, init?: RequestInit): Promise<Respons
   return res
 }
 
-export type FontFace = { family: string; weight: number; url: string; range?: string }
+type FontFace = { family: string; weight: number; url: string; range?: string }
 
 /**
  * The @font-face blocks of a CSS file as family, weight, the first TTF/WOFF/OTF url (never WOFF2: satori can't read it)
@@ -85,30 +85,50 @@ export function parseFontFaces(css: string): FontFace[] {
 /** Latin-1's letters, U+00C0 to U+00FF: every accented letter Spanish, Portuguese and Dutch write (á, ã, ç, é, ë, ñ, ú …). */
 const LATIN1 = [0xc0, 0xff] as const
 
-/** Whether a `unicode-range` value ("U+0000-00FF, U+0131") covers all of U+00C0–U+00FF; no range covers everything. */
-export function coversLatin1(range: string | undefined): boolean {
-  if (!range) return true
-  const spans = range.split(',').flatMap((part) => {
+/** Polish's letters outside Latin-1 (ą ć ę ł ń ś ź ż and their capitals; ó/Ó are U+00F3/00D3, already in Latin-1). */
+const POLISH_EXTRA = [0x104, 0x105, 0x106, 0x107, 0x118, 0x119, 0x141, 0x142, 0x143, 0x144, 0x15a, 0x15b, 0x179, 0x17a, 0x17b, 0x17c]
+
+/** A `unicode-range` value ("U+0000-00FF, U+0131") as [start, end] spans; `?` wildcards expanded to their full span. */
+function spansOf(range: string): [number, number][] {
+  return range.split(',').flatMap((part) => {
     const m = /U\+([0-9a-f?]+)(?:-([0-9a-f]+))?/i.exec(part.trim())
     if (!m) return []
-    if (m[1].includes('?')) return [[parseInt(m[1].replace(/\?/g, '0'), 16), parseInt(m[1].replace(/\?/g, 'f'), 16)]]
+    if (m[1].includes('?')) return [[parseInt(m[1].replace(/\?/g, '0'), 16), parseInt(m[1].replace(/\?/g, 'f'), 16)] as [number, number]]
     const a = parseInt(m[1], 16)
-    return [[a, m[2] ? parseInt(m[2], 16) : a]]
+    return [[a, m[2] ? parseInt(m[2], 16) : a] as [number, number]]
   })
+}
+
+/** Whether a `unicode-range` value covers all of U+00C0–U+00FF; no range covers everything. */
+export function coversLatin1(range: string | undefined): boolean {
+  if (!range) return true
+  const spans = spansOf(range)
   // Each code point of the span must sit in some range (spans may be split, e.g. U+00C0-00DF, U+00E0-00FF).
   for (let c = LATIN1[0]; c <= LATIN1[1]; c++) if (!spans.some(([a, b]) => c >= a && c <= b)) return false
   return true
 }
 
+/** Whether a `unicode-range` value covers any of Polish's Latin Extended-A letters; no range covers everything. */
+export function coversPolishExtra(range: string | undefined): boolean {
+  if (!range) return true
+  const spans = spansOf(range)
+  return POLISH_EXTRA.some((cp) => spans.some(([a, b]) => cp >= a && cp <= b))
+}
+
 /**
  * The faces to load for `want`: per family and weight, the faces whose range covers Latin-1 (so the card's "Última
- * especie nueva" and "Lista de vida de Ada" draw in the real font, not the fallback), or all of them when none does.
+ * especie nueva" and "Lista de vida de Ada" draw in the real font, not the fallback), or all of them when none does;
+ * plus, when the Latin-1 face doesn't already cover them (Google splits Geist Mono this way), a face for Polish's
+ * extra letters (ł, ż, …), so a Polish "Kolaż Ady" draws them too instead of falling back. Satori tries each font
+ * registered under a family and weight in order, so passing both is enough.
  */
 export function pickFaces(faces: readonly FontFace[], want: readonly { family: string; weight: number }[]): FontFace[] {
   return want.flatMap((w) => {
     const all = faces.filter((f) => f.family === w.family && f.weight === w.weight)
     const latin = all.filter((f) => coversLatin1(f.range))
-    return latin.length ? latin : all
+    if (!latin.length) return all
+    const extra = all.filter((f) => !latin.includes(f) && coversPolishExtra(f.range))
+    return [...latin, ...extra]
   })
 }
 
@@ -121,18 +141,25 @@ async function loadFamily(cssUrl: string, want: { family: string; weight: number
   })))
 }
 
-// One request per family: Fontshare's CSS API answers a two-family query with only the first.
-const SOURCES = [
+// One request per family: Fontshare's CSS API answers a two-family query with only the first. `lang`: a face only that
+// language's cards fetch. Satoshi and Cabinet Grotesk have no Cyrillic, so a Russian card adds Noto Sans (one whole TTF
+// per weight from Google with the old UA, about 0.5 MB each), bold where Cabinet is; Geist Mono's Cyrillic is in a face
+// pickFaces leaves out, so mono text falls back to it too. Japanese and Chinese need none: next/og fetches a font with
+// just the characters the given fonts lack (Google Fonts' `text=`), Noto Sans JP, SC or TC by the card's `lang`.
+const SOURCES: { css: string; want: { family: string; weight: number }[]; lang?: string }[] = [
   { css: 'https://api.fontshare.com/v2/css?f[]=satoshi@500&display=swap', want: [{ family: 'Satoshi', weight: 500 }] },
   { css: 'https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700&display=swap', want: [{ family: 'Cabinet Grotesk', weight: 700 }] },
   { css: 'https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400', want: [{ family: 'Geist Mono', weight: 400 }] },
+  { css: 'https://fonts.googleapis.com/css2?family=Noto+Sans:wght@500;700', want: [{ family: 'Noto Sans', weight: 500 }, { family: 'Noto Sans', weight: 700 }], lang: 'ru' },
 ]
 const fontCache: (OgFont[] | { failedAt: number } | undefined)[] = []
 const inflight: (Promise<OgFont[]> | undefined)[] = []
 
-/** The fonts that could be fetched (each source cached once it works; a failed source is retried after 30 s). Never throws. */
-export async function ogFonts(): Promise<OgFont[]> {
+/** The fonts for a card in `lang` that could be fetched (each source cached once it works; a failed source is retried
+ *  after 30 s). Never throws. */
+export async function ogFonts(lang = 'en'): Promise<OgFont[]> {
   const parts = await Promise.all(SOURCES.map(async (s, i) => {
+    if (s.lang && s.lang !== lang) return []
     const hit = fontCache[i]
     if (Array.isArray(hit)) return hit
     if (hit && Date.now() - hit.failedAt < FONT_RETRY_MS) return []

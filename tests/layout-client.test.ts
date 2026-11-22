@@ -44,6 +44,32 @@ function setup(opts: { manual?: boolean; loaded?: string[]; failOrder?: string; 
 const until = async (cond: () => boolean) => { for (let i = 0; i < 400 && !cond(); i++) await new Promise((r) => setTimeout(r, 5)) }
 
 describe('layout client', () => {
+  it('Oval: its own states (full collage first), packed inside the stage ellipse; Fit kept apart', async () => {
+    const { client, worker } = setup()
+    client.setList(entries)
+    const fit = await client.get({ order: 'Beta' }, 'medium', 'even')
+    const n = worker.layouts().length
+    const oval = await client.get({ order: 'Beta' }, 'medium', 'even', 'oval')
+    const sent = worker.layouts().slice(n)
+    expect(sent.map((m) => [m.key, m.oval])).toEqual([['medium~oval|even|', true], ['medium~oval|even|o:Beta', true]])
+    expect(oval.key).toBe('medium~oval|even|o:Beta')
+    expect(oval.boxes).not.toEqual(fit.boxes)
+    expect(await client.get({ order: 'Beta' }, 'medium', 'even')).toBe(fit) // Fit stays cached
+    expect(worker.layouts().length).toBe(n + 2)
+  })
+
+  it('Free: its own states (full collage first), sent with `free`; Fit and Oval kept apart', async () => {
+    const { client, worker } = setup()
+    client.setList(entries)
+    const fit = await client.get({ order: 'Beta' }, 'medium', 'even')
+    const n = worker.layouts().length
+    const free = await client.get({ order: 'Beta' }, 'medium', 'even', 'free')
+    const sent = worker.layouts().slice(n)
+    expect(sent.map((m) => [m.key, m.free, m.oval])).toEqual([['medium~free|even|', true, undefined], ['medium~free|even|o:Beta', true, undefined]])
+    expect(free.key).toBe('medium~free|even|o:Beta')
+    expect(await client.get({ order: 'Beta' }, 'medium', 'even')).toBe(fit)
+  })
+
   it('refilter keeps the full collage and re-resolves filtered states with the new function', async () => {
     const { client, worker } = setup()
     client.setList(entries)

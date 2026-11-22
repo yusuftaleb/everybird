@@ -15,7 +15,7 @@ import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 export const DB = 'everybird-events'
-export const EVENTS = ['visit', 'collage_made', 'image_downloaded', 'shared', 'link_copied', 'ui_language', 'poster_made', 'poster_downloaded', 'search_applied', 'filter_used'] as const
+export const EVENTS = ['visit', 'collage_made', 'image_downloaded', 'shared', 'link_copied', 'ui_language', 'poster_made', 'poster_downloaded', 'search_applied', 'filter_used', 'compare_made', 'image_view', 'view_opened', 'batch_exported'] as const
 const TITLES: Record<string, string> = {
   visit: 'Page views (visit: once per person, page and day)',
   collage_made: 'Collages made (collage_made, by source)',
@@ -27,6 +27,10 @@ const TITLES: Record<string, string> = {
   poster_downloaded: 'Posters downloaded (poster_downloaded, by format)',
   search_applied: 'Searches applied (search_applied: smart filters or a bird)',
   filter_used: 'Filters used (filter_used, once per kind per page load)',
+  compare_made: 'Comparisons made (compare_made, by number of lists)',
+  image_view: 'What the images showed (image_view, one per image downloaded or shared)',
+  view_opened: 'Views opened (view_opened: once per person, view and day)',
+  batch_exported: 'Batches exported (batch_exported, by split)',
 }
 /** The Worker's link_copied values, in the app's words (src/lib/analytics.ts WIRE_LEVEL). */
 const VALUE_LABELS: Record<string, Record<string, string>> = {
@@ -145,7 +149,7 @@ export function formatReport(r: Results, args: Pick<Args, 'since' | 'top'>): str
   const out: string[] = [`Everybird stats since ${args.since} (days are Pacific time from 17 Nov 2026; earlier days are UTC days).People are anonymous daily ids: over several days, person-days. Visits count once per person, page and day from the 2026-11-16 deploy on; rows stored before it count every view.`]
 
   // Visitors per day, with page views by page.
-  const pages = ['landing', 'collage', 'settings', 'about', 'shared']
+  const pages = ['landing', 'collage', 'settings', 'about', 'shared', 'compare', 'compare-shared']
   const visits = new Map<string, Map<string, number>>()
   for (const v of r.visitsByDay) {
     if (!visits.has(String(v.day))) visits.set(String(v.day), new Map())

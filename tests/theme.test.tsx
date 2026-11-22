@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ThemeToggle } from '@/components/app/ThemeToggle'
-import { THEME_KEY, THEME_SCRIPT } from '@/lib/theme'
+import { THEME_KEY, THEME_SCRIPT, THEME_SWITCHING, applyTheme } from '@/lib/theme'
 
 const html = document.documentElement
 const run = () => new Function(THEME_SCRIPT)()
@@ -66,5 +66,25 @@ describe('ThemeToggle', () => {
     render(<ThemeToggle />)
     await act(async () => { fireEvent.click(screen.getByRole('switch', { name: 'Dark mode' })) })
     expect(html.dataset.theme).toBe('dark')
+  })
+})
+
+describe('the switch pauses transitions', () => {
+  it('holds every transition off from the switch until two frames later, also across a quick second switch', () => {
+    const frames: FrameRequestCallback[] = []
+    vi.stubGlobal('requestAnimationFrame', (f: FrameRequestCallback) => frames.push(f))
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => { if (id) frames[id - 1] = () => {} })
+    const frame = () => frames.splice(0).forEach((f) => f(0))
+    applyTheme('dark')
+    expect(html.dataset.theme).toBe('dark')
+    expect(html.hasAttribute(THEME_SWITCHING)).toBe(true)
+    frame()
+    expect(html.hasAttribute(THEME_SWITCHING)).toBe(true)
+    applyTheme('light') // a second switch before the first unpaused: its own two frames
+    frame()
+    expect(html.hasAttribute(THEME_SWITCHING)).toBe(true)
+    frame()
+    expect(html.hasAttribute(THEME_SWITCHING)).toBe(false)
+    expect(html.dataset.theme).toBe('light')
   })
 })

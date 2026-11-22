@@ -8,7 +8,7 @@ import { divisionId, projectPlace, resolveImportedPlace } from '@/lib/places/reg
 import { makeObsOrgPlaces } from './obsorg-places'
 import { REGION_RULES } from './inat-rules'
 
-export type ObsOrgRowKind = 'species' | 'subspecies' | 'synonym' | 'skip'
+type ObsOrgRowKind = 'species' | 'subspecies' | 'synonym' | 'skip'
 
 // eBird's Milvus migrans aegyptius/parasitus is an issf of Black Kite, not a separate species.
 export const OBSORG_SYNONYMS: Readonly<Record<string, string>> = { 'milvus aegyptius': 'blakit1' }
@@ -67,7 +67,7 @@ export const SUGGEST_MAX = 200
  * Suggestions for unmatched names, once per distinct name (a subspecies by its binomial, as it was resolved), for the
  * first SUGGEST_MAX distinct names asked about.
  */
-export function obsOrgSuggester(t: TaxonomyIndex): (sci: string, kind: Exclude<ObsOrgRowKind, 'skip'>) => string | undefined {
+function obsOrgSuggester(t: TaxonomyIndex): (sci: string, kind: Exclude<ObsOrgRowKind, 'skip'>) => string | undefined {
   const cache = new Map<string, string | undefined>()
   return (sci, kind) => {
     const name = kind === 'subspecies' ? binomialOf(sci) : sci.trim()
@@ -108,7 +108,7 @@ const PARSE = { header: true, skipEmptyLines: true, transformHeader: (h: string)
  * `undated`: counted species (codes) without any ISO `YYYY-MM-DD` date on any of their rows. Dates are read as ISO
  * only (observation.org writes them so); any other form is not guessed at, and the bird counts undated.
  */
-export type ObsOrgSpeciesResult = ImportResult & { undated: number }
+type ObsOrgSpeciesResult = ImportResult & { undated: number }
 
 /**
  * Observed species: dates and names only, with whole nonbird groups dropped. No places or marks are inferred. Every
@@ -181,7 +181,7 @@ export type ObsOrgObservationsResult = ImportResult & {
  */
 export async function parseObsOrgObservations(
   csv: string | File, t: TaxonomyIndex, synonyms: Record<string, string>, regions: Regions,
-  onProgress?: (rows: number) => void,
+  onProgress?: (rows: number, frac?: number) => void,
   loadCoordinates: (country: string) => Promise<CoordinateRegion | undefined> = loadCoordinateRegion,
 ): Promise<ObsOrgObservationsResult | { error: 'no-birds' }> {
   const placeOf = makeObsOrgPlaces(regions)
@@ -193,10 +193,13 @@ export async function parseObsOrgObservations(
   const seenUnmatched = new SeenAgg()
   const excluded = { escape: 0, uncertain: 0 }
   let rows = 0
+  // How far through the file: papaparse's cursor (decoded characters) over the file's size (bytes, near enough).
+  const total = typeof csv === 'string' ? csv.length : csv.size
+  let cursor = 0
 
   const onRow = (r: Row, location?: Place) => {
     rows++
-    if (rows % 5000 === 0) onProgress?.(rows)
+    if (rows % 5000 === 0) onProgress?.(rows, total ? cursor / total : undefined)
     if (r['is escape']?.trim().toLowerCase() === 'true') {
       excluded.escape++
       return
@@ -289,6 +292,7 @@ export async function parseObsOrgObservations(
             if (missingColumns(result.meta?.fields)) return fail(parser, new DamagedCsvError())
           }
           if (broken(result.errors)) return fail(parser, new DamagedCsvError())
+          cursor = result.meta.cursor
           const row = result.data
           const place = placeOf(row.country ?? '', row['country division'] ?? '')
           const country = place?.country

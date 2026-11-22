@@ -4,7 +4,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 // The top bar's headroom (src/lib/headroom.ts): it slides up out of view while the page scrolls down past it and back in
 // on any upward scroll; it stays shown at the top, while a dialog, sheet or popover is open, and while focus is inside
-// it. Runs in Chromium and WebKit.
+// it. While a menu, panel, popover, sheet or dialog is open it is frozen (round 6 menu audit): it keeps the state it had,
+// shown or hidden, and opening or closing one neither shows nor hides it nor scrolls the page. Runs in Chromium and WebKit.
 
 type Row = { code: string };
 /** A synthetic 300-species list (every third species in the taxonomy), tall enough to scroll at every width. */
@@ -94,39 +95,59 @@ test("scrolling down past the threshold hides the bar; a small scroll doesn't to
   expect(await barBottom(page)).toBeCloseTo(h, 0);
 });
 
-test("Places opened after scrolling: the bar shows and covers neither the controls bar nor the panel", async ({ page }) => {
+test("Filters opened after scrolling: the bar stays hidden, the page keeps its place, and neither covers the controls bar or the panel", async ({ page }) => {
   test.skip((page.viewportSize()?.width ?? 0) <= 600, "phones get the bottom sheet");
   await seed(page);
   const dockTop = await page.locator(".eb-dockwrap").evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
   await scrollTo(page, dockTop - 12); // the controls bar just under where the shown bar would be
   await hidden(page);
-  await page.getByTestId("filter-tab-places").click();
-  const panel = page.getByTestId("filter-panel-places");
+  const y0 = await page.evaluate(() => window.scrollY);
+  // A press where the button is (locator.click() would first scroll it clear of the html's scroll-padding-top).
+  const fb = (await page.getByTestId("filters-button").boundingBox())!;
+  await page.mouse.click(fb.x + fb.width / 2, fb.y + fb.height / 2);
+  const panel = page.getByTestId("filters-panel");
   await expect(panel).toBeVisible();
-  await shown(page);
+  // Opening it neither shows the bar nor scrolls the page; the panel opens under the dock where the dock is.
+  await hidden(page);
+  expect(await page.evaluate(() => window.scrollY)).toBe(y0);
   const b = await barBottom(page);
   const dock = await page.locator(".eb-dockwrap").boundingBox();
   const p = await panel.boundingBox();
   expect(dock!.y).toBeGreaterThanOrEqual(b);
   expect(p!.y).toBeGreaterThanOrEqual(b);
-  // Held while open: scrolling down doesn't hide it.
-  await scrollTo(page, (await page.evaluate(() => window.scrollY)) + 200);
-  await shown(page);
+  // Frozen while open: scrolling up doesn't bring it back.
+  await scrollTo(page, y0 - 200);
+  await hidden(page);
   await page.keyboard.press("Escape");
   await expect(panel).toHaveCount(0);
+  // Closing it doesn't show it either.
+  await hidden(page);
 });
 
-test("the bird card's sheet at 390px and the share dialog sit above the bar", async ({ page }) => {
+test("the bird card's sheet at 390px and the share dialog sit above the bar, and neither shows or hides it", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await seed(page);
+  const bird = page.getByTestId("collage-stage").locator(".eb-bird").first();
+  const card = page.locator(".eb-card[role=dialog]");
+  // Hidden: the card leaves it hidden and the page where it was.
   await scrollTo(page, 300);
   await hidden(page);
-  const bird = page.getByTestId("collage-stage").locator(".eb-bird").first();
-  await bird.focus();
+  const y0 = await page.evaluate(() => window.scrollY);
+  await bird.evaluate((el: HTMLElement) => el.focus({ preventScroll: true }));
   await page.keyboard.press("Enter");
-  const card = page.locator(".eb-card[role=dialog]");
   await expect(card).toHaveAttribute("data-variant", "sheet");
-  await shown(page); // held while the card is open
+  await hidden(page);
+  expect(await page.evaluate(() => window.scrollY)).toBe(y0);
+  await page.keyboard.press("Escape");
+  await expect(card).toHaveCount(0);
+  await hidden(page);
+  // Shown (at the top): the card keeps it shown, and its scrim is over it.
+  await scrollTo(page, 0);
+  await shown(page);
+  await bird.evaluate((el: HTMLElement) => el.focus({ preventScroll: true }));
+  await page.keyboard.press("Enter");
+  await expect(card).toHaveAttribute("data-variant", "sheet");
+  await shown(page);
   expect(await coveredAt(page, 195, 20)).toBe(true); // the card's scrim is over the bar
   await page.keyboard.press("Escape");
   await expect(card).toHaveCount(0);
@@ -146,7 +167,7 @@ test("focus moving into the hidden bar shows it, and it stays while focus is ins
   await scrollTo(page, 400);
   await hidden(page);
   // From the page, Shift+Tab back to the bar's last control (the theme switch).
-  await page.getByRole("link", { name: "Add birds" }).evaluate((el: HTMLElement) => el.focus({ preventScroll: true }));
+  await page.getByRole("button", { name: "Add birds", exact: true }).evaluate((el: HTMLElement) => el.focus({ preventScroll: true }));
   const theme = page.getByRole("switch", { name: "Dark mode" });
   for (let i = 0; i < 6 && !(await theme.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press("Shift+Tab");
   await expect(theme).toBeFocused();
@@ -186,11 +207,11 @@ test("anchor jumps land below the bar: /about#credits and /settings#sources", as
 });
 
 // Only keyboard focus holds the bar: Chromium focuses a link on a mouse click, and the bar outlives client navigation,
-// so a clicked "Collage" used to pin the bar until the next click elsewhere (review, 2026-11-06).
+// so a clicked "Collage" (now "My birds") used to pin the bar until the next click elsewhere (review, 2026-11-06).
 test("a mouse click in the bar doesn't pin it: after navigating, scrolling down still hides it", async ({ page }) => {
   await seed(page);
   await page.goto("/settings");
-  await bar(page).getByRole("link", { name: "Collage" }).click();
+  await bar(page).getByRole("link", { name: "My birds" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("collage-stage")).toBeVisible();
   for (const y of [200, 500, 900]) await scrollTo(page, y);

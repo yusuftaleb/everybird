@@ -2,8 +2,10 @@
 export const MASK = 24 // longest side in cells
 
 export type Mask = { w: number; h: number; bits: Uint8Array } // row-major, 1 bit per cell, MSB first
+/** A mask as the JSON files hold it (public/data/masks/<Order>.v1.json, the sample pack): [w, h, base64 bits]. */
+export type RawMask = [number, number, string]
 
-export function maskDims(width: number, height: number): [number, number] {
+function maskDims(width: number, height: number): [number, number] {
   const w = width >= height ? MASK : Math.max(1, Math.round((MASK * width) / height))
   const h = height >= width ? MASK : Math.max(1, Math.round((MASK * height) / width))
   return [w, h]
@@ -36,10 +38,12 @@ export function maskFromAlpha(alpha: Uint8Array, width: number, height: number, 
   const cells = boxResize(alpha, width, height, w, h)
   const bits = new Uint8Array(Math.ceil((w * h) / 8))
   for (let i = 0; i < cells.length; i++) if (cells[i] > threshold) bits[i >> 3] |= 0x80 >> (i & 7)
-  return [w, h, Buffer.from(bits).toString('base64')]
+  return [w, h, btoa(String.fromCharCode(...bits))] // btoa, not Buffer: the client imports this module (decodeMask)
 }
 
-export function decodeMask(m: [number, number, string]): Mask {
+/** A JSON mask decoded; a mask already decoded (from masks.v3.bin, mask-file.ts) as it is. */
+export function decodeMask(m: RawMask | Mask): Mask {
+  if (!Array.isArray(m)) return m
   const [w, h, b64] = m
   const bin = atob(b64)
   const bits = new Uint8Array(bin.length)

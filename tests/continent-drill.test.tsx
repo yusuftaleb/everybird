@@ -8,6 +8,9 @@ import type { Regions, SpeciesRow } from '@/lib/species/types'
 
 const { PlacesDrill } = await import('@/components/filters/PlacesDrill')
 const { startLevel } = await import('@/components/filters/PlacesDrill')
+const { RepeatSwitch, Timeline } = await import('@/components/filters/Timeline')
+const { SeenAgg } = await import('@/lib/list/seen')
+const { monthBins } = await import('@/lib/list/timeline')
 const { initialState, makeReducer } = await import('@/lib/list/store')
 const { emptySaved } = await import('@/lib/list/storage')
 const { buildSpeciesIndex } = await import('@/lib/species/load')
@@ -176,6 +179,15 @@ describe('where the panel opens (startLevel)', () => {
 })
 
 describe('search from the continent level', () => {
+  it('the search box comes first, under the section title: before the count head and the list (round 6 polish)', () => {
+    render(<Harness />)
+    const field = screen.getByRole('searchbox', { name: 'Find a country or region' })
+    const head = document.querySelector('.eb-places-head')!
+    const list = screen.getByRole('list', { name: 'Continents' })
+    expect(field.compareDocumentPosition(head) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(head.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('finds any country: matches replace the continents, a tick and a drill work, clearing returns', () => {
     render(<Harness />)
     const field = screen.getByRole('searchbox', { name: 'Find a country or region' })
@@ -185,7 +197,7 @@ describe('search from the continent level', () => {
     fireEvent.click(screen.getByTestId('country-KE'))
     expect(filterOf()).toEqual({ countries: ['KE'] })
     fireEvent.change(field, { target: { value: 'zzz' } })
-    expect(screen.getByText('No country matches.')).toBeInTheDocument()
+    expect(screen.getByText('No place matches.')).toBeInTheDocument()
     fireEvent.change(field, { target: { value: '' } })
     expect(screen.getByRole('list', { name: 'Continents' })).toBeInTheDocument()
   })
@@ -195,5 +207,51 @@ describe('search from the continent level', () => {
     fireEvent.change(screen.getByRole('searchbox', { name: 'Find a country or region' }), { target: { value: 'can' } })
     fireEvent.click(screen.getByTestId('drill-c:CA'))
     expect(screen.getByTestId('places-path')).toHaveTextContent('All continents/North America/Canada')
+  })
+})
+
+describe('"Count repeat sightings" (RepeatSwitch)', () => {
+  function Switch({ start }: { start: () => ReturnType<typeof multi> }) {
+    const [state, dispatch] = useReducer(reduce, undefined, start)
+    return (
+      <>
+        <RepeatSwitch filter={state.filter} seen={state.seen} onFilter={(f) => dispatch({ type: 'filter', filter: f })} />
+        <output data-testid="filter">{JSON.stringify(state.filter)}</output>
+      </>
+    )
+  }
+  const withMonths = () => {
+    const agg = new SeenAgg()
+    agg.addMonths('duck1', 'CA-BC', ['2019-01', '2024-05'])
+    agg.addKey('duck1', 'CA-BC', '2019-01')
+    const saved = emptySaved()
+    saved.records.ebird = [{ code: 'duck1', source: 'ebird', date: '2019-01-01', place: { country: 'CA', sub1: 'CA-BC' }, seen: agg.get('duck1'), seenMonths: agg.getMonths('duck1') }]
+    return reduce(initialState(), { type: 'restore', saved })
+  }
+
+  it('is hidden for a list without month sets (first sightings only)', () => {
+    render(<Switch start={multi} />)
+    expect(screen.queryByRole('switch')).toBeNull()
+  })
+
+  it('one switch: off counts the first sighting, on sets the basis to every sighting; its note says which', () => {
+    render(<Switch start={withMonths} />)
+    const sw = screen.getByRole('switch', { name: 'Count repeat sightings' })
+    expect(sw).toHaveAttribute('aria-checked', 'false')
+    expect(sw).toHaveAccessibleDescription('A bird counts where and when you first recorded it.')
+    fireEvent.click(sw)
+    expect(filterOf()).toEqual({ basis: 'seen' })
+    expect(sw).toHaveAttribute('aria-checked', 'true')
+    expect(sw).toHaveAccessibleDescription('A bird counts everywhere and every year you recorded it.')
+    fireEvent.click(sw)
+    expect(filterOf()).toEqual({})
+  })
+
+  it('its note is the tooltip, not a line of text, and the Timeline no longer holds it (it sits on the Time head, Filters.tsx)', () => {
+    const state = withMonths()
+    render(<><Switch start={withMonths} /><Timeline entries={state.list} seen={state.seen} filter={state.filter} species={species} months={monthBins(state.list, '2024-06').months} today="2024-06" onFilter={() => {}} /></>)
+    const sw = screen.getByRole('switch', { name: 'Count repeat sightings' })
+    expect(sw).toHaveAttribute('title', 'A bird counts where and when you first recorded it.')
+    expect(within(screen.getByTestId('timeline')).queryByRole('switch')).toBeNull()
   })
 })

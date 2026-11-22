@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from '@/components/app/IntentLink'
 import { ArrowRight } from '@phosphor-icons/react/ssr'
 import { SampleDemo } from '@/components/app/SampleDemo'
+import { CompareWithMine } from '@/components/compare/CompareWithMine'
 import { SharedView } from '@/components/app/SharedView'
 import { FullNavigation } from '@/components/app/FullNavigation'
 import { SiteFooter } from '@/components/app/SiteFooter'
@@ -10,6 +11,7 @@ import { TrackVisit } from '@/components/app/VisitTracker'
 import { getMessages, langParam } from '@/i18n/server'
 import type { Ui } from '@/i18n/messages/en'
 import { ogDescription, ogName, ogTitle, tryDecodeShare } from '@/lib/share/og'
+import { SPECIES_FILES, preloadData, sampleFiles } from '@/lib/data-preload'
 import { OG_LOCALE } from '@/lib/site-meta'
 import '@/components/app/app.css'
 
@@ -54,16 +56,22 @@ function MakeYours({ big, t }: { big?: boolean; t: Ui }) {
  */
 export default async function SharedPage({ params }: Props) {
   // The page's own words in its language; the link's title and the metadata above are og.ts's, from the same strings.
-  const t = getMessages(await langParam(params)).ui
-  const payload = tryDecodeShare((await params).token)
+  const lang = await langParam(params)
+  const t = getMessages(lang).ui
+  const { token } = await params
+  const payload = tryDecodeShare(token)
+  // What the page will fetch, from its head, beside its JavaScript: the shared collage's bird data and masks (the layout
+  // worker's), or the sample a broken link shows.
+  if (payload) preloadData([...SPECIES_FILES, 'regions.v1.json', 'masks.v3.bin'])
+  else preloadData(sampleFiles(lang), 'high')
   if (!payload) {
     return (
       <>
         <TopBar />
-        <main className="eb-page eb-page-collage">
+        <main className="eb-page eb-page-collage eb-page-titled">
           <div className="eb-hero">
             <div className="eb-hero-text">
-              <h1 className="eb-hero-title">{t.shared.brokenTitle}</h1>
+              <div className="eb-pagehead-row"><h1 className="eb-pagehead-title">{t.shared.brokenTitle}</h1></div>
               <p className="eb-hero-lede" role="alert">{t.shared.brokenLede}</p>
             </div>
             <MakeYours big t={t} />
@@ -79,13 +87,16 @@ export default async function SharedPage({ params }: Props) {
   return (
     <>
       <TopBar />
-      <main className="eb-page eb-page-collage">
+      <main className="eb-page eb-page-collage eb-page-titled">
         <div className="eb-hero">
           <div className="eb-hero-text">
-            <h1 className="eb-hero-title">{ogName(payload, t)}</h1>
+            <div className="eb-pagehead-row"><h1 className="eb-pagehead-title">{ogName(payload, t)}</h1></div>
             <p className="eb-hero-lede">{ogDescription(t)}</p>
           </div>
-          <MakeYours big t={t} />
+          <div className="eb-compare-ctas">
+            <CompareWithMine path={`/s/${token}`} />
+            <MakeYours big t={t} />
+          </div>
         </div>
         <SharedView payload={payload} />
         <div className="eb-endcta">

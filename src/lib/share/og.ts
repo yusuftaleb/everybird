@@ -7,12 +7,12 @@ import { decodeShare, type SharePayload } from './link'
 
 /** The strings the shared page's title, h1 and metadata read: the shared view's (`ui.shared`, one source with the
  *  page), the share area's old-link and untitled titles, and the number separators. */
-export type OgStrings = Pick<Ui, 'share' | 'shared' | 'num'>
+type OgStrings = Pick<Ui, 'share' | 'shared' | 'num'>
 
 export const OG_SIZE = { width: 1200, height: 630 } as const
 /** The collage's area on the left of the image. */
 export const OG_COLLAGE = { w: 640, h: 560 } as const
-export const OG_MAX_BIRDS = 60
+const OG_MAX_BIRDS = 60
 /** For someone who has never heard of Everybird: the shared page's lede under its title (`ui.shared.lede`), so the
  *  page and its metadata say the same in every language. */
 export function ogDescription(t: OgStrings): string {
@@ -52,9 +52,9 @@ export function ogName(p: Pick<SharePayload, 'name' | 'titled'>, t: OgStrings): 
 }
 
 /** The document title: "<title> · Everybird"; "A life list: 197 species" without a title ("Una lista de vida: 1.234
- *  especies"); "Everybird" for a broken link. */
+ *  especies"); "This link didn't open · Everybird" for a broken link. */
 export function ogTitle(p: SharePayload | null, t: OgStrings): string {
-  if (!p) return 'Everybird'
+  if (!p) return `${t.shared.brokenTitle} · Everybird`
   const title = shareTitle(p, t)
   const n = p.birds.length
   return title ? `${title} · Everybird` : plural(t.share.untitledTitle, n, { n: formatInt(n, t.num) })
@@ -69,7 +69,9 @@ export function tryDecodeShare(token: string): SharePayload | null {
   }
 }
 
-export const OG_FONT_COUNT = 3 // Satoshi 500, Cabinet Grotesk 700, Geist Mono 400
+const OG_FONT_COUNT = 3 // Satoshi 500, Cabinet Grotesk 700, Geist Mono 400
+/** The fonts a card in `lang` needs to be complete: a Russian card's Noto Sans 500 and 700 too (og-server's SOURCES). */
+const ogFontCount = (lang?: string): number => OG_FONT_COUNT + (lang === 'ru' ? 2 : 0)
 /**
  * A complete card never changes: the token is content-addressed (the link encodes the list, so a different list is a
  * different URL). Browsers keep it a day, the CDN a year (one render per token per region until evicted), and a stale
@@ -86,9 +88,17 @@ export const ogCacheControl = (complete: boolean) => (complete ? OG_CACHE_COMPLE
  * stickers than expected, a collage that failed, a names file that didn't load, or a broken token is cached only briefly (ogCacheControl), so a
  * fetch hiccup doesn't stick for a year.
  */
-export function ogResponseOptions<F>(fonts: F[], card: { placed: number; expected: number; failed?: boolean; broken?: boolean; namesFailed?: boolean }) {
+export function ogResponseOptions<F>(fonts: F[], card: { placed: number; expected: number; failed?: boolean; broken?: boolean; namesFailed?: boolean; lang?: string }) {
   // `failed`: the collage threw (species, masks or stickers), so the text card stood in. `broken`: the token didn't
   // decode. Neither is the token's real card, so neither is cached for a year.
-  const complete = !card.failed && !card.broken && !card.namesFailed && fonts.length >= OG_FONT_COUNT && card.placed >= card.expected
+  const complete = !card.failed && !card.broken && !card.namesFailed && fonts.length >= ogFontCount(card.lang) && card.placed >= card.expected
   return { fonts: fonts.length ? fonts : undefined, headers: { 'cache-control': ogCacheControl(complete) } }
+}
+
+/**
+ * The card's root `lang` (satori's locale): next/og fills the characters the card's fonts lack from Google Fonts by it,
+ * so Chinese text never gets Japanese letter forms: ja-JP (Noto Sans JP), zh-CN (SC), zh-TW (TC). Undefined otherwise.
+ */
+export function ogLang(lang: string): string | undefined {
+  return ({ ja: 'ja-JP', 'zh-Hans': 'zh-CN', 'zh-Hant': 'zh-TW' } as Partial<Record<string, string>>)[lang]
 }

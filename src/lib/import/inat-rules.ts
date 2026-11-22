@@ -10,7 +10,7 @@ import type { Place } from '@/lib/list/model'
  * reassign iNat's own identifications.
  */
 export type Assigned = 'region' | 'default'
-export type RegionRule = {
+type RegionRule = {
   /** iNat subspecies epithet -> eBird code. */
   subspecies: Record<string, string>
   /** eBird code from place and month (1-12); undefined when the place cannot tell. */
@@ -18,7 +18,7 @@ export type RegionRule = {
   /** Code when the region cannot tell (unknown place, or not enough detail). */
   fallback: string
 }
-export type RuleResult = { code: string; assigned?: Assigned }
+type RuleResult = { code: string; assigned?: Assigned }
 
 // ---------------------------------------------------------------------------------------------
 // Willet: Saltmarsh Willet (willet2, T. semipalmata) breeds on the Atlantic and Gulf coasts and in the Caribbean and
@@ -26,14 +26,14 @@ export type RuleResult = { code: string; assigned?: Assigned }
 // North American coast, the Gulf and Atlantic included.
 
 /** Atlantic and Gulf coast states and provinces, where a breeding-season willet is Saltmarsh. */
-export const SALTMARSH_WILLET_SUB1 = new Set([
+const SALTMARSH_WILLET_SUB1 = new Set([
   'US-ME', 'US-NH', 'US-MA', 'US-RI', 'US-CT', 'US-NY', 'US-NJ', 'US-DE', 'US-MD', 'US-VA', 'US-NC', 'US-SC',
   'US-GA', 'US-FL', 'US-AL', 'US-MS', 'US-LA', 'US-TX', 'US-PR', 'US-VI',
   'CA-NS', 'CA-NB', 'CA-PE',
   'MX-TAM', 'MX-VER', 'MX-TAB', 'MX-CAM', 'MX-YUC', 'MX-ROO',
 ])
 /** Caribbean countries and territories (ISO2). */
-export const CARIBBEAN = new Set([
+const CARIBBEAN = new Set([
   'BS', 'CU', 'HT', 'DO', 'JM', 'PR', 'VI', 'VG', 'KY', 'TC', 'AI', 'AG', 'KN', 'MS', 'GP', 'DM', 'MQ', 'LC', 'VC',
   'GD', 'BB', 'TT', 'AW', 'CW', 'BQ', 'BL', 'MF', 'SX',
 ])
@@ -52,7 +52,7 @@ export function willetCode(place: Place | undefined, month: number | undefined):
 // Horned owl: eBird's Great Horned Owl (grhowl) stops in Central America; Tropical Horned Owl (grhowl19) is the
 // South American bird (Lesser Horned Owl is a species on both sides, Bubo magellanicus).
 
-export const SOUTH_AMERICA = new Set(['CO', 'VE', 'GY', 'SR', 'GF', 'EC', 'PE', 'BR', 'BO', 'PY', 'AR', 'UY', 'CL', 'TT'])
+const SOUTH_AMERICA = new Set(['CO', 'VE', 'GY', 'SR', 'GF', 'EC', 'PE', 'BR', 'BO', 'PY', 'AR', 'UY', 'CL', 'TT'])
 
 function hornedOwl(place: Place | undefined): string | undefined {
   if (!place?.country) return undefined

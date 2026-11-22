@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { makeSamplePack, packNames, sampleCodes } from '../scripts/build-data/build-sample-pack'
+import { makeSamplePack, packNames, sampleCodes, sampleNameFiles } from '../scripts/build-data/build-sample-pack'
+import { readOrderMasks } from '../scripts/build-data/data-files'
 import { createLayoutHandler } from '@/lib/layout/layout.worker'
 import type { SampleFile } from '@/lib/list/sample'
 import { fromPackFile, seedLayouts, type SamplePackFile } from '@/lib/list/sample-pack'
@@ -31,13 +32,13 @@ describe('the landing sample pack', () => {
     expect(f.regions).toEqual({ v: 1, countries: { CA: 'Canada', EG: 'Egypt' }, sub1: { 'CA-BC': 'British Columbia' } })
   })
 
-  it("packs each layout class's full even collage as the layout worker does", async () => {
+  it("packs each layout class's full even collage in Free, the default arrangement, as the layout worker does", async () => {
     const f = await makeSamplePack(sample, species, regions, noMasks)
     expect(f.layouts.map((l) => l.layout)).toEqual(['wide', 'medium', 'narrow'])
     const handle = createLayoutHandler(noMasks)
     const codes = sampleCodes(sample, new Map(species.map((r) => [r.code, r])))
     await handle({ type: 'setList', id: 1, entries: codes.map((c) => { const r = species.find((s) => s.code === c)!; return { code: c, mass: r.g, ord: r.ord } }) })
-    const r = await handle({ type: 'layout', id: 2, key: 'narrow|even|', codes, layout: 'narrow', mode: 'even', fit: false })
+    const r = await handle({ type: 'layout', id: 2, key: 'narrow|even|', codes, layout: 'narrow', mode: 'even', fit: false, free: true })
     if (r.type !== 'result') throw new Error('no result')
     const narrow = f.layouts[2]
     expect(narrow.codes).toEqual(r.codes)
@@ -64,29 +65,43 @@ describe('the landing sample pack', () => {
     for (const l of pack.layouts) expect(l.codes).toEqual(pack.species.map((r) => r.code))
   })
 
-  it('carries the base names (es, pt_BR, nl; never a regional set) for its codes, as the committed names files have them', () => {
+  it("has a names file per base language (es, pt_BR, nl, pl, fr_FR, de, it, sv, da, ru, ja, zh_SIM, zh; never a regional set) for its codes, as the committed names files have them, and no names of its own", () => {
     const read = <T,>(f: string) => JSON.parse(readFileSync(join(process.cwd(), 'public/data', f), 'utf8')) as T
-    const pack = read<SamplePackFile>('sample-pack.v1.json')
-    expect(Object.keys(pack.loc).sort()).toEqual(['es', 'nl', 'pt_BR'])
-    for (const base of ['es', 'pt_BR', 'nl'] as const) {
+    const pack = read<SamplePackFile & { loc?: unknown }>('sample-pack.v1.json')
+    expect(pack.loc).toBeUndefined() // an English visitor fetches no names
+    for (const base of ['es', 'pt_BR', 'nl', 'pl', 'fr_FR', 'de', 'it', 'sv', 'da', 'ru', 'ja', 'zh_SIM', 'zh'] as const) {
       const file = read<{ names: Record<string, string>; fam: Record<string, string> }>(`names.${base}.v1.json`)
+      const mine = read<{ names: Record<string, string>; fam: Record<string, string> }>(`sample-names.${base}.v1.json`)
       for (const r of pack.species) {
-        expect(pack.loc[base].names[r.code], `${base} ${r.code}`).toBe(file.names[r.code])
-        expect(pack.loc[base].fam[r.fam], `${base} ${r.fam}`).toBe(file.fam[r.fam])
+        expect(mine.names[r.code], `${base} ${r.code}`).toBe(file.names[r.code])
+        expect(mine.fam[r.fam], `${base} ${r.fam}`).toBe(file.fam[r.fam])
       }
-      expect(Object.keys(pack.loc[base].names).every((c) => pack.species.some((r) => r.code === c))).toBe(true)
+      expect(Object.keys(mine.names).every((c) => pack.species.some((r) => r.code === c))).toBe(true)
     }
-    expect(Object.keys(pack.loc.es.names).length).toBeGreaterThan(100)
+    expect(Object.keys(read<{ names: object }>('sample-names.es.v1.json').names).length).toBeGreaterThan(100)
   })
 
-  it('makeSamplePack (the huashu sync calls it) keeps loc with no extra input', async () => {
+  it("carries every one of its birds' masks, as the order files have them, so the landing never fetches masks.v3.bin", () => {
+    const read = <T,>(f: string) => JSON.parse(readFileSync(join(process.cwd(), 'public/data', f), 'utf8')) as T
+    const pack = read<SamplePackFile>('sample-pack.v1.json')
+    const all = Object.fromEntries(readOrderMasks(join(process.cwd(), 'public/data/masks')))
+    for (const r of pack.species) expect(pack.masks[r.ord]?.[r.code], r.code).toEqual(all[r.ord][r.code])
+    expect(Object.values(pack.masks).reduce((n, t) => n + Object.keys(t).length, 0)).toBe(pack.species.length)
+  })
+
+  it('sampleNameFiles (the huashu sync writes them too) reads the base names with no extra input', () => {
     const real = [{ ...sp('amerob', 1, 80), com: 'American Robin' }, { ...sp('houspa', 2, 28), com: 'House Sparrow' }]
-    const f = await makeSamplePack({ v: 1, note: 'synthetic', birds: [{ code: 'amerob' }, { code: 'houspa' }] }, real, regions, noMasks)
-    expect(f.loc).toEqual(packNames(real))
-    expect(f.loc.es.names.amerob).toBe('Zorzal americano')
-    expect(f.loc.pt_BR.names.houspa).toBe('Pardal') // pt_BR's, not pt_PT's "Pardal-do-telhado"
-    expect(f.loc.nl.names.houspa).toBe('Huismus')
-    expect(fromPackFile(f).loc).toBe(f.loc)
+    const files = new Map(sampleNameFiles(real).map(([rel, text]) => [rel, JSON.parse(text)]))
+    expect([...files.keys()].sort()).toEqual(Object.keys(packNames(real)).map((b) => `public/data/sample-names.${b}.v1.json`).sort())
+    expect(files.get('public/data/sample-names.es.v1.json').names.amerob).toBe('Zorzal americano')
+    expect(files.get('public/data/sample-names.pt_BR.v1.json').names.houspa).toBe('Pardal') // pt_BR's, not pt_PT's "Pardal-do-telhado"
+    expect(files.get('public/data/sample-names.nl.v1.json').names.houspa).toBe('Huismus')
+  })
+
+  it('takes its masks from the loader, only for its own birds', async () => {
+    const m: [number, number, string] = [24, 24, 'AA==']
+    const f = await makeSamplePack(sample, species, regions, async (ord): Promise<Record<string, [number, number, string]>> => (ord === 'Passeriformes' ? { crow1: m, other1: m } : {}))
+    expect(f.masks).toEqual({ Passeriformes: { crow1: m } }) // wren1 and heron1 have none; other1 isn't in the sample
   })
 
   it('the landing sample has no threatened species, so its stats line carries no threatened count (e2e/import.spec.ts)', () => {

@@ -21,8 +21,8 @@ export function parseEbirdDate(s: string | undefined): string | undefined {
 }
 
 /**
- * Parse eBird's "life list" CSV. Rows with Countable !== '1' are counted in `skipped`; those naming a species no
- * countable row has (an escapee, say) give `notCountable`, so other sources can't add it back. A Countable=1 row
+ * Parse eBird's "life list" CSV. Rows with Countable !== '1' are counted in `skipped`; those with Countable exactly
+ * '0' naming a species no countable row has (an escapee, say) give `notCountable`, so other sources can't add it back. A Countable=1 row
  * that does not resolve goes to `unmatched` (never dropped). `Unmatched.row` is the 1-based data row index
  * (first row after the header is 1). A species seen twice keeps its earliest date (and that row's place).
  * `Location` is ignored.
@@ -38,8 +38,10 @@ export function parseEbirdLifeList(csv: string, t: TaxonomyIndex, regions?: Regi
   data.forEach((r, i) => {
     const sci = r['Scientific Name']?.trim() || undefined
     const com = r['Common Name']?.trim() || undefined
-    if ((r['Countable'] ?? '').trim() !== '1') {
+    const countable = (r['Countable'] ?? '').trim()
+    if (countable !== '1') {
       skipped++
+      if (countable !== '0') return
       const res = resolveName(t, { sci, com }, { suggest: false })
       if (res.code !== null) notCountable.add(res.code)
       return

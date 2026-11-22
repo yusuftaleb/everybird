@@ -1,6 +1,6 @@
 import type { Edits, ListEntry, Place, Rules, Source, SourceRecord } from './model'
 
-const SOURCE_ORDER: Source[] = ['ebird', 'inat', 'obsorg', 'sheet', 'scythebill', 'manual']
+const SOURCE_ORDER: Source[] = ['ebird', 'inat', 'obsorg', 'sheet', 'scythebill', 'igoterra', 'manual']
 
 /** YYYY -> YYYY-00-00, YYYY-MM -> YYYY-MM-00, so partial dates compare lexically. */
 function padDate(d: string): string {
@@ -63,9 +63,12 @@ export function buildList(
     entries.push(entry)
   }
 
-  return entries.sort(
-    taxonOrder ? (a, b) => taxonOrder(a.code) - taxonOrder(b.code) || byString(a.code, b.code) : (a, b) => byString(a.code, b.code),
-  )
+  return entries.sort(entryOrder(taxonOrder))
+}
+
+/** buildList's order: by `taxonOrder`, then by code (by code alone without it). */
+export function entryOrder(taxonOrder?: (code: string) => number): (a: ListEntry, b: ListEntry) => number {
+  return taxonOrder ? (a, b) => taxonOrder(a.code) - taxonOrder(b.code) || byString(a.code, b.code) : (a, b) => byString(a.code, b.code)
 }
 
 /** True when `a` should replace the current winner `b`; strict, so input order breaks full ties. */
@@ -100,21 +103,6 @@ export function latestLifer(list: ListEntry[], taxonOrder?: (code: string) => nu
     const d = byString(padDate(e.date), padDate(best.date!))
     const t = taxonOrder ? taxonOrder(e.code) - taxonOrder(best.code) || byString(e.code, best.code) : byString(e.code, best.code)
     if (d > 0 || (d === 0 && t > 0)) best = e
-  }
-  return best
-}
-
-export function firstLifer(list: ListEntry[], taxonOrder?: (code: string) => number): ListEntry | undefined {
-  let best: ListEntry | undefined
-  for (const e of list) {
-    if (!e.date) continue
-    if (!best) {
-      best = e
-      continue
-    }
-    const d = byString(padDate(e.date), padDate(best.date!))
-    const t = taxonOrder ? taxonOrder(e.code) - taxonOrder(best.code) || byString(e.code, best.code) : byString(e.code, best.code)
-    if (d < 0 || (d === 0 && t < 0)) best = e
   }
   return best
 }

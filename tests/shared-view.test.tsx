@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { SharedView, missingFilters } from '@/components/app/SharedView'
 import { formatPlace } from '@/lib/import/places'
 import { dateToYm, payloadToRecords, ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
 import { resetCaches } from '@/lib/species/load'
+import { loadLazyParts } from './lazy-parts'
+
+beforeAll(loadLazyParts, 60_000)
 
 const row = (code: string, to: number, iu?: string) => ({ code, com: code, sci: code, ord: 'Passeriformes', fam: 'Corvidae', famCom: 'Crows', to, g: 1, gSrc: 'family', st: true, ar: 1, q: true, ...(iu ? { iu } : {}) })
 const regions = { v: 1 as const, countries: { CA: 'Canada', EG: 'Egypt [x]' }, sub1: { 'CA-BC': 'British Columbia' } }
@@ -29,6 +32,7 @@ describe('shared view', () => {
     expect(dateToYm('2020-03-04')).toEqual({ ym: 1442 })
     expect(dateToYm('2020')).toEqual({ ym: 1440, yearOnly: true })
     expect(dateToYm('junk')).toBeUndefined()
+    expect(dateToYm('2921-05-03')).toBeUndefined() // past what a link can carry
     expect(ymToDate(1442)).toBe('2020-03')
     expect(ymToDate(1440, true)).toBe('2020')
   })
@@ -81,11 +85,28 @@ describe('shared view', () => {
     render(<SharedView payload={{ v: 1, birds: [{ code: 'a' }, { code: 'b' }] }} />)
     await waitFor(() => expect(screen.getByTestId('collage-stats').textContent).toContain('2 species'))
     expect(screen.getByTestId('share-limited').textContent).toBe('This link carries no places or dates, so those filters are left out.')
-    // Birds only: no Filters button (by test id or by name), just LifeList's orders row.
+    // Birds only: no Filters button (by test id or by name), just LifeList's orders row (in the Taxa panel, round 6).
     expect(screen.queryByTestId('filters-button')).toBeNull()
     expect(screen.queryByRole('button', { name: /^Filters/ })).toBeNull()
+    fireEvent.click(screen.getByTestId('taxa-button'))
     expect(screen.getByRole('group', { name: 'Orders' })).toBeTruthy()
     expect(open).not.toHaveBeenCalled()
+  })
+
+  it('waits with the link\'s count (O3); a failed load says so with Try again, which loads again (H4)', async () => {
+    let up = false
+    vi.stubGlobal('fetch', async (u: string | URL) => {
+      const url = String(u)
+      const body = !up ? null : url.includes('species.v1') ? { v: 1, species: [row('a', 1), row('b', 2)] } : url.includes('regions.v1') ? regions : null
+      return body ? new Response(JSON.stringify(body)) : new Response('no', { status: 503 })
+    })
+    render(<SharedView payload={{ v: 1, birds: [{ code: 'a' }, { code: 'b' }] }} />)
+    expect(screen.getByRole('status').textContent).toBe('2arranging the stickers')
+    const retry = await screen.findByRole('button', { name: 'Try again' })
+    expect(screen.getByRole('alert').textContent).toContain("Couldn't load the bird data.")
+    up = true
+    fireEvent.click(retry)
+    await waitFor(() => expect(screen.getByTestId('collage-stats').textContent).toContain('2 species'))
   })
 
   it('Status filters a link whose birds have statuses', async () => {
@@ -98,7 +119,7 @@ describe('shared view', () => {
     fireEvent.click(within(screen.getByRole('group', { name: 'Conservation status' })).getByTestId('status-VU'))
     await waitFor(() => expect(screen.getByTestId('collage-stats').textContent).toBe('2 of 5 species · 1 family'))
     expect(screen.getByTestId('chip-status-VU')).toBeTruthy()
-    expect(screen.getByTestId('filters-button').getAttribute('aria-label')).toMatch(/^Filters: Conservation status: Vulnerable$/)
+    expect(screen.getByTestId('filters-button').getAttribute('aria-label')).toMatch(/^Filters, 1 in use: Conservation status: Vulnerable$/)
   })
 
   it('no Filters button on a link whose birds have no status (it carries no places or dates either)', async () => {

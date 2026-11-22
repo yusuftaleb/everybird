@@ -8,6 +8,13 @@
 .eb-edit .eb-chip { background: transparent; }
 .eb-edit-sym { font-family: var(--font-mono); min-width: 1ch; text-align: center; color: var(--muted); }
 .eb-edit .eb-chip-icon { color: var(--accent); }
-.eb-edit-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+/* "Marks from my records" sits under the marks, on a line of its own, so the Remove row only ever holds Remove and the
+   card's illustration link (BirdCard's CardEndLink): one line at every card width (272px of text at the narrowest), Remove
+   at the left, the link at the right, neither wrapping. */
+.eb-edit-reset { align-self: flex-start; white-space: nowrap; }
+.eb-edit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.eb-edit-row > * { flex: none; white-space: nowrap; }
+/* Centred on Remove's line: the card's own bottom-right rule (align-self: flex-end) sank it below Remove (Yusuf, 2026-11-20). */
+.eb-edit-row > .eb-card-credit { margin-left: auto; align-self: center; }
 .eb-textbtn.eb-edit-remove { color: var(--accent); text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent); }
 .eb-textbtn.eb-edit-remove svg { color: var(--accent); }

@@ -7,7 +7,7 @@ import { expect, test, type Page } from "@playwright/test";
 // WELCOME_PNG_DIR (optional) saves screenshots of the card and the sheet in both themes there.
 test.use({ storageState: { cookies: [], origins: [] } });
 
-const LINE = "A lifetime of birds, as a sticker collage.";
+const LINE = "Your life list as a sticker collage. It stays in your browser.";
 const welcome = (page: Page) => page.getByRole("dialog", { name: LINE });
 const frozen = readFileSync("tests/fixtures/share/v1-frozen.txt", "utf8").trim();
 const OUT = process.env.WELCOME_PNG_DIR;
@@ -19,9 +19,9 @@ test("a first visit shows the welcome over the sample, focus on Make mine and ke
   const d = welcome(page);
   await expect(d).toBeVisible();
   await expect(d).toHaveAttribute("aria-modal", "true");
-  const make = d.getByRole("link", { name: /^Make mine/ });
+  const make = d.getByRole("button", { name: /^Make mine/ });
   await expect(make).toBeFocused();
-  await expect(make).toHaveAttribute("href", "/settings#sources");
+  await expect(make).toHaveAttribute("aria-haspopup", "dialog"); // the Add birds dialog, as the hero's Make yours
   // The sample stays on show behind it.
   await expect(page.getByTestId("collage-stage")).toBeVisible();
   // Tab and Shift+Tab stay inside: Make mine, Explore the sample, Close, and round again.
@@ -48,9 +48,19 @@ for (const [how, close] of [
     await expect(page.getByTestId("collage-stage")).toBeVisible(); // the sample is there to return to
     await close(page);
     await expect(welcome(page)).toHaveCount(0);
-    await expect(page.getByRole("dialog")).toHaveCount(0); // a press outside opened nothing underneath
-    // Focus returns to the sample's controls, not lost on the body.
-    await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest(".eb-view"))).toBe(true);
+    if (how === "Explore the sample") {
+      // Explore starts the tour on the sample (Tour.tsx): its first note, the only dialog, takes focus; Skip tour ends it.
+      const tour = page.getByTestId("tour");
+      await expect(tour).toBeVisible();
+      await expect(page.getByRole("dialog")).toHaveCount(1);
+      await expect(tour).toBeFocused();
+      await tour.getByRole("button", { name: "Skip tour" }).click();
+      await expect(tour).toHaveCount(0);
+    } else {
+      await expect(page.getByRole("dialog")).toHaveCount(0); // a press outside opened nothing underneath
+      // Focus returns to the sample's controls, not lost on the body.
+      await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest(".eb-view"))).toBe(true);
+    }
     expect(await page.evaluate(() => localStorage.getItem("everybird:welcomed"))).toBe("1");
     await page.reload();
     await expect(page.getByTestId("collage-stage")).toBeVisible();
@@ -58,13 +68,17 @@ for (const [how, close] of [
   });
 }
 
-test("Make mine goes to the ways in on Settings and counts as closed", async ({ page }) => {
+test("Make mine opens the Add birds dialog on the landing, counts as closed, and gives focus back to Make yours", async ({ page }) => {
   await page.goto("/");
-  await welcome(page).getByRole("link", { name: /^Make mine/ }).click();
-  await expect(page).toHaveURL(/\/settings#sources$/);
-  await expect(page.getByRole("heading", { level: 2, name: "Your list" })).toBeVisible();
-  await expect(page.locator("#sources")).toBeFocused(); // keyboard focus lands on the ways in, not the document top
+  await welcome(page).getByRole("button", { name: /^Make mine/ }).click();
+  await expect(page).toHaveURL(/\/$/);
+  const add = page.getByRole("dialog", { name: "Add birds" });
+  await expect(add).toBeVisible();
+  await expect(add.getByTestId("ebird-drop")).toBeVisible();
   await expect(welcome(page)).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(add).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Make yours/ })).toBeFocused();
   await page.goto("/");
   await expect(page.getByTestId("collage-stage")).toBeVisible();
   await expect(welcome(page)).toHaveCount(0);
@@ -121,12 +135,19 @@ test("phones get a bottom sheet, wider screens a small card", async ({ page }) =
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   const box = (await welcome(page).boundingBox())!;
-  expect(box.width).toBeGreaterThan(360);
+  // The sheet spans the scrim less its 8px insets (the card would leave 16px a side). The scrim is the window less the
+  // page's stable scrollbar gutter (html's scrollbar-gutter: 15px with desktop scrollbars, none with a phone's).
+  const scrim = (await page.locator(".eb-welcome-scrim").boundingBox())!;
+  expect(scrim.width).toBeGreaterThanOrEqual(390 - 15);
+  expect(Math.abs(box.width - (scrim.width - 16))).toBeLessThanOrEqual(1);
   expect(844 - (box.y + box.height)).toBeLessThanOrEqual(12);
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect.poll(async () => (await welcome(page).boundingBox())!.width).toBeLessThanOrEqual(400);
   const card = (await welcome(page).boundingBox())!;
-  expect(Math.abs(card.x + card.width / 2 - 640)).toBeLessThan(2);
+  // Centred in the window less the stable scrollbar gutter.
+  const wide = (await page.locator(".eb-welcome-scrim").boundingBox())!;
+  expect(wide.width).toBeGreaterThanOrEqual(1280 - 15);
+  expect(Math.abs(card.x + card.width / 2 - (wide.x + wide.width / 2))).toBeLessThan(2);
 });
 
 test("screenshots: the card and the sheet, light and dark", async ({ page, browserName }) => {

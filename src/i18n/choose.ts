@@ -16,7 +16,7 @@ export function setLangCookie(lang: Lang, doc: CookieDoc = document): void {
 }
 
 /** The cookie's language, when it is present and names one. */
-export function readLangCookie(doc: CookieDoc = document): Lang | undefined {
+function readLangCookie(doc: CookieDoc = document): Lang | undefined {
   for (const part of doc.cookie.split(';')) {
     const eq = part.indexOf('=')
     if (eq < 0 || part.slice(0, eq).trim() !== LANG_COOKIE) continue
@@ -35,11 +35,6 @@ export function refreshLangCookie(doc: CookieDoc = document): void {
     // Cookies blocked: the browser's language decides, as without a choice.
   }
 }
-
-/** The language picker's preview variants (`useVariant('lang', LANG_VARIANTS)`): a, the top bar's LanguageMenu beside
- *  the theme toggle plus the Settings field (default; the nav on a second row under 430px); b, the Settings field only;
- *  c, as a, but under 480px the Collage link is hidden (the wordmark goes home) so the nav keeps row one down to 310px. */
-export const LANG_VARIANTS = ['a', 'b', 'c'] as const
 
 /** A new choice: the cookie, then a full reload, because the router cache and the page's HTML belong to the old
  *  language. The callers skip the current language (it only closes the menu). */

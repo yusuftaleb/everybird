@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// The view across a language switch, on the real paths: chooseLang stashes it before the reload; the list store takes
+// The view across a language switch and a refresh (pagehide), on the real paths: chooseLang stashes it before the reload; the list store takes
 // the filter, layout switches back with the stored list; the dock search takes its typed text and open state back. None
 // of the restores emits analytics (filter_used, search_applied, ui_language is the switch's own beacon, not a restore).
 import 'fake-indexeddb/auto'
@@ -32,7 +32,7 @@ function stubFetch() {
 
 const KEY = 'everybird:resume:v1'
 const carried = {
-  collage: { filter: { order: 'Passeriformes' }, mode: 'true', view: 'list', massOrder: 'lightest', sci: true },
+  collage: { filter: { order: 'Passeriformes' }, mode: 'true', view: 'list', listOrder: 'lightest', sci: true },
   search: { open: true },
 }
 
@@ -61,7 +61,7 @@ afterEach(() => {
 describe('the list store after a language switch', () => {
   it('takes the filter and the layout switches back with the stored list, without analytics', async () => {
     const storage = await import('@/lib/list/storage')
-    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('wren'), rec('crow')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], manual: [] } })
+    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('wren'), rec('crow')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], igoterra: [], manual: [] } })
     const store = await import('@/lib/list/store')
     leaveRecord()
     const { result } = renderHook(() => store.useEverybird())
@@ -70,7 +70,7 @@ describe('the list store after a language switch', () => {
     expect(s.filter).toEqual({ order: 'Passeriformes' })
     expect(s.mode).toBe('true')
     expect(s.view).toBe('list')
-    expect(s.massOrder).toBe('lightest')
+    expect(s.listOrder).toBe('lightest')
     expect(s.sci).toBe(true)
     expect(spy.track).not.toHaveBeenCalled()
     expect(spy.trackFilterUsed).not.toHaveBeenCalled()
@@ -79,7 +79,7 @@ describe('the list store after a language switch', () => {
 
   it('still restores under StrictMode, whose effects run twice on mount', async () => {
     const storage = await import('@/lib/list/storage')
-    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('wren'), rec('crow')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], manual: [] } })
+    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('wren'), rec('crow')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], igoterra: [], manual: [] } })
     const store = await import('@/lib/list/store')
     leaveRecord()
     const { result } = renderHook(() => store.useEverybird(), { wrapper: StrictMode })
@@ -90,7 +90,7 @@ describe('the list store after a language switch', () => {
 
   it('a second switch before the store is ready carries the view that is still on its way', async () => {
     const storage = await import('@/lib/list/storage')
-    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('wren'), rec('crow')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], manual: [] } })
+    await storage.save({ ...storage.emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('wren'), rec('crow')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], igoterra: [], manual: [] } })
     const store = await import('@/lib/list/store')
     const resume = await import('@/lib/view-resume')
     leaveRecord()
@@ -107,6 +107,19 @@ describe('the list store after a language switch', () => {
     expect(result.current[0].filter).toEqual({})
     expect(result.current[0].view).toBe('collage')
     expect(result.current[0].sci).toBe(false)
+  })
+})
+
+describe('a refresh', () => {
+  it('stashes the view on pagehide, and the reloaded page takes it back (the Map stays the Map)', async () => {
+    const first = await import('@/lib/view-resume')
+    first.offerResume('collage', () => ({ ...carried.collage, view: 'map' }) as never)
+    window.dispatchEvent(new Event('pagehide'))
+    expect(JSON.parse(window.sessionStorage.getItem(KEY)!).slices.collage.view).toBe('map')
+    vi.resetModules()
+    const reloaded = await import('@/lib/view-resume')
+    expect(reloaded.takeResume('collage')?.view).toBe('map')
+    expect(window.sessionStorage.getItem(KEY)).toBeNull()
   })
 })
 
@@ -145,7 +158,7 @@ describe('the dock search after a language switch', () => {
     render(
       <StrictMode>
         <I18n>
-          <ControlsBar view="collage" onView={() => {}} trueSize={false} onTrueSize={() => {}} lightFirst={false} onDirection={() => {}} sci={false} onSci={() => {}} search={search} />
+          <ControlsBar view="collage" onView={() => {}} listOrder="heaviest" onListOrder={() => {}} sci={false} onSci={() => {}} search={search} />
         </I18n>
       </StrictMode>,
     )
@@ -177,7 +190,7 @@ describe('the collage after a restore', () => {
     // The order the provider applies: the stored list, then the carried view, before the first render.
     const init = reduce(reduce(initialState(), { type: 'restore', saved }), {
       type: 'resume',
-      view: { filter: { order: 'Piciformes' }, mode: 'even', view: 'collage', massOrder: 'heaviest', sci: false },
+      view: { filter: { order: 'Piciformes' }, mode: 'even', view: 'collage', listOrder: 'heaviest', sci: false },
     })
     const api: { dispatch?: (a: Parameters<typeof reduce>[1]) => void } = {}
     function Harness() {

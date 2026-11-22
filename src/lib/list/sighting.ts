@@ -54,20 +54,7 @@ function firstIn(ords: readonly number[], lo: number, hi: number): number | unde
   return a < ords.length && ords[a] <= hi ? ords[a] : undefined
 }
 
-/** Whether some place satisfying `w` has a month in its range. */
-export function seenWhere(months: readonly PlaceMonths[], w: Where): boolean {
-  for (const pm of months) if (placeHit(pm, w) && firstIn(pm.ords, w.lo, w.hi) !== undefined) return true
-  return false
-}
-
-/** The keys ("region[|county]") of the places with a month in `w`'s range (anywhere in `w` when it names none). */
-export function keysSeenIn(months: readonly PlaceMonths[], w: Where): Set<string> {
-  const out = new Set<string>()
-  for (const pm of months) if (placeHit(pm, w) && firstIn(pm.ords, w.lo, w.hi) !== undefined) out.add(pm.key)
-  return out
-}
-
-export type Sighting = { date: string; place: Place }
+type Sighting = { date: string; place: Place }
 
 /** One sighting that may satisfy a Where: its date (YYYY, YYYY-MM or YYYY-MM-DD; absent when unknown), place and "region[|county]" key. */
 type Candidate = { date?: string; place: SeenPlace; key: string }
@@ -121,7 +108,7 @@ const padDate = (d: string) => (d.length === 4 ? `${d}-00-00` : d.length === 7 ?
  * The earliest sighting of `e` inside `w` (a dated one): its date and place. The first of equal months wins, a full
  * date (the lifer's) over a bare month. Month results are 'YYYY-MM'; a place's or the lifer's date is as recorded.
  */
-export function firstSighting(e: ListEntry, seen: SeenIndex | undefined, w: Where): Sighting | undefined {
+function firstSighting(e: ListEntry, seen: SeenIndex | undefined, w: Where): Sighting | undefined {
   let best: Candidate | undefined
   eachSighting(e, seen, w, (c) => {
     if (!c.date) return

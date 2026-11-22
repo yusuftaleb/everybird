@@ -24,7 +24,7 @@ import { loadDeferred, unloadSticker } from './Sticker'
 import { birdAt, ensureMasks } from './collage-hit'
 import { BirdWindow, WINDOW_AT, buildIndex, setFar } from './collage-window'
 import {
-  APPEAR_MS, CROSSFADE_AT, EASE_IN, EASE_OUT, ENTER_AT, ENTER_MS, MOVE_MS, FADE_MS, RIPPLE_MS, WRITE_MIN, WRITE_START, applyFar, cancelFinishes, fromCount, newMotion, pct, planBirds, raiseSizes, reduced, runChunked,
+  APPEAR_IN_MS, APPEAR_MS, CROSSFADE_AT, EASE_IN, EASE_OUT, ENTER_AT, ENTER_MS, MOVE_MS, FADE_MS, RIPPLE_MS, WRITE_MIN, WRITE_START, applyFar, cancelFinishes, fromCount, newMotion, pct, planBirds, raiseSizes, reduced, runChunked,
   type FarBirds, type Motion,
 } from './collage-motion'
 import { Tally } from './Tally'
@@ -36,13 +36,13 @@ export { stickerUrl } from './Bird'
  * Dispatched (bubbling) on a bird's element to have the collage render it now: a big list renders only the birds
  * near the viewport (collage-window.ts), so one picked from elsewhere must be rendered before it is scrolled to.
  */
-export const REVEAL_EVENT = 'eb-reveal'
+const REVEAL_EVENT = 'eb-reveal'
 /** Render a bird now, wherever it is (see REVEAL_EVENT). */
 export function revealBird(el: HTMLElement): void {
   el.dispatchEvent(new Event(REVEAL_EVENT, { bubbles: true }))
 }
 
-export type CollageProps = {
+type CollageProps = {
   entries: ListEntry[]
   species: SpeciesIndex
   layout: StateLayout
@@ -57,10 +57,7 @@ export type CollageProps = {
    * written in budgeted chunks. A new visible set over the very same layout object is treated the same way.
    */
   still?: boolean
-  marks?: BirdMarks
 }
-
-export type BirdMarks = { newest?: string; first?: string }
 
 const TOUCH_SLOP_PX = 28
 /** How far beyond the viewport (above and below) a bird's sticker starts downloading: one screen. */
@@ -99,7 +96,7 @@ function makeInit(code: string, layout: StateLayout, visible: Set<string>, m: Mo
   return { style: { '--x': x, '--y': y, '--w': b[0], '--h': b[1], '--k': 1, '--md': `${md}ms`, '--ad': `${d}ms` } as CSSProperties, off: false, far, w, h }
 }
 
-export function Collage({ entries, species, layout, visible, mode, onPick, onHover, className, still, marks }: CollageProps) {
+export function Collage({ entries, species, layout, visible, mode, onPick, onHover, className, still }: CollageProps) {
   const { t } = useI18n()
   const names = useNames() // birds are named in the local language once its names file arrives
   const stage = useRef<HTMLDivElement>(null)
@@ -131,7 +128,8 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     return [...taxo].sort((a, b) => g(b) - g(a))
   }, [taxo, row])
   const top = useMemo(() => [...draw].reverse(), [draw])
-  const orders = useMemo(() => [...new Set(entries.map((e) => row(e.code)?.ord).filter((o): o is string => !!o))], [entries, row])
+  const ords = useMemo(() => entries.flatMap((e) => { const ord = row(e.code)?.ord; return ord ? [{ code: e.code, ord }] : [] }), [entries, row])
+  const orders = useMemo(() => [...new Set(ords.map((b) => b.ord))], [ords])
   const shown = useMemo(() => entries.reduce((n, e) => n + (visible.has(e.code) ? 1 : 0), 0), [entries, visible])
   useLayoutEffect(() => { latest.current = { layout, onPick, onHover, still, visible, shown } })
   // Big from the start: the first appearance doesn't animate (collage.css). Frozen at the first render: flipping it
@@ -190,14 +188,11 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
   }, [])
   // Codes that have had an element: a second one is the same bird re-created (a windowed list's group changed).
   const known = useRef(new Set<string>())
-  const marked = useRef(new Map<string, { kinds: string; label: string }>())
   const register = useCallback((code: string, el: HTMLButtonElement | null) => {
     const old = els.current.get(code)
     if (old && old !== el) { io.current?.near.unobserve(old); io.current?.far.unobserve(old) }
     if (el) {
       els.current.set(code, el)
-      const mark = marked.current.get(code)
-      if (mark) { el.setAttribute('data-mark', mark.kinds); el.setAttribute('aria-label', mark.label) }
       if (known.current.has(code)) {
         // Re-created with its frozen first style: bring it up to date with the motion caches.
         motion.anims.get(code)?.cancel(); motion.anims.delete(code); motion.leaving.delete(code)
@@ -242,31 +237,6 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       st?.removeEventListener(REVEAL_EVENT, reveal)
     }
   }, [windowed, getWin])
-
-  const newest = marks?.newest, firstBird = marks?.first
-  useLayoutEffect(() => {
-    const want = new Map<string, { kinds: string; label: string }>()
-    const add = (code: string | undefined, kind: string, sr: string) => {
-      const r = code ? row(code) : undefined
-      if (!code || !r) return
-      const had = want.get(code)
-      want.set(code, had ? { kinds: `${had.kinds} ${kind}`, label: had.label + sr } : { kinds: kind, label: displayName(r) + sr })
-    }
-    add(newest, 'newest', t.collage.controls.newestSr)
-    add(firstBird, 'first', t.collage.controls.firstSr)
-    for (const code of marked.current.keys()) {
-      if (want.has(code)) continue
-      const el = els.current.get(code), r = row(code)
-      el?.removeAttribute('data-mark')
-      if (el && r) el.setAttribute('aria-label', displayName(r))
-    }
-    for (const [code, mark] of want) {
-      const el = els.current.get(code)
-      el?.setAttribute('data-mark', mark.kinds)
-      el?.setAttribute('aria-label', mark.label)
-    }
-    marked.current = want
-  }, [newest, firstBird, row, t, names])
 
   // One tab stop: the last focused or picked bird if it is shown, else the first shown bird in taxonomic order.
   const syncTabStop = useCallback(() => {
@@ -431,7 +401,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       if (f.phase) { f.anim?.cancel(); f.anim = null; f.phase = null; f.apply = null; f.seq++; unveil() }
       fast(false) // after unveil: a skipped layer's birds must be styled for the flip to land without motion
       // Placed without motion, in budgeted chunks: hidden birds go at once, shown ones fade in through their CSS opacity
-      // transition (200 ms) rather than a 640 ms WAAPI growth, so few birds are composited at once. Many arrivals at
+      // transition (200 ms) rather than a WAAPI growth, so few birds are composited at once. Many arrivals at
       // once (a wide drag back) appear without the fade: hundreds of overlapping fades
       // are long frames on a phone.
       let arriving = 0
@@ -460,7 +430,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     write(first ? 'jump' : 'travel')
   }, [layout, visible, taxo, entries, shown, syncTabStop, setHot, fadeThrough, unveil, motion, inits, getWin, far])
 
-  // Once the first appearance has played (the latest bird starts at APPEAR_MS and runs ENTER_MS), switch the
+  // Once the first appearance has played (the latest bird starts at APPEAR_MS and runs APPEAR_IN_MS), switch the
   // birds' eb-in CSS animation off in idle time: a bird holding even a finished CSS animation costs more on
   // every later restyle. Later arrivals use Web Animations, and birds new to a mounted collage start hidden.
   useEffect(() => {
@@ -472,7 +442,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
       const settle = () => el.setAttribute('data-settled', '')
       if (g.requestIdleCallback) idle = g.requestIdleCallback(settle, { timeout: 1000 })
       else settle()
-    }, APPEAR_MS + ENTER_MS + 100)
+    }, APPEAR_MS + APPEAR_IN_MS + 100)
     return () => { clearTimeout(t); if (idle) g.cancelIdleCallback?.(idle) }
   }, [])
 
@@ -532,7 +502,7 @@ export function Collage({ entries, species, layout, visible, mode, onPick, onHov
     const L = latest.current.layout, s = L.W / r.width
     return birdAt(L, top, on, (clientX - r.left) * s, (clientY - r.top) * s, slopPx * s)
   }
-  const loadMasks = () => { void ensureMasks(orders) }
+  const loadMasks = () => { void ensureMasks(orders, ords) }
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     const code = codeOf(e.target)

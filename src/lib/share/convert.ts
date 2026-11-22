@@ -16,6 +16,7 @@ export function dateToYm(date: string | undefined): { ym: number; yearOnly?: tru
   const month = m[2] ? Number(m[2]) : 1
   if (year < BASE_YEAR || year > BASE_YEAR + 5000 || month < 1 || month > 12) return undefined
   const ym = (year - BASE_YEAR) * 12 + (month - 1)
+  if (ym > 300 * 12) return undefined // link.ts MAX_YM (2200-01); a typo year must not make the encoder throw
   return m[2] ? { ym } : { ym, yearOnly: true }
 }
 export function ymToDate(ym: number, yearOnly?: boolean): string {

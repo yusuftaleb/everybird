@@ -2,9 +2,20 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
+import { openAdd } from "./add-birds";
 import { LANGS } from "../src/i18n/langs";
 import { es } from "../src/i18n/messages/es";
 import { nl } from "../src/i18n/messages/nl";
+import { pl } from "../src/i18n/messages/pl";
+import { fr } from "../src/i18n/messages/fr";
+import { de } from "../src/i18n/messages/de";
+import { it } from "../src/i18n/messages/it";
+import { sv } from "../src/i18n/messages/sv";
+import { da } from "../src/i18n/messages/da";
+import { ru } from "../src/i18n/messages/ru";
+import { ja } from "../src/i18n/messages/ja";
+import { zhHans } from "../src/i18n/messages/zh-Hans";
+import { zhHant } from "../src/i18n/messages/zh-Hant";
 import { pt } from "../src/i18n/messages/pt";
 
 /** A small synthetic eBird life list download (real species names, made-up places and dates). */
@@ -31,13 +42,31 @@ const storedFile = (page: Page) =>
         req.onerror = () => resolve(null);
       }),
   );
+/** The collage title in the device copy (saving is debounced, so a reload waits for it). */
+const storedName = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<string | null>((resolve) => {
+        const req = indexedDB.open("everybird");
+        req.onsuccess = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains("kv")) return resolve(null);
+          const get = db.transaction("kv").objectStore("kv").get("everybird:v1");
+          get.onsuccess = () => { db.close(); resolve(get.result?.name ?? null); };
+          get.onerror = () => resolve(null);
+        };
+        req.onerror = () => resolve(null);
+      }),
+  );
 
+/** Imports LIFELIST from Settings' source rows. */
 async function importLifeList(page: Page) {
   const dir = mkdtempSync(join(tmpdir(), "everybird-e2e-"));
   const file = join(dir, "ebird_world_life_list.csv");
   writeFileSync(file, LIFELIST);
   try {
     await page.goto("/settings");
+    await openAdd(page, "file");
     await expect(page.getByTestId("ebird-drop")).toBeVisible();
     await page.getByTestId("ebird-input").setInputFiles(file);
     await expect(page.getByTestId("see-collage")).toContainText("Your collage has 3 species");
@@ -67,13 +96,13 @@ const measureHead = (page: Page) =>
     };
   });
 
-test("Collage, Settings and About share one page head at 390, 768 and 1280", async ({ page }) => {
-  test.setTimeout(90_000);
-  await importLifeList(page);
-  for (const width of [390, 768, 1280]) {
+for (const width of [390, 768, 1280]) {
+  test(`Collage, Settings and About share one page head at ${width}`, async ({ page }) => {
+    test.setTimeout(60_000);
+    await importLifeList(page);
     await page.setViewportSize({ width, height: 900 });
     const got: Record<string, Awaited<ReturnType<typeof measureHead>>> = {};
-    for (const [name, path, title] of [["collage", "/", "My collage"], ["settings", "/settings", "Settings"], ["about", "/about", "About"]] as const) {
+    for (const [name, path, title] of [["collage", "/", "My birds"], ["settings", "/settings", "Settings"], ["about", "/about", "About"]] as const) {
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
       if (name === "collage") await expect(page.getByTestId("collage-stats")).toBeVisible();
@@ -84,53 +113,50 @@ test("Collage, Settings and About share one page head at 390, 768 and 1280", asy
     // The same space under the head on every page (the collage has no line under its title, so its gap is from the title row).
     expect(got.collage.gap, `collage gap at ${width}`).toBe(got.about.gap);
     expect(got.settings.gap, `settings gap at ${width}`).toBe(got.about.gap);
-  }
-});
+  });
+}
 
-test("Tick by hand opens and closes from the keyboard, animated, and at once with reduced motion", async ({ page }) => {
+test("Add by hand: When and where is always in view, and only the species list scrolls in the dialog", async ({ page }) => {
   await page.goto("/settings");
-  const btn = page.getByRole("button", { name: "Tick birds off a list" });
-  await expect(btn).toHaveAttribute("aria-expanded", "false");
-  await expect(btn).toHaveAttribute("aria-controls", "tick");
-  await btn.focus();
-  await page.keyboard.press("Enter");
-  await expect(btn).toHaveAttribute("aria-expanded", "true");
-  const list = page.getByRole("listbox", { name: "Species to tick" });
-  await expect(list).toBeVisible();
-  // Tab moves on into the panel (its search field).
-  await page.keyboard.press("Tab");
-  await expect(page.getByLabel("Search birds")).toBeFocused();
-  await btn.focus();
-  await page.keyboard.press("Space");
-  await expect(btn).toHaveAttribute("aria-expanded", "false");
-  await expect(page.locator("#tick")).toBeHidden();
-
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.keyboard.press("Enter");
-  // No animation: the panel is open and unclipped straight away.
-  expect(await page.locator("#tick").evaluate((el) => [el.hasAttribute("hidden"), el.getAttribute("data-phase")])).toEqual([false, null]);
-  await page.keyboard.press("Enter");
-  expect(await page.locator("#tick").evaluate((el) => el.hasAttribute("hidden"))).toBe(true);
+  const dialog = await openAdd(page, "hand");
+  await expect(dialog.getByLabel("Search birds")).toBeFocused(); // the Add by hand dialog starts at its search
+  // The search empty: the orders, a list that opens in place, in the list's scrolling box.
+  await expect(dialog.getByRole("list", { name: "Species to tick" })).toBeVisible();
+  const list = dialog.getByTestId("tick-tree");
+  // No button to open it: the date, the year and the country are there all the time.
+  await expect(dialog.getByRole("button", { name: "When and where" })).toHaveCount(0);
+  const when = dialog.getByRole("group", { name: "When and where" });
+  for (const label of ["Date (optional)", "Or a year", "Country (optional)"]) await expect(when.getByLabel(label, { exact: true })).toBeVisible();
+  // The dialog itself does not scroll; the list does, and the bar stays in view while it does.
+  expect(await dialog.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+  await list.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+  await expect(when.getByLabel("Date (optional)", { exact: true })).toBeInViewport();
 });
 
 test("each source says what it brings, and the line above them sums them up", async ({ page }) => {
   await page.goto("/settings");
-  // By hand first: Mallard (which the eBird file has too) and Snow Goose (which it doesn't).
-  await page.getByRole("button", { name: "Tick birds off a list" }).click();
-  const list = page.getByRole("listbox", { name: "Species to tick" });
+  // By hand first: Mallard (which the eBird file has too) and Snow Goose (which it doesn't), each added by a tap.
+  const dialog = await openAdd(page, "hand");
+  const list = dialog.getByRole("listbox", { name: "Species to tick" });
   for (const [q, name] of [["mallard", /^Mallard, Anas platyrhynchos/], ["snow goose", /^Snow Goose, Anser caerulescens/]] as const) {
-    await page.getByLabel("Search birds").fill(q);
+    await dialog.getByLabel("Search birds").fill(q);
     await list.getByRole("option", { name }).click();
+    await expect(list.getByRole("option", { name })).toHaveAttribute("aria-selected", "true");
   }
-  await page.getByRole("button", { name: "Add 2 to my list" }).click();
-  const hand = page.locator("#way-tick");
-  await expect(hand).toContainText("Ticked by hand2 species");
-  await expect(page.getByTestId("see-collage")).toHaveText("Your collage has 2 species, all ticked by hand.");
-  await page.getByTestId("ebird-input").setInputFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
+  await expect(dialog).toContainText("Ticked by hand · 2 species");
+  // The dialog is modal: close it to reach the page's own rows.
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
   const summary = page.getByTestId("see-collage");
+  await expect(summary).toHaveText("Your collage has 2 species, all ticked by hand.");
+  await openAdd(page, "file");
+  await page.getByTestId("ebird-input").setInputFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
   await expect(summary).toHaveText("Your collage has 4 species: 3 from eBird, 1 ticked by hand. See my collage");
   await expect(page.getByTestId("source-ebird-list")).toContainText(/3 species · 2 only here · Imported \d{1,2} \w{3}/);
-  await expect(hand).toContainText("2 species · 1 only here");
+  await openAdd(page, "hand");
+  await expect(dialog).toContainText("Ticked by hand · 2 species · 1 only here");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
   await summary.getByRole("link", { name: "See my collage" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("collage-stats")).toHaveText(/^4 species/);
@@ -139,16 +165,18 @@ test("each source says what it brings, and the line above them sums them up", as
 test("an eBird file is remembered on the next visit, and Remove (in its ⋯ menu) takes it away", async ({ page }) => {
   await importLifeList(page);
   await page.reload();
+  await expect(page.getByTestId("see-collage")).toHaveText("Your collage has 3 species, all from eBird."); // no link on a return visit
+  await openAdd(page, "file");
   const line = page.getByTestId("source-ebird-list");
   await expect(line.getByRole("heading", { level: 3 })).toHaveText("eBird life list · ebird_world_life_list.csv");
   await expect(line).toContainText(/csv3 species · Imported \d{1,2} \w{3}/);
-  await expect(page.getByTestId("see-collage")).toHaveText("Your collage has 3 species, all from eBird."); // no link on a return visit
   await line.getByRole("button", { name: "More for eBird life list" }).click();
   await page.getByRole("menuitem", { name: "Remove" }).click();
   await page.getByRole("button", { name: "Yes, remove it" }).click();
   await expect(line).toHaveCount(0);
   await expect(page.getByTestId("see-collage")).toHaveCount(0);
-  await expect(page.locator("#way-ebird")).toBeFocused();
+  // Focus goes to the eBird group, or (a display: contents group can't take focus in every browser) its first button.
+  await expect(page.locator("#way-ebird:focus, #way-ebird button:focus")).toHaveCount(1);
 });
 
 // The quiet rows at a desktop width and on a phone (390, touch).
@@ -158,6 +186,7 @@ for (const width of [1280, 390]) {
 
   test("the ⋯ menu from the keyboard: open, arrows, Escape returns focus; Remove asks once", async ({ page }) => {
     await importLifeList(page);
+    await openAdd(page, "file");
     const line = page.getByTestId("source-ebird-list");
     const more = line.getByRole("button", { name: "More for eBird life list" });
     await expect(more).toHaveAttribute("aria-haspopup", "menu");
@@ -166,21 +195,21 @@ for (const width of [1280, 390]) {
     await expect(more).toHaveAttribute("aria-expanded", "true");
     const menu = page.getByRole("menu", { name: "More for eBird life list" });
     const items = menu.getByRole("menuitem");
-    await expect(items).toHaveText(["Replace", "Remove"]);
+    // Remove alone: the row's own button is Replace, and no item repeats a visible button.
+    await expect(items).toHaveText(["Remove"]);
+    await expect(line.getByRole("button", { name: "Replace ebird_world_life_list.csv", exact: true })).toBeVisible();
     await expect(items.nth(0)).toBeFocused();
-    await page.keyboard.press("ArrowDown");
-    await expect(items.nth(1)).toBeFocused();
-    await page.keyboard.press("ArrowDown"); // wraps
+    await page.keyboard.press("ArrowDown"); // wraps, onto the one item
     await expect(items.nth(0)).toBeFocused();
     await page.keyboard.press("ArrowUp");
-    await expect(items.nth(1)).toBeFocused();
+    await expect(items.nth(0)).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(menu).toHaveCount(0);
     await expect(more).toBeFocused();
     await expect(more).toHaveAttribute("aria-expanded", "false");
     // ArrowUp opens on the last item, Remove; Enter asks, "Keep it" changes nothing and focus returns to ⋯.
     await page.keyboard.press("ArrowUp");
-    await expect(items.nth(1)).toBeFocused();
+    await expect(items.last()).toBeFocused();
     await page.keyboard.press("Enter");
     const ask = page.getByRole("group", { name: "Remove your eBird life list download" });
     await expect(ask).toBeVisible();
@@ -188,7 +217,7 @@ for (const width of [1280, 390]) {
     await ask.getByRole("button", { name: "Keep it" }).click();
     await expect(more).toBeFocused();
     await expect(line).toHaveCount(1);
-    // A press outside closes it.
+    // A press outside closes it (on the section's title).
     await more.click();
     await expect(menu).toBeVisible();
     await page.getByRole("heading", { level: 2, name: "Your list" }).click();
@@ -197,6 +226,7 @@ for (const width of [1280, 390]) {
 
   test("Add opens the source's panel under its row, with its guidance and how-to inside", async ({ page }) => {
     await page.goto("/settings");
+    await openAdd(page, "file");
     await expect(page.getByTestId("ebird-drop")).toBeVisible();
     // No descriptors on the rows: two lines, "Not added", one button.
     const add = page.getByRole("button", { name: "Add eBird life list" });
@@ -218,6 +248,11 @@ for (const width of [1280, 390]) {
     await expect(inat.getByPlaceholder("iNaturalist username")).toBeFocused();
     await expect(inat).toContainText("public, wild bird observations");
     await expect(inat.getByRole("button", { name: "How do I find my username?" })).toBeVisible();
+    // One Add panel at a time: iNaturalist's folded eBird's.
+    await expect(panel).toBeHidden();
+    await expect(add).toHaveAttribute("aria-expanded", "false");
+    await add.click();
+    await expect(inat).toBeHidden();
     // A file chosen from the open panel lands, and the panel folds away.
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), panel.getByRole("button", { name: "Choose your eBird file" }).click()]);
     await chooser.setFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
@@ -227,20 +262,23 @@ for (const width of [1280, 390]) {
 
     test("no row scrolls sideways, and every row keeps its button on the right", async ({ page }) => {
       await importLifeList(page);
+      await openAdd(page, "file");
       const rows = await page.locator(".eb-src-main").evaluateAll((els) => els.map((el) => {
         const r = el.getBoundingClientRect();
         const acts = el.querySelector(".eb-src-acts")!.getBoundingClientRect();
         return { right: Math.round(r.right - acts.right), top: acts.top >= r.top && acts.bottom <= r.bottom };
       }));
-      expect(rows.length).toBe(4);
+      expect(rows.length).toBe(8); // eBird's two, iNaturalist, observation.org's two, spreadsheet, Scythebill, iGoTerra
       for (const r of rows) expect(r).toEqual({ right: width < 480 ? 14 : 16, top: true });
-      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
+      // Nothing wider than the window (a classic scrollbar can leave scrollWidth under clientWidth: still no sideways scroll).
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
     });
   });
 }
 
 test("a file dropped on a row is read", async ({ page }) => {
   await page.goto("/settings");
+  await openAdd(page, "file");
   const zone = page.getByTestId("ebird-drop");
   await expect(zone).toBeVisible();
   const data = await page.evaluateHandle((text) => {
@@ -257,6 +295,7 @@ test("a file dropped on a row is read", async ({ page }) => {
 
 test('"why?" after the skipped count opens the entries that weren\'t counted', async ({ page }) => {
   await page.goto("/settings");
+  await openAdd(page, "file");
   await expect(page.getByTestId("ebird-drop")).toBeVisible();
   await page.getByTestId("ebird-input").setInputFiles({
     name: "ebird_world_life_list.csv",
@@ -275,31 +314,36 @@ test('"why?" after the skipped count opens the entries that weren\'t counted', a
   await expect(list).toContainText("1 entry isn't a species");
 });
 
-test("Name your collage titles the collage verbatim and starts the share dialog's title; the dialog's edit stays in that share", async ({ page }) => {
+test("the share dialog's Card title names the card and is saved with the list; the collage stays My birds", async ({ page }) => {
   await importLifeList(page);
-  const field = page.getByLabel("Name your collage", { exact: true });
-  await expect(field).toHaveAttribute("placeholder", "e.g. Yusuf’s life list");
-  await expect(page.getByText("Shown as your collage’s title and on shares.")).toBeVisible();
-  await field.fill("Ada's Life List");
-  await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Ada's Life List" })).toBeVisible();
+  // Settings no longer has the field: the title lives in the share dialog.
+  await expect(page.getByLabel("Name your collage", { exact: true })).toHaveCount(0);
+  await page.getByRole("banner").getByRole("link", { name: "My birds" }).click();
   await page.getByRole("button", { name: "Share", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Share your collage" });
-  const shareTitle = dialog.getByLabel("Collage title");
-  await expect(shareTitle).toHaveValue("Ada's Life List");
-  await shareTitle.fill("Birds of 2026");
+  const shareTitle = dialog.getByLabel("Card title", { exact: true });
+  await expect(shareTitle).toHaveValue("");
+  await expect(dialog.getByText("(optional)", { exact: true })).toBeVisible();
+  await expect(shareTitle).toHaveAccessibleDescription("(optional) Shown as your collage’s title and on shares.");
+  await shareTitle.fill("Ada's Life List");
   await dialog.getByRole("button", { name: "Close" }).click();
-  // The collage and Settings keep the saved title, after a reload too.
-  await expect(page.getByRole("heading", { level: 1, name: "Ada's Life List" })).toBeVisible();
-  await page.goto("/settings");
-  await expect(page.getByLabel("Name your collage", { exact: true })).toHaveValue("Ada's Life List");
-  // Empty: "My collage".
-  await page.getByLabel("Name your collage", { exact: true }).fill("");
-  await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "My collage" })).toBeVisible();
+  // The collage's title is always "My birds": the list's title names only its share card and poster.
+  await expect(page.getByRole("heading", { level: 1, name: "My birds" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Ada's Life List" })).toHaveCount(0);
+  // Saved with the list: after a reload the card title is still there (once the debounced save has landed).
+  await expect.poll(() => storedName(page)).toBe("Ada's Life List");
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1, name: "My birds" })).toBeVisible();
+  await page.getByRole("button", { name: "Share", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Share your collage" }).getByLabel("Card title", { exact: true })).toHaveValue("Ada's Life List");
+  // Emptied: no title saved.
+  await page.getByRole("dialog", { name: "Share your collage" }).getByLabel("Card title", { exact: true }).fill("");
+  await page.keyboard.press("Escape");
+  await expect.poll(() => storedName(page)).toBeNull();
+  await expect(page.getByRole("heading", { level: 1, name: "My birds" })).toBeVisible();
 });
 
-test("a list saved with an old bare name (v3) keeps the title it showed", async ({ page }) => {
+test("a list saved with an old bare name (v3) keeps the title it showed, now its card title", async ({ page }) => {
   await page.goto("/about");
   await page.evaluate(
     (saved) =>
@@ -322,24 +366,19 @@ test("a list saved with an old bare name (v3) keeps the title it showed", async 
     },
   );
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1, name: "Ada's birds" })).toBeVisible();
-  await page.goto("/settings");
-  await expect(page.getByLabel("Name your collage", { exact: true })).toHaveValue("Ada's birds");
+  // The collage is "My birds"; the migrated title ("Ada" → "Ada's birds", titleFromOldName) names the card.
+  await expect(page.getByRole("heading", { level: 1, name: "My birds" })).toBeVisible();
+  await page.getByRole("button", { name: "Share", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Share your collage" }).getByLabel("Card title", { exact: true })).toHaveValue("Ada's birds");
 });
 
-test("Settings fits about 1.5 screens at 1280x800 with a source connected", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 800 });
-  await importLifeList(page);
-  const height = await page.evaluate(() => document.documentElement.scrollHeight);
-  expect(height).toBeLessThanOrEqual(1.6 * 800);
-});
-
-// A life list download knows only where you first recorded each bird: Settings says so under the eBird rows, with
-// an inline link to MyEBirdData's Add panel (each row keeps its one button), and the collage's Places panel links to the
-// same panel (/settings#add-mydata).
+// A life list download knows only where you first recorded each bird: the Add birds dialog says so under the eBird rows,
+// with an inline link to MyEBirdData's Add panel (each row keeps its one button), and the collage's Places panel links to
+// the same panel (/settings#add-mydata, which opens it in the page).
 for (const width of [1280, 390]) test(`after a life list import, Settings and Places say places are first places only, one tap from MyEBirdData (${width}px)`, async ({ page }) => {
   await page.setViewportSize({ width, height: width < 600 ? 844 : 800 });
   await importLifeList(page);
+  await openAdd(page, "file");
   const note = page.getByTestId("places-lifer-note");
   await expect(note).toBeVisible();
   await expect(note.getByRole("button")).toHaveCount(0);
@@ -354,9 +393,9 @@ for (const width of [1280, 390]) test(`after a life list import, Settings and Pl
   await expect(group).toBeVisible();
   await expect(choose).toBeFocused();
 
-  await page.getByRole("banner").getByRole("link", { name: "Collage", exact: true }).click();
+  await page.getByRole("banner").getByRole("link", { name: "My birds", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
-  await page.getByTestId("filter-tab-places").click();
+  await page.getByTestId("filters-button").click();
   await page.getByTestId("places-lifer-only").getByRole("link", { name: "Add MyEBirdData" }).click();
   await expect(page).toHaveURL(/\/settings#add-mydata$/);
   await expect(group).toBeVisible();
@@ -395,13 +434,13 @@ test("the collage's Fix it opens Settings with the match report open", async ({ 
   await expect(page.locator("#eb-match-rows")).toBeVisible();
 });
 
-// The language switch (preview variant lang:a, the default): the top bar's button beside the theme switch opens a menu
-// of the four languages; a choice sets the everybird-lang cookie and reloads, and every page follows it, after a
-// reload too. Settings' "Language" field shows the same choice.
+// The language switch: the top bar's button beside the theme switch opens a menu
+// of the languages; a choice sets the everybird-lang cookie and reloads, and every page follows it, after a reload
+// too. Settings has no language select, only the English-names switch.
 test("Language: Español from the top bar switches every page and stays after a reload", async ({ page, context }) => {
   await page.goto("/");
   const bar = page.getByTestId("topbar");
-  const btn = bar.getByRole("button", { name: "Language: English" });
+  const btn = bar.getByRole("button", { name: "EN, Language: English" });
   await expect(btn).toHaveText("EN");
   await btn.click();
   const menu = page.getByRole("menu", { name: "Language" });
@@ -409,9 +448,9 @@ test("Language: Español from the top bar switches every page and stays after a 
   await expect(menu.getByRole("menuitemradio", { name: "English" })).toBeFocused();
   await Promise.all([page.waitForEvent("load"), menu.getByRole("menuitemradio", { name: "Español" }).click()]);
   await expect(page.locator("html")).toHaveAttribute("lang", "es");
-  await expect(bar.getByRole("button", { name: "Idioma: Español" })).toHaveText("ES");
+  await expect(bar.getByRole("button", { name: "ES, Idioma: Español" })).toHaveText("ES");
   expect((await context.cookies()).find((c) => c.name === "everybird-lang")?.value).toBe("es");
-  for (const [name, path] of [["Ajustes", "/settings"], ["Acerca de", "/about"], ["Collage", "/"]] as const) {
+  for (const [name, path] of [["Ajustes", "/settings"], ["Acerca de", "/about"], ["Mis aves", "/"]] as const) {
     await bar.getByRole("link", { name, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`${path === "/" ? "/" : path}$`));
     await expect(page.locator("html")).toHaveAttribute("lang", "es");
@@ -420,24 +459,15 @@ test("Language: Español from the top bar switches every page and stays after a 
   await page.goto("/settings");
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "es");
-  await expect(page.getByRole("combobox", { name: "Idioma" })).toHaveValue("es");
+  await expect(page.getByRole("combobox", { name: "Idioma" })).toHaveCount(0); // the language is the top bar's menu
   await expect(page.getByRole("switch", { name: "Mostrar los nombres de las aves en inglés" })).toBeVisible();
 });
 
-test("Settings still fits about 1.5 screens at 1280x800 with the language field, in the Settings-only variant (?v=lang:b)", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 800 });
-  await importLifeList(page);
-  await page.goto("/settings?v=lang:b");
-  await expect(page.getByRole("combobox", { name: "Language" })).toBeVisible();
-  await expect(page.getByTestId("topbar").getByRole("button", { name: /^Language/ })).toHaveCount(0);
-  const height = await page.evaluate(() => document.documentElement.scrollHeight);
-  expect(height).toBeLessThanOrEqual(1.6 * 800);
-});
+// (Settings' old 1.5-screen budget went with the 2026-11-19 Settings: every source row and Add by hand, open, in the page.)
+const MESSAGES = { es, pt, nl, pl, fr, de, it, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant } as const;
 
-const MESSAGES = { es, pt, nl } as const;
-
-// The Settings source rows in Spanish, Portuguese and Dutch at 390 and 1280: each row's button is whole beside its
-// text (the buttons wrap under the text, never out of the page) and nothing scrolls sideways. For manual runs.
+// Settings' source rows in each language at 390 and 1280: each Add button is whole (the row buttons wrap under the
+// text, never out of the page) and nothing scrolls sideways. For manual runs.
 for (const lang of LANGS.filter((l) => l !== "en")) {
   for (const width of [390, 1280]) {
     test(`source rows fit in ${lang} at ${width}px`, async ({ page, context, baseURL }) => {
@@ -445,15 +475,18 @@ for (const lang of LANGS.filter((l) => l !== "en")) {
       await context.addCookies([{ name: "everybird-lang", value: lang, url: baseURL! }]);
       await page.setViewportSize({ width, height: width < 600 ? 844 : 900 });
       await page.goto("/settings");
-      for (const label of [ui.import.add, ui.tick.button]) {
-        const btns = page.getByRole("button", { name: label, exact: true });
+      // Every source row's Add button ("Add", named "Add <the row's title>")
+      const fits = async (label: string) => {
+        const btns = page.locator("#sources").getByRole("button").and(page.getByText(label, { exact: true }));
         await expect(btns.first()).toBeVisible();
         for (const b of await btns.all()) {
           const box = await b.boundingBox();
           expect(box!.x + box!.width, `${label} inside the page`).toBeLessThanOrEqual(width + 0.5);
           expect(box!.x, `${label} inside the page`).toBeGreaterThanOrEqual(0);
         }
-      }
+      };
+      await openAdd(page, "file", ui);
+      await fits(ui.import.add);
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     });
   }

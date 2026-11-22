@@ -30,7 +30,7 @@ function assertClean(body: string) {
   if ('d' in o) expect(o.d).toBe('touch')
   if ('l' in o) {
     expect(o.n).toBe('visit')
-    expect(o.l).toMatch(/^[a-z]{2,3}$/)
+    expect(o.l).toMatch(/^(?:[a-z]{2,3}|zh-Han[st])$/)
   }
 }
 
@@ -72,7 +72,10 @@ describe('the browser language', () => {
       return JSON.parse(await blobText(beacon.mock.calls[0][1])) as Record<string, unknown>
     }
     expect(await body('pt-BR')).toEqual({ n: 'visit', p: 'landing', l: 'pt' })
-    expect(await body('zh-Hant-TW')).toEqual({ n: 'visit', p: 'landing', l: 'zh' })
+    // Chinese by script (langCode), the stats Worker's two Chinese values.
+    expect(await body('zh-Hant-TW')).toEqual({ n: 'visit', p: 'landing', l: 'zh-Hant' })
+    expect(await body('zh-HK')).toEqual({ n: 'visit', p: 'landing', l: 'zh-Hant' })
+    expect(await body('zh-CN')).toEqual({ n: 'visit', p: 'landing', l: 'zh-Hans' })
     expect(await body('es')).toEqual({ n: 'visit', p: 'landing', l: 'es' })
     for (const bad of ['x', '', 'english', '12-US', undefined]) expect(await body(bad), String(bad)).toEqual({ n: 'visit', p: 'landing' })
     const ipad = env({ nav: { userAgent: MAC, maxTouchPoints: 5, language: 'nl-NL' } })
@@ -230,12 +233,25 @@ describe('the newer events', () => {
     for (const format of ['png', 'pdf'] as const) expect(payloadFor('poster_downloaded', { format })).toEqual({ n: 'poster_downloaded', p: format })
     for (const kind of ['smart', 'bird'] as const) expect(payloadFor('search_applied', { kind })).toEqual({ n: 'search_applied', p: kind })
     for (const kind of ['place', 'continent', 'time', 'status', 'group', 'taxonomy'] as const) expect(payloadFor('filter_used', { kind })).toEqual({ n: 'filter_used', p: kind })
-    expect(payloadFor('ui_language', { lang: 'fr' as never })).toBeNull()
+    expect(payloadFor('ui_language', { lang: 'tr' as never })).toBeNull()
     expect(payloadFor('poster_made', { size: 'A4' as never })).toBeNull()
     expect(payloadFor('poster_downloaded', { format: 'jpg' as never })).toBeNull()
     expect(payloadFor('search_applied', { kind: 'Snow Goose' as never })).toBeNull()
     expect(payloadFor('filter_used', { kind: 'Canada' as never })).toBeNull()
     expect(payloadFor('ui_language', { lang: 'es' }, false, 'es-MX')).toEqual({ n: 'ui_language', p: 'es' }) // no browser language off a visit
+  })
+  it('round 6: Compare, what an image shows, views opened and Export in batches, from fixed lists only', () => {
+    for (const page of ['compare', 'compare-shared'] as const) expect(payloadFor('visit', { page })).toEqual({ n: 'visit', p: page })
+    for (const lists of ['2', '3', '4', '5', '6'] as const) expect(payloadFor('compare_made', { lists })).toEqual({ n: 'compare_made', p: lists })
+    for (const view of ['collage', 'list', 'map', 'tree', 'comparison', 'wish-list'] as const) expect(payloadFor('image_view', { view })).toEqual({ n: 'image_view', p: view })
+    for (const view of ['list', 'map', 'tree'] as const) expect(payloadFor('view_opened', { view })).toEqual({ n: 'view_opened', p: view })
+    for (const split of ['family', 'order', 'country', 'continent', 'province', 'year', 'size'] as const) expect(payloadFor('batch_exported', { split })).toEqual({ n: 'batch_exported', p: split })
+    expect(payloadFor('compare_made', { lists: '1' as never })).toBeNull()
+    expect(payloadFor('compare_made', { lists: '7' as never })).toBeNull()
+    expect(payloadFor('image_view', { view: 'poster' as never })).toBeNull()
+    expect(payloadFor('view_opened', { view: 'collage' as never })).toBeNull() // the default view is never counted
+    expect(payloadFor('batch_exported', { split: 'batches' as never })).toBeNull() // on the wire as 'size'
+    expect(payloadFor('visit', { page: 'c/abc' as never })).toBeNull()
   })
   it('trackFilterUsed sends each kind once per page load', () => {
     const bodies: string[] = []

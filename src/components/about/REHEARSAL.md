@@ -21,7 +21,7 @@ What changed, and why each label is what it is:
   species · 3 skipped why? · Imported 6 Nov", Replace and the ⋯ menu. The section's note ("Combine any of these into one
   list.") gives way to the summary line, "Your collage has 112 species, all from eBird." and "See my collage". The old
   "Added 197 species" banner, the uppercase mono status and the cards with descriptors are gone.
-- The collage page: the page head with the title verbatim ("My collage": the list has no title yet), Add birds and
+- The collage page: the page head with the title verbatim ("My birds": the list has no title yet), Add birds and
   Share; the stats line ("112 species · 7 orders · 31 families · since Mar 2019", "6 of 112 species · 1 family" on
   Herons); the controls bar (view tabs, True size, Scientific, a Filters button, search; on phones the short
   labels and the Filters button on row two); the order chips wrapped (seven orders adding up to 112; on phones the "Choose
@@ -39,8 +39,8 @@ What changed, and why each label is what it is:
   Post / Square with their ratios (icons and ratios dropped in the compact column, as the product does under 420 px),
   the collage title field, the "Show latest lifer" switch (on, as the product opens; wide design only, like the title
   field) and the three actions. The image is the centre-count card without a name (the collage has no
-  title): stickers around "112 / SPECIES", "LATEST LIFER · OCT 2026" over Tricolored Heron, a hairline, the wordmark and
-  "everybird.yusuftaleb.com · stickers by huashu · 6 Nov 2026" on one line (the demo's fixed date stamp, the
+  title): stickers around "112 / SPECIES", "LATEST LIFER · OCT 2026" over Tricolored Heron, a hairline, one footer line, the wordmark,
+  "everybird.yusuftaleb.com/credits" and "6 Nov 2026" at the right (the demo's fixed date stamp, the
   day of its "Imported 6 Nov"; the product stamps the day the image is made). The old separate credit line is gone (the
   credit stays under the figure).
 - The landing ("A lifetime of birds.") isn't in the story: the scene starts on Settings, as before.
@@ -67,8 +67,8 @@ and the whole figure under reduced motion.
 ## Shows at once (2026-11-06)
 
 - HowItWorksPoster is server-rendered in the slot's fixed height: both designs in the HTML, the slot's width picking
-  one (a container query, the stage's own 560 px rule) and scaling it (calc(100cqw / 720px) where the browser divides
-  lengths, Chromium and WebKit; a measured --k in Firefox). Layout and text are there with the HTML.
+  one (a container query, the stage's own 560 px rule) and scaling it (tan(atan2(100cqw, 720px)), a unitless ratio
+  Chromium, WebKit and Firefox all compute; a measured --k only where it is missing). Layout and text are there with the HTML.
 - Stickers: every demo sticker is the 128 px file (stickerUrl with sv), so the poster's 24 files are small and shared
   by every state; the six biggest are preloaded from the head (react-dom preload) with a preconnect to the sticker
   host; the rest start as the poster's HTML parses. Each fades in as it loads (data-ld), set before hydration by the
@@ -159,3 +159,25 @@ the product's for these 24). The compact page leaves out the stats line for room
 Not checked: real devices and touch, Firefox, headed Safari over a long run (headed WebKit windows were throttled by the
 OS once covered, for the old and new demo alike, so its long runs measure the window manager, not the page), toggling
 reduced motion during playback, a theme switch mid-loop, and the demo with the production stickers site (not live yet).
+
+## Round 6 (2026-11-21): today's site, a larger figure
+
+What changed, and why (the product moved on; the demo follows it, labels from the product's dictionaries as before):
+- The top bar: My birds, Compare, Settings, About (compact: My birds and Settings; there is no room for four).
+- Settings: Add by hand at the right of "Your list" (wide), and the fourth row is Spreadsheet or list, as the import
+  panel orders its rows today (the Ticked by hand row is gone: by hand is the heading row's button).
+- The collage page head: Add birds, Print and Share (compact: Add birds and Print as 26px icon buttons).
+- The controls bar: the Collage, List, Map and Tree tabs (icons), then Taxa, Display and Filters, then search (the True
+  size and Scientific switches live in the Display panel now); on phones the three panel buttons share row two.
+- The taxonomy filter: no wall of chips under the bar. Beat 3 presses Taxa, the panel drops under the bar (its "7 of 45
+  orders" head and the order chips; everything under the bar dims), Herons is pressed (Accent), and Taxa again closes it:
+  the six herons glide in and the breadcrumb shows under the bar, as before. On phones the panel is its sheet at the
+  bottom of what the stage shows, closed by its foot button, "Show 6 species".
+- The collage box (wide) is 524 × 198, 32px taller, the room the chip rows took (`STAGE` in build-howto.ts).
+- The share dialog: the format names alone (the product shows no ratios), and the Export in batches row under the image
+  options (wide only).
+- Size: the figure spans About's content width and the stage scales its design past 720 × 470 (Stage's `fill`, up to 2x;
+  1.51x at 1088px), the poster with it. Text and lines are DOM and stay sharp; the 17 stickers (of 112) drawn past 128 device px
+  at 1.51x on a 2x screen take the 384 file, every other one keeps the 128 file (one URL per bird in every state).
+
+Not rehearsed: no film or browser run this round (code checks only); the frames above predate it.

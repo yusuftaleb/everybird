@@ -223,31 +223,39 @@ function body(p: SharePayload, level: ShareLevel, sorted: { b: ShareBird; idx: n
 
 /** The token for the richest level that fits `maxChars` (default: what a 2,000-character URL leaves). Throws ShareTooLarge. */
 export function encodeShare(p: SharePayload, maxChars: number = TOKEN_BUDGET): { token: string; level: ShareLevel } {
-  const sorted = p.birds.map((b) => ({ b, idx: lookup(b.code) })).sort((x, y) => x.idx - y.idx)
-  for (let i = 1; i < sorted.length; i++) if (sorted[i].idx === sorted[i - 1].idx) throw new Error(`Duplicate bird in a share link: ${sorted[i].b.code}`)
-  for (const { b } of sorted) {
-    if (b.ym !== undefined && !(Number.isInteger(b.ym) && b.ym >= 0 && b.ym <= MAX_YM)) throw new Error('Month out of range for a share link')
-    if (b.p !== undefined && !(Number.isInteger(b.p) && b.p >= 0)) throw new Error('Bad place index for a share link')
-  }
-  // A level the payload has nothing for would encode the same as the one below it, so it is not reported.
-  const hasPlaces = !!p.places?.length && sorted.some(({ b }) => b.p !== undefined)
-  const hasDates = sorted.some(({ b }) => b.ym !== undefined)
-  for (const level of ['regions', 'countries', 'dates', 'species'] as const) {
-    if ((level === 'regions' || level === 'countries') && !hasPlaces) continue
-    if (level === 'dates' && !hasDates) continue
+  const sorted = sortBirds(p)
+  for (const level of levelsFor([{ p, sorted }])) {
     const token = '1' + toBase64Url(deflateSync(body(p, level, sorted), { level: 9 }))
     if (token.length <= maxChars) return { token, level }
   }
   throw new ShareTooLarge()
 }
 
+/** The birds in link-index order, checked: no duplicates, months and place indexes in range. */
+function sortBirds(p: SharePayload): { b: ShareBird; idx: number }[] {
+  const sorted = p.birds.map((b) => ({ b, idx: lookup(b.code) })).sort((x, y) => x.idx - y.idx)
+  for (let i = 1; i < sorted.length; i++) if (sorted[i].idx === sorted[i - 1].idx) throw new Error(`Duplicate bird in a share link: ${sorted[i].b.code}`)
+  for (const { b } of sorted) {
+    if (b.ym !== undefined && !(Number.isInteger(b.ym) && b.ym >= 0 && b.ym <= MAX_YM)) throw new Error('Month out of range for a share link')
+    if (b.p !== undefined && !(Number.isInteger(b.p) && b.p >= 0)) throw new Error('Bad place index for a share link')
+  }
+  return sorted
+}
+
+/** The levels to try, richest first. A level no list has anything for would encode the same as the one below it, so it is skipped. */
+function levelsFor(lists: { p: SharePayload; sorted: { b: ShareBird }[] }[]): ShareLevel[] {
+  const hasPlaces = lists.some(({ p, sorted }) => !!p.places?.length && sorted.some(({ b }) => b.p !== undefined))
+  const hasDates = lists.some(({ sorted }) => sorted.some(({ b }) => b.ym !== undefined))
+  return (['regions', 'countries', 'dates', 'species'] as const).filter((l) => (l === 'regions' || l === 'countries' ? hasPlaces : l === 'dates' ? hasDates : true))
+}
+
 /** Inflate with a hard cap on the output, fed in small slices so a bomb is stopped before it is allocated. */
-function inflateCapped(data: Uint8Array): Uint8Array {
+function inflateCapped(data: Uint8Array, max = MAX_BODY): Uint8Array {
   const chunks: Uint8Array[] = []
   let total = 0
   const inf = new Inflate((chunk) => {
     total += chunk.length
-    if (total > MAX_BODY) throw new ShareDecodeError()
+    if (total > max) throw new ShareDecodeError()
     chunks.push(chunk)
   })
   const SLICE = 128
@@ -267,6 +275,11 @@ export function decodeShare(token: string): SharePayload {
   } catch {
     throw new ShareDecodeError()
   }
+  return parseBody(raw)
+}
+
+/** One list's BODY (above), whole: anything left over or out of range is a ShareDecodeError. */
+function parseBody(raw: Uint8Array): SharePayload {
   try {
     const r = new Reader(raw)
     const f = r.u8()
@@ -358,4 +371,59 @@ export function decodeShare(token: string): SharePayload {
   } catch (e) {
     throw e instanceof ShareDecodeError ? e : new ShareDecodeError()
   }
+}
+
+// Comparison links (issue #10): `${origin}/c/${token}`, two to COMPARE_MAX lists in one token, the sharer's first.
+//
+// token  = "c" + base64url( deflateRaw( level 9, u8 1 (the format's version), varint nLists, per list: varint len, BODY ) )
+// BODY   = one list's body, exactly as above. Every list is written at the same level, the richest whose token fits.
+//
+// "c" is a separate token type, never a version of "1". A version byte other than 1 is refused, so a later format
+// changes that byte.
+/** At most six lists, the sharer's included. Measured tokens, species only (no dates or places), for synthetic lists
+ *  clustered by family as real lists are, then uniformly random (the worst case): six lists of 1,000 species 1,473 to
+ *  5,363 characters, two of 5,000 2,016 to 3,767, six of 5,000 5,885 to 11,260. With months every list is about ten times
+ *  bigger, so big comparisons fall back to species only, and the biggest don't fit (tests/compare.test.ts). */
+export const COMPARE_MAX = 6
+/** A whole comparison URL stays at or under 8,000 characters. Assumed, not measured: Cloudflare takes URLs to 16 KB, and
+ *  8 KB is the common limit of servers and proxies. Messaging apps' limits are untested. */
+export const COMPARE_URL_BUDGET = 8000
+export const COMPARE_TOKEN_BUDGET = COMPARE_URL_BUDGET - `${SHARE_ORIGIN}/c/`.length
+const COMPARE_VERSION = 1
+const MAX_COMPARE_TOKEN = 2 * COMPARE_URL_BUDGET
+
+/** The comparison token for `lists` (2 to COMPARE_MAX) at the richest level that fits. Throws ShareTooLarge. */
+export function encodeCompare(lists: SharePayload[], maxChars: number = COMPARE_TOKEN_BUDGET): { token: string; level: ShareLevel } {
+  if (lists.length < 2 || lists.length > COMPARE_MAX) throw new Error(`A comparison link holds 2 to ${COMPARE_MAX} lists`)
+  const prepared = lists.map((p) => ({ p, sorted: sortBirds(p) }))
+  for (const level of levelsFor(prepared)) {
+    const w = new Writer()
+    w.u8(COMPARE_VERSION)
+    w.varint(prepared.length)
+    for (const { p, sorted } of prepared) {
+      const b = body(p, level, sorted)
+      w.varint(b.length); w.bytes(b)
+    }
+    const token = 'c' + toBase64Url(deflateSync(Uint8Array.from(w.b), { level: 9 }))
+    if (token.length <= maxChars) return { token, level }
+  }
+  throw new ShareTooLarge()
+}
+
+/** The lists a comparison token carries, in order. Throws ShareDecodeError on a broken, oversized or newer token. */
+export function decodeCompare(token: string): SharePayload[] {
+  if (typeof token !== 'string' || token.length < 2 || token.length > MAX_COMPARE_TOKEN || token[0] !== 'c') throw new ShareDecodeError()
+  let raw: Uint8Array
+  try {
+    raw = inflateCapped(fromBase64Url(token.slice(1)), COMPARE_MAX * MAX_BODY)
+  } catch {
+    throw new ShareDecodeError()
+  }
+  const r = new Reader(raw)
+  if (r.u8() !== COMPARE_VERSION) throw new ShareDecodeError()
+  const n = r.varint()
+  if (n < 2 || n > COMPARE_MAX) throw new ShareDecodeError()
+  const lists = Array.from({ length: n }, () => parseBody(r.bytes(r.varint())))
+  if (r.i !== raw.length) throw new ShareDecodeError()
+  return lists
 }

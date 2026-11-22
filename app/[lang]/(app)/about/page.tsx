@@ -7,12 +7,12 @@ import { HowItWorksDemo } from '@/components/about/HowItWorksDemo'
 import { PageHead } from '@/components/app/PageHead'
 import { fmt, rich } from '@/i18n/core'
 import { getMessages, langParam } from '@/i18n/server'
-import { COFFEE_URL, pageSeo, siteTitle } from '@/lib/site-meta'
+import { COFFEE_URL, REPO_URL, pageSeo, siteTitle } from '@/lib/site-meta'
 import { AVILIST, IUCN_SOURCE } from '@/lib/species/iucn'
 import '@/components/app/app.css'
 import './about.css'
 
-// Only the layout's four languages exist: any other first segment (/nope) is the static 404, never a render.
+// Only the layout's 14 languages exist: any other first segment (/nope) is the static 404, never a render.
 export const dynamicParams = false
 
 /** About's title and description in the page's language. */
@@ -24,8 +24,8 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
 }
 
 /** The public repo (created at launch, Task 25). */
-const REPO_URL = 'https://github.com/yusuftaleb/everybird'
 const HUASHU_URL = 'https://github.com/alchaincyf/huashu-bird-sticker'
+const AVES_URL = 'https://github.com/McTavishLab/AvesData'
 
 /** Read once at build time: the page is static. Only the two header fields are used. */
 function dataVersions(): { ebirdTaxonomy: string; huashuCommit: string } {
@@ -34,6 +34,12 @@ function dataVersions(): { ebirdTaxonomy: string; huashuCommit: string } {
     huashuCommit?: string
   }
   return { ebirdTaxonomy: head.ebirdTaxonomy ?? 'unknown', huashuCommit: head.huashuCommit ?? '' }
+}
+
+/** The bird tree's header fields, for its credit (read once at build time, as dataVersions). */
+function treeVersions(): { tree: string; taxonomy: string; year: string } {
+  const f = JSON.parse(readFileSync(join(process.cwd(), 'public/data/tree.v1.json'), 'utf8')) as { tree?: string; taxonomy?: string; ebirdTaxonomy?: string }
+  return { tree: f.tree ?? 'AvesData', taxonomy: f.taxonomy ?? 'unknown', year: f.ebirdTaxonomy ?? 'unknown' }
 }
 
 function A({ href, children }: { href: string; children: ReactNode }) {
@@ -49,7 +55,8 @@ function link(href: string): (chunk: string) => ReactNode {
 function Credit({ label, title, children }: { label: string; title: ReactNode; children: ReactNode }) {
   return (
     <li className="eb-credit">
-      <h3 className="eb-credit-title">{title}<span className="eb-mono">{label}</span></h3>
+      {/* The space keeps title and label two words for screen readers ("huashu-bird-sticker Stickers"); flex drops it visually. */}
+      <h3 className="eb-credit-title">{title}{' '}<span className="eb-mono">{label}</span></h3>
       <p className="eb-credit-body">{children}</p>
     </li>
   )
@@ -61,24 +68,31 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
   const a = page.about
   const c = a.credits
   const { ebirdTaxonomy, huashuCommit } = dataVersions()
+  const tree = treeVersions()
   return (
     <main className="eb-page eb-about eb-page-titled">
       <PageHead title={page.meta.about.title} lede={a.lede} />
 
+      {/* One column where text reads on (a section's paragraphs, a long section beside a short one); two equal columns
+          from 1024px only where parts pair at a similar length (the steps beside the privacy note; the credit rows).
+          The demo spans the content width. */}
       <section className="eb-block" aria-labelledby="eb-what-h">
         <h2 id="eb-what-h" className="eb-h2">{a.what.head}</h2>
         <p className="eb-prose">{a.what.body}</p>
+        <p className="eb-prose">{a.what.more}</p>
       </section>
 
       <section className="eb-block" aria-labelledby="eb-how-h">
         <h2 id="eb-how-h" className="eb-h2">{a.how.head}</h2>
         <HowItWorksDemo />
-        <ol className="eb-steps">
-          <li>{rich(a.how.steps[0], { link: (chunk) => <Link href="/settings">{chunk}</Link> })}</li>
-          <li>{a.how.steps[1]}</li>
-          <li>{a.how.steps[2]}</li>
-        </ol>
-        <p className="eb-prose">{a.how.privacy}</p>
+        <div className="eb-about-cols">
+          <ol className="eb-steps">
+            <li>{rich(a.how.steps[0], { link: (chunk) => <Link href="/settings">{chunk}</Link> })}</li>
+            <li>{a.how.steps[1]}</li>
+            <li>{a.how.steps[2]}</li>
+          </ol>
+          <p className="eb-prose">{a.how.privacy}</p>
+        </div>
       </section>
 
       <section className="eb-block" aria-labelledby="eb-size-h">
@@ -94,11 +108,14 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
 
       <section id="credits" className="eb-block" aria-labelledby="eb-credits-h" tabIndex={-1}>
         <h2 id="eb-credits-h" className="eb-h2">{c.head}</h2>
-        <p className="eb-prose">
-          {rich(c.madeBy, { you: link('https://www.yusuftaleb.com'), life: link('https://www.yusuftaleb.com/lifelist') })}
-        </p>
+        {/* "Made by" and the coffee sentence are one paragraph, Buy Me a Coffee's button at its right where both fit,
+            under it where they don't. Languages that end a sentence with 。 join sentences without a space. */}
         <div className="eb-coffee">
-          <p className="eb-prose">{c.coffee}</p>
+          <p className="eb-prose">
+            {rich(c.madeBy, { you: link('https://www.yusuftaleb.com'), life: link('https://www.yusuftaleb.com/lifelist') })}
+            {c.madeBy.endsWith('。') ? '' : ' '}
+            {c.coffee}
+          </p>
           <a className="eb-coffee-btn" href={COFFEE_URL} target="_blank" rel="noopener noreferrer">
             {/* Buy Me a Coffee's standard static button (https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png, 545 × 153),
                 self-hosted so nothing loads from them before a click: no widget, no script, no cookies. The image says
@@ -107,6 +124,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
             <img src="/buy-me-a-coffee.png" width={143} height={40} alt="Buy me a coffee" />
           </a>
         </div>
+        <p className="eb-prose">{c.thanks}</p>
         <ul className="eb-credits">
           <Credit label={c.label.stickers} title={<A href={HUASHU_URL}>huashu-bird-sticker</A>}>
             {rich(c.stickers.lead, { cc: link('https://creativecommons.org/licenses/by/4.0/'), how: link('https://birdalbum.com/how-stickers-are-made/') })}
@@ -117,7 +135,7 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
             {c.inspiration}
           </Credit>
           <Credit label={c.label.taxonomy} title={<A href="https://www.birds.cornell.edu/clementschecklist/">{c.taxonomyTitle}</A>}>
-            {fmt(c.taxonomy, { version: ebirdTaxonomy })}
+            {rich(fmt(c.taxonomy, { version: ebirdTaxonomy }), { cc: link('https://creativecommons.org/licenses/by/3.0/') })}
           </Credit>
           <Credit label={c.label.masses} title={<A href="https://doi.org/10.1111/ele.13898">AVONET</A>}>
             {c.masses}
@@ -127,6 +145,9 @@ export default async function AboutPage({ params }: { params: Promise<{ lang: st
           </Credit>
           <Credit label={c.label.redList} title={<A href={AVILIST.doi}>AviList</A>}>
             {rich(fmt(c.redList, { birdlife: AVILIST.birdlife, version: AVILIST.version, year: String(AVILIST.year) }), { cc: link('https://creativecommons.org/licenses/by/4.0/') })}
+          </Credit>
+          <Credit label={c.label.tree} title={<A href={AVES_URL}>AvesData</A>}>
+            {rich(fmt(c.tree, tree), { cc: link('https://creativecommons.org/licenses/by/4.0/') })}
           </Credit>
           <Credit label={c.label.api} title={<A href="https://api.inaturalist.org/v1/docs/">iNaturalist</A>}>
             {c.api}

@@ -13,6 +13,9 @@ describe("the stats Worker's row", () => {
     expect(eventRow({ n: 'visit', p: 'landing', l: 'es' }, ctx)).toEqual({ ...ctx, name: 'visit', value: 'landing', lang: 'es' })
     expect(eventRow({ n: 'visit', p: 'landing', l: 'es' }, ctx)!.lang).toBe('es')
     expect(eventRow({ n: 'visit', p: 'about', l: 'zh' }, ctx)?.lang).toBe('zh')
+    // Chinese by script, as the app's langCode sends it.
+    expect(eventRow({ n: 'visit', p: 'about', l: 'zh-Hans' }, ctx)?.lang).toBe('zh-Hans')
+    expect(eventRow({ n: 'visit', p: 'about', l: 'zh-Hant' }, ctx)?.lang).toBe('zh-Hant')
     expect(eventRow({ n: 'visit', p: 'about' }, ctx)?.lang).toBe('')
   })
   it('stores only a primary subtag: anything else is ""', () => {
@@ -94,6 +97,11 @@ describe('the daily keep decision', () => {
     expect(keepRow(row('visit', 'landing'), { c: 3, dup: 0 })).toBe(true) // another page today
     expect(keepRow(row('visit', 'landing'), { c: 0, dup: null })).toBe(true) // no rows: SUM is NULL
   })
+  it('stores a view_opened once per person, view and day', () => {
+    expect(keepRow(row('view_opened', 'map'), { c: 0, dup: 0 })).toBe(true)
+    expect(keepRow(row('view_opened', 'map'), { c: 2, dup: 1 })).toBe(false)
+    expect(keepRow(row('view_opened', 'tree'), { c: 2, dup: 0 })).toBe(true) // another view today
+  })
   it('always stores the other events, repeats included', () => {
     expect(keepRow(row('shared', 'post'), { c: 1, dup: 1 })).toBe(true)
     expect(keepRow(row('collage_made', 'inat'), { c: 2, dup: 2 })).toBe(true)
@@ -129,6 +137,17 @@ describe('visits are counted once per person, page and day', () => {
     expect(store(db, { n: 'visit', p: 'landing' }, { ...ctx, vid: 'other' })).toBe(true)
     expect(store(db, { n: 'visit', p: 'landing' }, { ...ctx, day: '2026-11-16' })).toBe(true)
     expect(count(db)).toBe(3)
+  })
+  it.skipIf(!sqlite)('a view_opened is stored once per person, view and day, through the same read', () => {
+    const db = new sqlite!.DatabaseSync(':memory:')
+    db.exec(SCHEMA())
+    expect(store(db, { n: 'view_opened', p: 'map' })).toBe(true)
+    expect(store(db, { n: 'view_opened', p: 'map' })).toBe(false)
+    expect(store(db, { n: 'view_opened', p: 'tree' })).toBe(true)
+    expect(store(db, { n: 'view_opened', p: 'map' }, { ...ctx, vid: 'other' })).toBe(true)
+    expect(store(db, { n: 'view_opened', p: 'map' }, { ...ctx, day: '2026-11-16' })).toBe(true)
+    expect(store(db, { n: 'view_opened', p: 'collage' })).toBe(false) // not on the allow-list
+    expect(count(db)).toBe(4)
   })
   it.skipIf(!sqlite)('non-visit events are always stored, repeats included', () => {
     const db = new sqlite!.DatabaseSync(':memory:')

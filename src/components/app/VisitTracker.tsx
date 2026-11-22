@@ -10,10 +10,11 @@ export function visitPageFor(path: string, mineSoon: boolean | null): VisitPage 
   if (path === '/') return mineSoon === null ? null : mineSoon ? 'collage' : 'landing'
   if (path === '/settings') return 'settings'
   if (path === '/about') return 'about'
+  if (path === '/compare') return 'compare'
   return null
 }
 
-/** One `visit` per page view of Collage, Settings and About (app/[lang]/(app)/layout.tsx). Sends the page's name only. */
+/** One `visit` per page view of Collage, Settings, About and Compare (app/[lang]/(app)/layout.tsx). Sends the page's name only. */
 export function VisitTracker() {
   const path = useAppPath()
   const { mineSoon } = useEverybirdContext()
@@ -27,7 +28,7 @@ export function VisitTracker() {
   return null
 }
 
-/** One `visit` for a page outside the app's store: the shared view, as 'shared' (never its token). */
+/** One `visit` for a page outside the app's store: the shared view, as 'shared', or a comparison link, as 'compare-shared' (never the token). */
 export function TrackVisit({ page }: { page: VisitPage }) {
   const sent = useRef(false)
   useEffect(() => {

@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useImportJobs, type OnImport } from '@/components/app/use-import-jobs'
+import { inatLogin, useImportJobs, type OnImport } from '@/components/app/use-import-jobs'
 import { en } from '@/i18n/messages/en'
 import { handleParseMessage, type ParseRequest, type ParseResponse, type ParseResult } from '@/lib/import/parse.worker'
 import { ParseError, parseErrorCode, parseInWorker } from '@/lib/import/parse-client'
@@ -123,6 +123,41 @@ describe('parse client', () => {
     expect(e2).toBeInstanceOf(ParseError)
     expect(parseErrorCode(e2)).toBeUndefined()
     expect(parseErrorCode(new Error('x'))).toBeUndefined()
+  })
+})
+
+describe('parse client: cancel (C9)', () => {
+  afterEach(() => vi.unstubAllGlobals())
+  it('an abort terminates the worker and rejects with an AbortError; a late message changes nothing', async () => {
+    const terminate = vi.fn()
+    const instances: { onmessage?: (e: { data: ParseResponse }) => void }[] = []
+    class FakeWorker {
+      onmessage?: (e: { data: ParseResponse }) => void
+      postMessage = vi.fn()
+      terminate = terminate
+      constructor() { instances.push(this) }
+    }
+    vi.stubGlobal('Worker', FakeWorker)
+    const ctl = new AbortController()
+    const progress = vi.fn()
+    const read = parseInWorker('ebird-mydata', file(), { signal: ctl.signal, onProgress: progress })
+    instances[0].onmessage!({ data: { type: 'progress', rows: 5000, frac: 0.25 } })
+    expect(progress).toHaveBeenCalledWith(5000, 0.25)
+    ctl.abort()
+    const e = await read.catch((x: unknown) => x)
+    expect((e as Error).name).toBe('AbortError')
+    expect(terminate).toHaveBeenCalledOnce()
+    await expect(parseInWorker('ebird-mydata', file(), { signal: ctl.signal })).rejects.toMatchObject({ name: 'AbortError' })
+  })
+})
+
+describe('inatLogin (H17)', () => {
+  it('takes the login from a pasted profile or observations link, else the text without its @', () => {
+    expect(inatLogin('https://www.inaturalist.org/people/sam_b')).toBe('sam_b')
+    expect(inatLogin(' inaturalist.org/observations/sam?place_id=1 ')).toBe('sam')
+    expect(inatLogin('https://inaturalist.ca/people/ana%C3%AF')).toBe('anaï')
+    expect(inatLogin('@ sam')).toBe('sam')
+    expect(inatLogin('sam')).toBe('sam')
   })
 })
 
@@ -266,6 +301,26 @@ describe('useImportJobs: one readFile for both file groups', () => {
     await act(() => hook.result.current.readObsOrg(speciesFile()))
     expect(onImport).toHaveBeenCalledOnce()
     expect(hook.result.current.obsorg.error).toBeNull()
+  })
+  it('an eBird export with no bird says so and lands nothing, so the source is never emptied (H2)', async () => {
+    const { onImport, hook } = setup()
+    const head = 'Row #,Taxon Order,Category,Common Name,Scientific Name,Count,Location,S/P,Date,LocID,SubID,Exotic,Countable\n'
+    await act(() => hook.result.current.readEbird(named(head, 'ebird_world_life_list.csv')))
+    expect(hook.result.current.ebird.error).toBe('ebird-no-birds')
+    expect(onImport).not.toHaveBeenCalled()
+    expect(en.ui.import.ebird.noBirds).toBe('No birds in this file, so your list is unchanged.')
+  })
+  it('the toast learns a first collage, and what a Replace added (D1, D2)', async () => {
+    const onImport = vi.fn<OnImport>()
+    let before = { empty: true, codes: null as ReadonlySet<string> | null }
+    const hook = renderHook(() => useImportJobs(onImport, () => before))
+    await act(() => hook.result.current.readEbird(ebirdLifeList()))
+    expect(hook.result.current.landed).toMatchObject({ slot: 'ebird-list', first: true })
+    const codes = new Set(onImport.mock.calls[0][1].records.map((r) => r.code))
+    before = { empty: false, codes: new Set([...codes].slice(1)) }
+    await act(() => hook.result.current.readEbird(ebirdLifeList()))
+    expect(hook.result.current.landed).toMatchObject({ added: 1 })
+    expect(hook.result.current.landed?.first).toBeUndefined()
   })
   it('one file at a time: a second read while one is busy is ignored', async () => {
     const { onImport, hook } = setup()

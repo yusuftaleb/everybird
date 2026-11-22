@@ -4,6 +4,8 @@ import { Geist_Mono } from "next/font/google";
 import { SHARE_ORIGIN } from "@/lib/share/origin";
 import { pageSeo, SITE_NAME } from "@/lib/site-meta";
 import { STICKER_READY_SCRIPT } from "@/lib/sticker-ready";
+import { STICKER_BASE } from "@/lib/sticker-url";
+import { DATA_BASE } from "@/lib/data-url";
 import { THEME_SCRIPT } from "@/lib/theme";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { HTML_LANG, LANGS } from "@/i18n/langs";
@@ -12,8 +14,21 @@ import "@/styles/globals.css";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  // Latin is the only file preloaded on every page. The generated CSS still declares every subset's unicode-range face
+  // (latin-ext for Polish's ą, ć, ę, ł, ń, ś, ź, ż, cyrillic for Russian, in the mono labels), so a page that uses
+  // those letters fetches them when it draws them: `subsets` only picks what is preloaded.
   subsets: ["latin"],
 });
+
+/**
+ * The Noto family each non-Latin language draws its letters in (tokens.css puts it after the Latin fonts, by :lang).
+ * Google's CSS, linked from that language's pages only: through next/font every page would carry the @font-face rules
+ * of all four (the CJK families' unicode-range slices are about 340 KB of CSS each), and English would pay for them.
+ */
+/** The data host when it isn't this site (production: the sticker host's /data). */
+const DATA_ORIGIN = /^https?:\/\//.test(DATA_BASE) ? new URL(DATA_BASE).origin : null;
+
+const NOTO: Partial<Record<string, string>> = { ru: "Noto+Sans", ja: "Noto+Sans+JP", "zh-Hans": "Noto+Sans+SC", "zh-Hant": "Noto+Sans+TC" };
 
 /** The site's metadata in the page's language (`page.meta`); pages that set their own title replace the SEO part. */
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
@@ -60,11 +75,27 @@ export default async function RootLayout({ children, params }: { children: React
         <script dangerouslySetInnerHTML={{ __html: STICKER_READY_SCRIPT }} />
         <link rel="preconnect" href="https://api.fontshare.com" />
         <link rel="preconnect" href="https://cdn.fontshare.com" crossOrigin="" />
+        {/* Every data file (fetch: a CORS connection) and every sticker (<img>: a no-CORS one) comes from the sticker host:
+            both connections are opened now, not after hydration. */}
+        <link rel="preconnect" href={STICKER_BASE} crossOrigin="" />
+        <link rel="preconnect" href={STICKER_BASE} />
+        {DATA_ORIGIN && DATA_ORIGIN !== new URL(STICKER_BASE).origin && <link rel="preconnect" href={DATA_ORIGIN} crossOrigin="" />}
         {/* Satoshi and Cabinet Grotesk come from Fontshare; never commit the files. One stylesheet per family: Fontshare's
             API now answers a two-family request with the first family only (Cabinet was never loading), and Satoshi has
             no 600 (400, 500 and 700 here; a 600 rule draws the nearest, 700). */}
         <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" />
         <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700&display=swap" />
+        {/* The two most-used files, Satoshi 500 (body) and Cabinet Grotesk 700 (headings), fetched now rather than once
+            the stylesheets above are parsed. These URLs follow Fontshare's current file names (copied from the CSS
+            above, 2026-11-21): if Fontshare renames them the preload is wasted, never wrong; recopy them from the CSS. */}
+        <link rel="preload" as="font" type="font/woff2" crossOrigin="" href="https://cdn.fontshare.com/wf/P2LQKHE6KA6ZP4AAGN72KDWMHH6ZH3TA/ZC32TK2P7FPS5GFTL46EU6KQJA24ZYDB/7AHDUZ4A7LFLVFUIFSARGIWCRQJHISQP.woff2" />
+        <link rel="preload" as="font" type="font/woff2" crossOrigin="" href="https://cdn.fontshare.com/wf/XMXWOHABYLQDJ42L65EFRYNVRY37HQCB/B2O4O6V3JMFM2WDCYQI3A47L5U4THDUL/WN5274VQ3AUBDFP74GB4EC4XYJ3EKVNE.woff2" />
+        {NOTO[lang] && (
+          <>
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+            <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?family=${NOTO[lang]}:wght@400;500;700&display=swap`} />
+          </>
+        )}
       </head>
       <body>
         <I18nProvider lang={lang} ui={getMessages(lang).ui}>

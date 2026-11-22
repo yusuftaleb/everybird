@@ -16,7 +16,11 @@
 }
 
 /* A sticker draws nothing until its file has loaded (data-ld, Sticker.tsx markLoaded): no pending-image frame, no
-   empty box. The slot keeps its size (width and height attributes), so nothing shifts when it appears. */
-img.eb-st { transition: opacity .2s ease; }
-img.eb-st:not([data-ld]) { opacity: 0; }
+   empty box. The slot keeps its size (width and height attributes), so nothing shifts when it appears.
+   The fade runs on a registered custom property, not on opacity itself: an opacity transition is a compositor animation,
+   so every sticker arriving during a scroll became a composited layer of its own and each frame layerized every bird
+   again (3.2 s of a 4 s scroll at 5,000 birds; 0.5 s this way). The same .2s ease from 0 to 1. */
+@property --eb-st-o { syntax: "<number>"; inherits: false; initial-value: 1; }
+img.eb-st { opacity: var(--eb-st-o); transition: --eb-st-o .2s ease; }
+img.eb-st:not([data-ld]) { --eb-st-o: 0; }
 @media (prefers-reduced-motion: reduce) { img.eb-st { transition: none; } }

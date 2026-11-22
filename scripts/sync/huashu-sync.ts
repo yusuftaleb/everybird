@@ -15,9 +15,9 @@
 //    into the committed public/data/masks and species.v1.json (no other sticker is needed on disk), species.v1.json
 //    regenerated with the new huashu (the taxonomy comes from the committed public files, so no eBird download),
 //    the sample pack rebuilt, and data/sticker-versions.json and the lock updated.
-//    At most --max-rebuild stickers are rebuilt per run (website species first, then by code); the rest stay
+//    At most --max-rebuild stickers are rebuilt per run (by code); the rest stay
 //    unpublished (`shipped` in the lock) and the next run continues. Removals always ship.
-// 4. Writes <out>/pr-body.md, <out>/issue-body.md (when a species on the website's /lifelist changed),
+// 4. Writes <out>/pr-body.md,
 //    <out>/artifact/{summary.json,sheets/sheet-NNN.png} (before/after thumbnails, 60 rows a page) and
 //    <out>/changed-files.txt.
 // Stops (exit 1, nothing written to the repo, <out>/blocked-issue.md for the workflow) on an upstream inconsistency
@@ -38,14 +38,13 @@ import {
 } from '../build-data/build-species'
 import { loadBirdbase, type BirdbaseRow } from '../build-data/birdbase'
 import {
-  ARTIFACT_URL, HUASHU_REPO, MAX_REBUILD, PR_URL, SPECIES_JSON, STICKERS_PREFIX, UpstreamInconsistency, codesFromMatches,
+  ARTIFACT_URL, HUASHU_REPO, MAX_REBUILD, SPECIES_JSON, STICKERS_PREFIX, UpstreamInconsistency, codesFromMatches,
   diffRecords, diffRows, diffStickers, implausible, lockJson, makeLock, nextShipped, nextVersions, parseLsTree,
-  recordDigests, renderBlockedBody, renderIssueBody, renderPrBody, restrictToShipped, selectBatch, shouldOpenPr, sortKeys, summarise,
+  recordDigests, renderBlockedBody, renderPrBody, restrictToShipped, selectBatch, shouldOpenPr, sortKeys, summarise,
   type HuashuLock, type StickerChange,
 } from './huashu-lib'
 
 export const LOCK = 'data/huashu.lock.json'
-export const WEBSITE_CODES = 'data/website-lifelist-codes.json'
 const SHEET_ROWS = 60
 
 export type Args = {
@@ -94,11 +93,10 @@ type Repo = {
   /** The BIRDBASE mass extract: every rebuild of species.v1.json takes its masses from it (build-species.ts). */
   birdbase: BirdbaseRow[]
   versions: Record<string, string>
-  website: Set<string>
 }
 function readRepo(root: string): Repo {
   const pub = (f: string) => join(root, 'public/data', f)
-  const vPath = join(root, STICKER_VERSIONS), wPath = join(root, WEBSITE_CODES)
+  const vPath = join(root, STICKER_VERSIONS)
   return {
     root,
     species: readJson<SpeciesFile>(pub('species.v1.json')),
@@ -106,7 +104,6 @@ function readRepo(root: string): Repo {
     overrides: readJson<Overrides>(join(root, 'data/overrides.json')),
     birdbase: loadBirdbase(root),
     versions: existsSync(vPath) ? readJson(vPath) : {},
-    website: new Set(existsSync(wPath) ? readJson<string[]>(wPath) : []),
   }
 }
 
@@ -171,7 +168,7 @@ export async function sync(root: string, a: Args): Promise<{ changed: boolean }>
   const lock = readJson<HuashuLock>(join(root, LOCK))
   const repo = readRepo(root)
   mkdirSync(a.out, { recursive: true })
-  for (const f of ['blocked-issue.md', 'issue-body.md', 'pr-body.md', 'changed-files.txt']) rmSync(join(a.out, f), { force: true })
+  for (const f of ['blocked-issue.md', 'pr-body.md', 'changed-files.txt']) rmSync(join(a.out, f), { force: true })
   rmSync(join(a.out, 'artifact'), { recursive: true, force: true })
   const dir = resolve(a.huashuDir ?? join(a.out, 'huashu'))
   if (!a.huashuDir) cloneUpstream(dir)
@@ -242,7 +239,7 @@ async function syncFrom(root: string, a: Args, lock: HuashuLock, repo: Repo, dir
   }
 
   // This run's batch: every removal, and at most maxRebuild rebuilt stickers.
-  const { ship, deferred } = selectBatch(changes, a.maxRebuild, repo.website)
+  const { ship, deferred } = selectBatch(changes, a.maxRebuild)
   const shipped = nextShipped(lock.shipped, ship)
   restrictToShipped(rows, shipped)
   const versions = nextVersions(repo.versions, ship)
@@ -270,15 +267,16 @@ async function syncFrom(root: string, a: Args, lock: HuashuLock, repo: Repo, dir
   })
 
   // The landing sample pack, from the new rows and masks.
-  const { makeSamplePack } = await import('../build-data/build-sample-pack')
+  const { makeSamplePack, sampleNameFiles } = await import('../build-data/build-sample-pack')
   const read = <T>(f: string) => readJson<T>(join(root, 'public/data', f))
-  const pack = await makeSamplePack(read('sample.v1.json'), rows, read<Regions>('regions.v1.json'), async (ord) => masks.get(ord) ?? {}, join(root, 'public/data'))
+  const pack = await makeSamplePack(read('sample.v1.json'), rows, read<Regions>('regions.v1.json'), async (ord) => masks.get(ord) ?? {})
 
   const nextLock: HuashuLock = { v: 1, repo: HUASHU_REPO, commit, speciesJson: speciesBlob, files, records, codes, shipped }
   const target = a.dryRun ? join(a.out, 'repo') : root
-  const outputs = new Map<string, string>([
+  const outputs = new Map<string, string | Uint8Array>([
     ['public/data/species.v1.json', JSON.stringify({ ...repo.species, huashuCommit: commit, species: rows })],
     ['public/data/sample-pack.v1.json', JSON.stringify(pack)],
+    ...sampleNameFiles(pack.species, join(root, 'public/data')),
     [STICKER_VERSIONS, JSON.stringify(versions, null, 1) + '\n'],
     [LOCK, lockJson(nextLock)],
   ])
@@ -286,18 +284,21 @@ async function syncFrom(root: string, a: Args, lock: HuashuLock, repo: Repo, dir
     const sorted = Object.fromEntries(Object.entries(rec).sort(([x], [y]) => (x < y ? -1 : 1)))
     outputs.set(`public/data/masks/${ord}.v1.json`, JSON.stringify(sorted))
   }
-  // The masks bundle and the hashed data-file names (src/lib/data-files.ts), from the files as this run leaves them.
+  // The masks file and the hashed data-file names (src/lib/data-files.ts), from the files as this run leaves them.
   const { buildDataFiles } = await import('../build-data/data-files')
-  const dataText = (n: string) => outputs.get(`public/data/${n}`) ?? readFileSync(join(root, 'public/data', n), 'utf8')
-  for (const [rel, text] of buildDataFiles(dataText, masks as Map<string, Record<string, unknown>>)) outputs.set(rel, text)
+  const dataText = (n: string) => {
+    const out = outputs.get(`public/data/${n}`)
+    return typeof out === 'string' ? out : readFileSync(join(root, 'public/data', n), 'utf8')
+  }
+  for (const [rel, text] of buildDataFiles(dataText, masks)) outputs.set(rel, text)
   // The About demo embeds sticker versions and positions too. Read this run's in-memory data so a dry run
   // regenerates it under target without reading stale masks or writing into the working repository.
   const { HOWTO_DATA_PATH, makeHowtoData } = await import('../build-data/build-howto')
   outputs.set(HOWTO_DATA_PATH, makeHowtoData(<T>(file: string) => JSON.parse(dataText(file)) as T))
   const changedFiles: string[] = []
   for (const [rel, text] of outputs) {
-    const now = existsSync(join(root, rel)) ? readFileSync(join(root, rel), 'utf8') : null
-    if (now === text) continue
+    const now = existsSync(join(root, rel)) ? readFileSync(join(root, rel)) : null
+    if (now?.equals(typeof text === 'string' ? Buffer.from(text) : text)) continue
     changedFiles.push(rel)
     mkdirSync(dirname(join(target, rel)), { recursive: true })
     writeFileSync(join(target, rel), text)
@@ -306,16 +307,16 @@ async function syncFrom(root: string, a: Args, lock: HuashuLock, repo: Repo, dir
   const names = new Map(rows.map((r) => [r.code, r.com]))
   for (const r of prevRows) if (!names.has(r.code)) names.set(r.code, r.com)
   const summary = summarise({
-    from: lock.commit, to: commit, stickers: ship, rows: rowChanges, records: recs, names, website: repo.website,
+    from: lock.commit, to: commit, stickers: ship, rows: rowChanges, records: recs, names,
     files: changedFiles.sort(), deferred: deferred.length, cap: a.maxRebuild,
     iucnCredit,
   })
 
-  // Before/after sheets for every sticker this run ships, 60 rows a page, the website's species first.
+  // Before/after sheets for every sticker this run ships, 60 rows a page, by code.
   const artifact = join(a.out, 'artifact')
   mkdirSync(join(artifact, 'sheets'), { recursive: true })
   writeFileSync(join(artifact, 'summary.json'), JSON.stringify({ ...summary, deferredCodes: deferred.map((d) => d.code) }, null, 1))
-  const sheetChanges = [...ship].sort((x, y) => Number(repo.website.has(y.code)) - Number(repo.website.has(x.code)) || (x.code < y.code ? -1 : 1))
+  const sheetChanges = ship // already sorted by code (selectBatch)
   const prevDir = a.prevStickers ? resolve(a.prevStickers) : existsSync(join(root, '../everybird-stickers/v1')) ? resolve(root, '../everybird-stickers') : undefined
   const { makeSheet } = await import('./sheet')
   let pages = 0
@@ -329,22 +330,19 @@ async function syncFrom(root: string, a: Args, lock: HuashuLock, repo: Repo, dir
   }
 
   const prBody = renderPrBody(summary, { sheets: pages ? { pages, rows: sheetChanges.length } : null })
-  const issueBody = renderIssueBody(summary)
   writeFileSync(join(a.out, 'pr-body.md'), prBody)
-  if (issueBody) writeFileSync(join(a.out, 'issue-body.md'), issueBody)
   writeFileSync(join(a.out, 'changed-files.txt'), changedFiles.join('\n') + '\n')
   writeFileSync(join(a.out, 'stickers-written.txt'), written.join('\n') + (written.length ? '\n' : ''))
 
   console.log(`changed files (${a.dryRun ? `written under ${target}` : 'in place'}): ${changedFiles.join(', ')}`)
   console.log(`stickers built: ${stickerCount(written)} into ${stickersOut}; sheets: ${pages} page(s) in ${artifact}`)
   output({
-    changed: 'true', website: issueBody ? 'true' : 'false', commit, short: commit.slice(0, 7),
+    changed: 'true', commit, short: commit.slice(0, 7),
     stickers: String(stickerCount(written)), deferred: String(deferred.length),
   })
   if (a.dryRun) {
-    const show = (t: string) => t.replace(ARTIFACT_URL, artifact).replace(PR_URL, '(dry run: no PR)')
+    const show = (t: string) => t.replace(ARTIFACT_URL, artifact)
     console.log('\n----- PR body -----\n' + show(prBody))
-    console.log('----- website issue body -----\n' + (issueBody ? show(issueBody) : '(none: no website species changed)\n'))
   }
   return { changed: true }
 }

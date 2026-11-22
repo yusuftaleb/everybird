@@ -1,12 +1,12 @@
 // Silhouette hit-testing for the collage, as LifeList.tsx's hitMask: birds take no pointer events; the stage
-// finds the topmost bird whose mask covers the pointer. Masks are the packer's (masks.v2.json, every order in
+// finds the topmost bird whose mask covers the pointer. Masks are the packer's (masks.v3.bin, every order in
 // one file), fetched on the first pointer interaction (the browser cache shares them with the layout worker).
 // Until a bird's mask is in, and for species without a sticker, the inscribed ellipse stands in.
 import type { StateLayout } from '@/lib/layout/layout-client'
 import { decodeMask, maskCell, type Mask } from '@/lib/layout/mask'
-import { fetchAllMasks } from '@/lib/data-url'
+import { fetchAllMasks, masksInHand, type MaskTable } from '@/lib/data-url'
 
-const orderFiles = new Map<string, Promise<Record<string, [number, number, string]>>>()
+const orderFiles = new Map<string, Promise<MaskTable>>()
 const decoded = new Map<string, Mask>()
 
 function loadOrder(ord: string) {
@@ -20,8 +20,16 @@ function loadOrder(ord: string) {
   return p
 }
 
-/** Start loading the masks of these orders (once each); resolves when they are decoded. */
-export async function ensureMasks(orders: Iterable<string>): Promise<void> {
+/**
+ * Start loading the masks of these orders (once each); resolves when they are decoded. With `birds`, when every one's
+ * mask is already on the page (the landing sample's pack, data-url.ts addMasks), those are decoded and nothing is fetched.
+ */
+export async function ensureMasks(orders: Iterable<string>, birds?: Iterable<{ code: string; ord: string }>): Promise<void> {
+  const given = birds && masksInHand(birds)
+  if (given) {
+    for (const table of Object.values(given)) for (const [code, raw] of Object.entries(table)) if (!decoded.has(code)) decoded.set(code, decodeMask(raw))
+    return
+  }
   if (typeof fetch !== 'function') return
   await Promise.all([...new Set(orders)].map(async (o) => {
     const table = await loadOrder(o)

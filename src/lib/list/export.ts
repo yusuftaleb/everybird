@@ -49,11 +49,17 @@ export function toCsv(list: ListEntry[], species: SpeciesIndex, regions: Regions
   return lines.join('\r\n') + '\r\n'
 }
 
+/** Slots the released build (before spreadsheet, Scythebill and iGoTerra imports) doesn't know: left out of a backup while empty,
+ *  so a birder who used neither can open it there too (it refuses unknown record slots). migrateSaved adds them back. */
+const NEWER_SLOTS = ['sheet', 'scythebill', 'igoterra'] as const
+
 export function toJson(s: Saved): string {
-  return JSON.stringify(s)
+  const records: Partial<Saved['records']> = { ...s.records }
+  for (const k of NEWER_SLOTS) if (!records[k]?.length) delete records[k]
+  return JSON.stringify({ ...s, records })
 }
 
-const SOURCES: Source[] = ['ebird', 'inat', 'obsorg', 'sheet', 'scythebill', 'manual']
+const SOURCES: Source[] = ['ebird', 'inat', 'obsorg', 'sheet', 'scythebill', 'igoterra', 'manual']
 const isSlot = (k: unknown): k is Slot => SLOTS.includes(k as Slot)
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
 const isStrArr = (x: unknown): x is string[] => Array.isArray(x) && x.every((s) => typeof s === 'string')
@@ -79,12 +85,13 @@ function validSources(x: unknown): boolean {
       return d.kind === OBSORG_KIND[k] && optStr(d.file) && optCount(d.rows) && (k === 'obsorg' ? optExcluded(d.excluded) : d.excluded === undefined)
     if (k === 'sheet') return (d.kind === 'file' || d.kind === 'paste') && optStr(d.file) && optCount(d.rows)
     if (k === 'scythebill') return (d.kind === 'csv' || d.kind === 'ebird-record') && optStr(d.file) && optCount(d.rows)
+    if (k === 'igoterra') return d.kind === 'csv' && optStr(d.file) && optCount(d.rows)
     return false
   })
 }
 
 /** Why a backup was refused: 'damaged' covers every malformed part (the message says which). */
-export type BackupReason = 'json' | 'not-backup' | 'version' | 'damaged'
+type BackupReason = 'json' | 'not-backup' | 'version' | 'damaged'
 
 /** fromJson's error: a plain English message, and its reason for the UI to word in its own language. */
 export class BackupError extends Error {
@@ -113,7 +120,7 @@ export function fromJson(text: string): Saved {
   if (!isObj(raw.records)) throw new BackupError('damaged', 'Backup has no records.')
   // Backups made before the second eBird slot have no 'ebird-list', those before observation.org no 'obsorg' or
   // 'obsorg-list': they start empty.
-  const records = { ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], sheet: [], scythebill: [], manual: [] } as Record<Slot, SourceRecord[]>
+  const records = { ebird: [], 'ebird-list': [], inat: [], obsorg: [], 'obsorg-list': [], sheet: [], scythebill: [], igoterra: [], manual: [] } as Record<Slot, SourceRecord[]>
   for (const [k, v] of Object.entries(raw.records)) {
     if (!isSlot(k) || !Array.isArray(v) || !v.every((r) => isObj(r) && typeof r.code === 'string' && (r.seen === undefined || isStrArr(r.seen)) && validMonths(r.seenMonths)))
       throw new BackupError('damaged', 'Backup records are malformed.')

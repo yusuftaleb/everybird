@@ -6,7 +6,7 @@ export const MYDATA_HEADER =
 export type SyntheticSpecies = { com: string; sci: string; to: number }
 
 /** Small, real-world species list (names only; nothing from any personal export). */
-export const DEFAULT_SPECIES: SyntheticSpecies[] = [
+const DEFAULT_SPECIES: SyntheticSpecies[] = [
   { com: 'Northern Flicker', sci: 'Colaptes auratus', to: 11980 },
   { com: 'Yellow-rumped Warbler', sci: 'Setophaga coronata', to: 34401 },
   { com: 'Gilded Flicker', sci: 'Colaptes chrysoides', to: 11994 },

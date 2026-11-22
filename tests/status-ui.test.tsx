@@ -2,12 +2,11 @@
 import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { useReducer } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { CollageView } from '@/components/app/CollageView'
 import type { FilterSection } from '@/components/filters/Filters'
 import { FiltersDock } from './filters-dock'
 import { STATUS_ICON } from '@/components/filters/status-icon'
-import { StatusList } from '@/components/filters/StatusList'
 import { IucnBadge, IucnPill } from '@/components/collage/IucnPill'
 import { initialState, makeReducer, type AppState } from '@/lib/list/store'
 import { emptySaved } from '@/lib/list/storage'
@@ -15,6 +14,9 @@ import { monthBins } from '@/lib/list/timeline'
 import type { IucnCat } from '@/lib/species/iucn'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
+import { loadLazyParts } from './lazy-parts'
+
+beforeAll(loadLazyParts, 60_000)
 
 const row = (code: string, ord: string, fam: string, to: number, iu?: IucnCat): SpeciesRow => ({
   code, com: code, sci: `Avis ${code}`, ord, fam, famCom: fam, to, g: 100, gSrc: 'avonet', st: true, ar: 1, q: true, ...(iu ? { iu } : {}),
@@ -34,12 +36,12 @@ function seeded(codes: string[]): AppState {
   return reduce(initialState(), { type: 'restore', saved })
 }
 
-function Harness({ codes = ['duck1', 'owl1', 'crow1', 'robin1'], hide, threatLine }: { codes?: string[]; hide?: readonly FilterSection[]; threatLine?: number }) {
+function Harness({ codes = ['duck1', 'owl1', 'crow1', 'robin1'], hide }: { codes?: string[]; hide?: readonly FilterSection[] }) {
   const [state, dispatch] = useReducer(reduce, undefined, () => seeded(codes))
   const time = { entries: state.list, months: monthBins(state.list, '2022-06').months, today: '2022-06' }
   return (
     <>
-      <FiltersDock state={state} dispatch={dispatch} species={species} regions={regions} time={time} hide={hide} threatLine={threatLine} />
+      <FiltersDock state={state} dispatch={dispatch} species={species} regions={regions} time={time} hide={hide} />
       <button type="button" onClick={() => dispatch({ type: 'filter', filter: { ...state.filter, order: 'Strigiformes' } })}>owls only</button>
       <button type="button" onClick={() => dispatch({ type: 'filter', filter: { ...state.filter, order: 'Passeriformes', family: 'Turdidae' } })}>thrushes only</button>
       <output data-testid="filter">{JSON.stringify(state.filter)}</output>
@@ -87,9 +89,8 @@ describe('Status: a section of the Filters panel', () => {
     fireEvent.click(screen.getByTestId('status-EN'))
     expect(filterOf()).toEqual({ statuses: ['VU', 'EN'] })
     expect(screen.getByTestId('status-VU')).toBeChecked()
-    // One group in use: "Filters · 1", and two chips.
-    expect(statusBtn().querySelector('.eb-drop-sum')).toHaveTextContent('· 1')
-    expect(statusBtn()).toHaveAccessibleName('Filters: Conservation status: Vulnerable, Endangered')
+    // One group in use: the button's name says 1, and two chips.
+    expect(statusBtn()).toHaveAccessibleName('Filters, 1 in use: Conservation status: Vulnerable, Endangered')
     expect(screen.getByTestId('chip-status-VU')).toBeInTheDocument()
     expect(screen.getByTestId('chip-status-EN')).toBeInTheDocument()
     // The counts are under the other filters: checking a category changes none of them.
@@ -162,7 +163,7 @@ describe('Status: a section of the Filters panel', () => {
     fireEvent.click(screen.getByTestId('status-NE'))
     expect(filterOf()).toEqual({ statuses: ['NE'] })
     expect(screen.getByTestId('chip-status-NE')).toHaveTextContent('Not evaluated')
-    expect(statusBtn()).toHaveAccessibleName('Filters: Conservation status: Not evaluated')
+    expect(statusBtn()).toHaveAccessibleName('Filters, 1 in use: Conservation status: Not evaluated')
   })
 
   it('Esc closes the panel and focus returns to the Filters button; at phone width it is the bottom sheet', () => {
@@ -184,14 +185,6 @@ describe('Status: a section of the Filters panel', () => {
     expect(within(sheet).getByTestId('status-LC')).toBeInTheDocument()
     fireEvent.click(within(sheet).getByRole('button', { name: 'Close' }))
     expect(screen.queryByRole('dialog')).toBeNull()
-  })
-
-  it('the threatened line (variant c) shows only when given a count', () => {
-    const state = seeded(['duck1', 'owl1', 'crow1'])
-    const { rerender } = render(<StatusList state={state} species={species} onFilter={() => {}} />)
-    expect(screen.queryByTestId('status-threatened')).toBeNull()
-    rerender(<StatusList state={state} species={species} threatLine={12} onFilter={() => {}} />)
-    expect(screen.getByTestId('status-threatened')).toHaveTextContent('12 threatened: Vulnerable, Endangered or Critically Endangered.')
   })
 })
 
@@ -234,19 +227,7 @@ describe('The Conservation status section’s glyph', () => {
   })
 })
 
-describe('The threatened count (?v=threat:<letter>)', () => {
-  afterEach(() => {
-    history.replaceState(null, '', '/')
-    sessionStorage.removeItem('everybird:variants')
-  })
-
-  it('the panel passes threatLine on to the Status panel', () => {
-    vi.stubGlobal('innerWidth', 1000)
-    render(<Harness threatLine={2} />)
-    fireEvent.click(statusBtn())
-    expect(screen.getByTestId('status-threatened')).toHaveTextContent('2 threatened: Vulnerable, Endangered or Critically Endangered.')
-  })
-
+describe('The threatened count', () => {
   function View() {
     const [state, dispatch] = useReducer(reduce, undefined, () => seeded(['duck1', 'owl1', 'crow1', 'robin1']))
     return <CollageView state={state} dispatch={dispatch} species={species} regions={regions} label="Test collage" />
@@ -254,48 +235,16 @@ describe('The threatened count (?v=threat:<letter>)', () => {
   const stats = () => screen.getByTestId('collage-stats')
 
   const SR = ' (Vulnerable, Endangered or Critically Endangered)'
-  it.each([
-    ['a', '2 threatened', '4 species · 3 orders · 4 families · 2 threatened · since Jan 2020'],
-    ['b', '2 globally threatened', '4 species · 3 orders · 4 families · 2 globally threatened · since Jan 2020'],
-  ])('variant %s: on the stats line, not in the Status panel; screen readers hear the categories it counts', (v, part, line) => {
+  it('on the stats line; screen readers hear the categories it counts', () => {
     vi.stubGlobal('innerWidth', 1000)
-    history.replaceState(null, '', `/?v=threat:${v}`)
     render(<View />)
     // What the eye reads: the line without the visually hidden context.
     const visible = Array.from(stats().querySelectorAll('.eb-stat')).map((s) => s.firstChild?.textContent).join(' · ')
-    expect(visible).toBe(line)
+    expect(visible).toBe('4 species · 3 orders · 4 families · 2 threatened · since Jan 2020')
     // The threatened part carries its context in an .eb-sr span; no other part does.
-    const threat = Array.from(stats().querySelectorAll('.eb-stat')).find((s) => s.firstChild?.textContent === part)!
-    expect(threat).toHaveTextContent(`${part}${SR}`, { normalizeWhitespace: false })
+    const threat = Array.from(stats().querySelectorAll('.eb-stat')).find((s) => s.firstChild?.textContent === '2 threatened')!
+    expect(threat).toHaveTextContent(`2 threatened${SR}`, { normalizeWhitespace: false })
     expect(threat.querySelector('.eb-sr')).toHaveTextContent(SR.trim())
     expect(stats().querySelectorAll('.eb-sr')).toHaveLength(1)
-    fireEvent.click(statusBtn())
-    expect(screen.queryByTestId('status-threatened')).toBeNull()
-  })
-
-  it('variant c: off the stats line, a line in the Status panel', () => {
-    vi.stubGlobal('innerWidth', 1000)
-    history.replaceState(null, '', '/?v=threat:c')
-    render(<View />)
-    expect(stats()).toHaveTextContent('4 species · 3 orders · 4 families · since Jan 2020')
-    expect(stats()).not.toHaveTextContent('threatened')
-    expect(stats().querySelector('.eb-sr')).toBeNull()
-    fireEvent.click(statusBtn())
-    expect(screen.getByTestId('status-threatened')).toHaveTextContent('2 threatened: Vulnerable, Endangered or Critically Endangered.')
-  })
-
-  it('variant c: under an order filter the panel line still counts the whole list', () => {
-    vi.stubGlobal('innerWidth', 1000)
-    history.replaceState(null, '', '/?v=threat:c')
-    function Filtered() {
-      const [state, dispatch] = useReducer(reduce, undefined, () => reduce(seeded(['duck1', 'owl1', 'crow1', 'robin1']), { type: 'filter', filter: { order: 'Strigiformes' } }))
-      return <CollageView state={state} dispatch={dispatch} species={species} regions={regions} label="Test collage" />
-    }
-    render(<Filtered />)
-    expect(stats()).toHaveTextContent('1 of 4 species · 1 family')
-    fireEvent.click(statusBtn())
-    // Owls only: one VU under the filter, but the line is the list's (VU owl1 + EN crow1).
-    expect(within(statusPanel()).getAllByRole('checkbox').map((c) => c.getAttribute('data-testid'))).toEqual(['status-VU'])
-    expect(screen.getByTestId('status-threatened')).toHaveTextContent('2 threatened: Vulnerable, Endangered or Critically Endangered.')
   })
 })

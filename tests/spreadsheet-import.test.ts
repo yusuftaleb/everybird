@@ -5,12 +5,13 @@ import { en } from '@/i18n/messages/en'
 import { detectFile, slotOfKind } from '@/lib/import/detect'
 import { handleParseMessage, type ParseResponse } from '@/lib/import/parse.worker'
 import { parseSheetDate, parseSheetText, parseSheetXlsx } from '@/lib/import/sheet'
-import { DamagedXlsxError } from '@/lib/import/xlsx'
+import { DamagedXlsxError, readXlsx } from '@/lib/import/xlsx'
 import { buildList } from '@/lib/list/build-list'
 import { fromJson, toCsv, toJson } from '@/lib/list/export'
 import { buildSeen } from '@/lib/list/seen'
-import { sourceCounts, summaryLine } from '@/lib/list/source-counts'
-import { emptySaved, replaceSource } from '@/lib/list/storage'
+import { slotConnected, sourceCounts, summaryLine } from '@/lib/list/source-counts'
+import { emptySaved, replaceSource, type Saved } from '@/lib/list/storage'
+import { recordsOf } from '@/lib/list/store'
 import { buildSpeciesIndex, buildTaxonomyIndex } from '@/lib/species/load'
 import type { Regions, SpeciesRow, TaxonRow } from '@/lib/species/types'
 
@@ -23,21 +24,22 @@ const regions = JSON.parse(readFileSync('public/data/regions.v1.json', 'utf8')) 
 const fixture = (name: string) => readFileSync(`tests/fixtures/spreadsheet/${name}`, 'utf8')
 
 function makeXlsx(opts: {
-  sheets: { name: string; xml: string }[]
+  sheets: { name: string; xml: string; state?: string }[]
   sharedStrings?: string[]
   stylesXml?: string
+  workbookPr?: string
 }): Uint8Array {
   const files: Record<string, Uint8Array> = {}
   const sheetEntries = opts.sheets
-    .map((s, i) => `<sheet name="${s.name}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`)
+    .map((s, i) => `<sheet name="${s.name}" sheetId="${i + 1}"${s.state ? ` state="${s.state}"` : ''} r:id="rId${i + 1}"/>`)
     .join('')
   const relEntries = opts.sheets
     .map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`)
     .join('')
-  files['xl/workbook.xml'] = strToU8(`<?xml version="1.0"?><workbook xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheetEntries}</sheets></workbook>`)
+  files['xl/workbook.xml'] = strToU8(`<?xml version="1.0"?><workbook xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${opts.workbookPr ?? ''}<sheets>${sheetEntries}</sheets></workbook>`)
   files['xl/_rels/workbook.xml.rels'] = strToU8(`<?xml version="1.0"?><Relationships>${relEntries}</Relationships>`)
   if (opts.sharedStrings) {
-    const sis = opts.sharedStrings.map((s) => (s.startsWith('<si>') ? s : `<si><t>${s}</t></si>`)).join('')
+    const sis = opts.sharedStrings.map((s) => (/^<(?:x:)?si>/.test(s) ? s : `<si><t>${s}</t></si>`)).join('')
     files['xl/sharedStrings.xml'] = strToU8(`<?xml version="1.0"?><sst>${sis}</sst>`)
   }
   if (opts.stylesXml) files['xl/styles.xml'] = strToU8(opts.stylesXml)
@@ -45,6 +47,13 @@ function makeXlsx(opts: {
     files[`xl/worksheets/sheet${i + 1}.xml`] = strToU8(s.xml)
   })
   return zipSync(files)
+}
+
+/** A species' country and province keys as the Places filter sees them (the store projects stored places first). */
+function placeKeysOf(saved: Saved, kinds = /^[cs]:/) {
+  const records = recordsOf(saved, regions)
+  const seen = buildSeen(records, saved.edits, saved.rules, buildList(records, saved.edits, saved.rules))
+  return (code: string) => [...(seen.byCode.get(code)?.keys ?? [])].filter((k) => kinds.test(k)).sort()
 }
 
 describe('spreadsheet import', () => {
@@ -104,6 +113,57 @@ describe('spreadsheet import', () => {
     expect(swallow.date).toBe('2022-11-14')
   })
 
+  it('reads a country name with a comma as one country', () => {
+    const res = parseSheetText('Common Name,Country\nMallard,"Congo, Democratic Republic of the"\nRock Pigeon,"Korea, Republic of"\nBarn Swallow,"Canada, Kenya"\n', taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    expect(res.records.map((r) => [r.code, r.seen?.map((s) => s.split('|')[1])])).toEqual([
+      ['mallar3', ['CD']],
+      ['rocpig', ['KR']],
+      ['barswa', ['CA', 'KE']],
+    ])
+  })
+
+  it('reads a Location cell as country and province, never the country as a province', () => {
+    const csv = [
+      'Common Name,Location',
+      'Mallard,Kenya',
+      'Rock Pigeon,"Vancouver, BC, Canada"',
+      'Barn Swallow,"British Columbia, Canada"',
+      'House Sparrow,"San Diego, CA, USA"',
+      'European Robin,"Kenya, Tanzania"',
+    ].join('\n')
+    const res = parseSheetText(csv, taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    const keys = placeKeysOf(replaceSource(emptySaved(), 'sheet', res))
+    expect(keys('mallar3')).toEqual(['c:KE'])
+    expect(keys('rocpig')).toEqual(['c:CA', 's:CA-BC'])
+    expect(keys('barswa')).toEqual(['c:CA', 's:CA-BC'])
+    expect(keys('houspa')).toEqual(['c:US', 's:US-CA'])
+    expect(keys('eurrob1')).toEqual(['c:KE', 'c:TZ'])
+  })
+
+  it('finds the province among a place cell\'s parts when the country has its own column', () => {
+    const res = parseSheetText('Common Name,Country,Place\nMallard,Canada,"Vancouver, BC"\nRock Pigeon,United States,Georgia\n', taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    const keys = placeKeysOf(replaceSource(emptySaved(), 'sheet', res))
+    expect(keys('mallar3')).toEqual(['c:CA', 's:CA-BC'])
+    expect(keys('rocpig')).toEqual(['c:US', 's:US-GA'])
+  })
+
+  it('keeps a province named like its country when the country has its own column', () => {
+    const res = parseSheetText('Common Name,Country,State\nMallard,Belize,Belize\nRock Pigeon,Panama,Panama\n', taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    const keys = placeKeysOf(replaceSource(emptySaved(), 'sheet', res))
+    expect(keys('mallar3')).toEqual(['c:BZ', 's:BZ-BZ'])
+    expect(keys('rocpig')).toEqual(['c:PA', 's:PA-8'])
+  })
+
+  it('puts Puerto Rico entered as a US state in the Caribbean and Latin America', () => {
+    const res = parseSheetText('Common Name,Country,State\nMallard,United States,Puerto Rico\n', taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    expect(placeKeysOf(replaceSource(emptySaved(), 'sheet', res), /^[sr]:/)('mallar3')).toEqual(['r:caribbean', 'r:latam', 's:US-PR'])
+  })
+
   it('parses a pasted plain list, single plain cell, and quoted TSV with tabs/newlines', () => {
     const plain = parseSheetText(fixture('pasted-plain.txt'), taxonomy, regions)
     expect('error' in plain).toBe(false)
@@ -127,6 +187,43 @@ describe('spreadsheet import', () => {
       expect(tsvRes.records.map((r) => r.code)).toEqual(['mallar3', 'rocpig'])
       expect(tsvRes.records[0].place?.country).toBe('CA')
       expect(tsvRes.records[1].place?.country).toBe('EG')
+    }
+  })
+
+  it('reads every line of a pasted list with a stray quote', () => {
+    const res = parseSheetText('"Mallard\nRock Pigeon\nBarn Swallow\n', taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    expect(res.records.map((r) => r.code)).toEqual(['mallar3', 'rocpig', 'barswa'])
+  })
+
+  it('numbers unmatched rows as the birder\'s file does, title and blank rows included', () => {
+    const text = parseSheetText('My birds\n\nCommon Name\nMallard\n\nMallardd\n', taxonomy, regions)
+    if ('error' in text) throw new Error('expected parse success')
+    expect(text.unmatched.map((u) => [u.com, u.row])).toEqual([['Mallardd', 6]])
+
+    const cell = (r: number, v: string) => `<row r="${r}"><c r="A${r}" t="inlineStr"><is><t>${v}</t></is></c></row>`
+    const xlsx = makeXlsx({ sheets: [{ name: 'Birds', xml: `<?xml version="1.0"?><worksheet><sheetData>${cell(1, 'My birds')}${cell(3, 'Common Name')}${cell(4, 'Mallard')}${cell(7, 'Mallardd')}</sheetData></worksheet>` }] })
+    const sheet = parseSheetXlsx(xlsx, taxonomy, regions)
+    if ('error' in sheet) throw new Error('expected parse success')
+    expect(sheet.unmatched.map((u) => [u.com, u.row])).toEqual([['Mallardd', 7]])
+  })
+
+  it('gives the lifer the earliest row\'s own place, none when it has none', () => {
+    const later = parseSheetText('Common Name,Date,Country\nMallard,2024-05-01,Canada\nMallard,2023-01-10,\n', taxonomy, regions)
+    const earlierFirst = parseSheetText('Common Name,Date,Country\nMallard,2023-01-10,\nMallard,2024-05-01,Canada\n', taxonomy, regions)
+    for (const res of [later, earlierFirst]) {
+      if ('error' in res) throw new Error('expected parse success')
+      expect(res.records[0]).toMatchObject({ code: 'mallar3', date: '2023-01-10' })
+      expect(res.records[0].place).toBeUndefined()
+      expect(res.records[0].seen?.map((s) => s.split('|')[1])).toEqual(['CA'])
+    }
+  })
+
+  it('reads short semicolon lists, blank lines and all', () => {
+    for (const text of ['Common Name;Date\nMallard;2024\nRock Pigeon;2023\n', '\nCommon Name;Date\nMallard;2024\nRock Pigeon;2023\n', 'Common Name;Date\n\nMallard;2024\n\nRock Pigeon;2023\n\n']) {
+      const res = parseSheetText(text, taxonomy, regions)
+      if ('error' in res) throw new Error('expected parse success')
+      expect(res.records.map((r) => [r.code, r.date])).toEqual([['mallar3', '2024'], ['rocpig', '2023']])
     }
   })
 
@@ -187,6 +284,62 @@ describe('spreadsheet import', () => {
     expect(res.records[1].date).toBe('2022')
   })
 
+  it('skips hidden and very hidden sheets, however many birds they name', () => {
+    const rows = (names: string[]) =>
+      `<?xml version="1.0"?><worksheet><sheetData>${['Common Name', ...names].map((n, i) => `<row r="${i + 1}"><c r="A${i + 1}" t="inlineStr"><is><t>${n}</t></is></c></row>`).join('')}</sheetData></worksheet>`
+    const lookup = rawSpecies.species.slice(0, 30).map((r) => r.com)
+    const xlsx = makeXlsx({
+      sheets: [
+        { name: 'Lookup', state: 'hidden', xml: rows(lookup) },
+        { name: 'My list', xml: rows(['Mallard', 'Rock Pigeon']) },
+        { name: 'Names', state: 'veryHidden', xml: rows(lookup) },
+      ],
+    })
+    const res = parseSheetXlsx(xlsx, taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    expect(res.records.map((r) => r.code)).toEqual(['mallar3', 'rocpig'])
+  })
+
+  it('gives no-birds for a readable file where no row names a species', () => {
+    expect(parseSheetText('Date,Description,Amount\n2024-01-02,Coffee,3.50\n2024-01-03,Lunch,12.00\n', taxonomy, regions)).toEqual({ error: 'no-birds' })
+    expect(parseSheetText('Shopping\nMilk\nBread\n', taxonomy, regions)).toEqual({ error: 'no-birds' })
+  })
+
+  it('reads dates in a workbook on the 1904 date system', () => {
+    const sheet = (serial: number) => `<?xml version="1.0"?><worksheet><sheetData>
+      <row r="1"><c r="A1" t="inlineStr"><is><t>Common Name</t></is></c><c r="B1" t="inlineStr"><is><t>Date</t></is></c></row>
+      <row r="2"><c r="A2" t="inlineStr"><is><t>Mallard</t></is></c><c r="B2" s="1"><v>${serial}</v></c></row>
+    </sheetData></worksheet>`
+    const stylesXml = `<?xml version="1.0"?><styleSheet><cellXfs count="2"><xf numFmtId="0"/><xf numFmtId="14"/></cellXfs></styleSheet>`
+    const dateOf = (xlsx: Uint8Array) => {
+      const res = parseSheetXlsx(xlsx, taxonomy, regions)
+      if ('error' in res) throw new Error('expected parse success')
+      return res.records[0].date
+    }
+    expect(dateOf(makeXlsx({ stylesXml, workbookPr: '<workbookPr date1904="1"/>', sheets: [{ name: 'Mac', xml: sheet(43769) }] }))).toBe('2023-11-01')
+    expect(dateOf(makeXlsx({ stylesXml, workbookPr: '<workbookPr date1904="false"/>', sheets: [{ name: 'Win', xml: sheet(45231) }] }))).toBe('2023-11-01')
+  })
+
+  it('reads prefixed SpreadsheetML elements and CDATA text', () => {
+    const xlsx = makeXlsx({
+      sharedStrings: ['<x:si><x:t><![CDATA[Common Name]]></x:t></x:si>', '<x:si><x:t><![CDATA[Mallard & co]]></x:t></x:si>'],
+      sheets: [
+        {
+          name: 'Prefixed',
+          xml: `<?xml version="1.0"?><x:worksheet xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><x:sheetData>
+            <x:row r="1"><x:c r="A1" t="s"><x:v>0</x:v></x:c></x:row>
+            <x:row r="2"><x:c r="A2" t="inlineStr"><x:is><x:t><![CDATA[Rock Pigeon]]></x:t></x:is></x:c></x:row>
+            <x:row r="3"><x:c r="A3" t="inlineStr"><x:is><x:t>Barn Swallow</x:t></x:is></x:c></x:row>
+          </x:sheetData></x:worksheet>`,
+        },
+      ],
+    })
+    const res = parseSheetXlsx(xlsx, taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    expect(res.records.map((r) => r.code)).toEqual(['rocpig', 'barswa'])
+    expect(readXlsx(xlsx)[0].rows[0]).toEqual(['Common Name'])
+  })
+
   it('throws DamagedXlsxError on unreadable xlsx bytes', () => {
     expect(() => parseSheetXlsx(new Uint8Array([1, 2, 3, 4]), taxonomy, regions)).toThrow(DamagedXlsxError)
   })
@@ -221,6 +374,22 @@ describe('spreadsheet import', () => {
 
     const csv = toCsv(list, species, regions, seen)
     expect(csv).toContain('Egypt; Morocco; Spain')
+  })
+
+  it('reads a spreadsheet with a Countable column as a spreadsheet, never as an eBird life list', () => {
+    const csv = 'Common Name,Scientific Name,Countable\nNorthern Flicker,Colaptes auratus,x\nMallard,Anas platyrhynchos,\n'
+    expect(detectFile(csv.split('\n')[0], 'ticks.csv')).toBe('unknown') // the spreadsheet row then reads it as text
+    const res = parseSheetText(csv, taxonomy, regions)
+    if ('error' in res) throw new Error('expected parse success')
+    expect(res.records.map((r) => r.code)).toEqual(['norfli'])
+    expect(res.notCountable).toBeUndefined()
+  })
+
+  it('shows a slot that holds only not-countable species as connected, so it can be removed', () => {
+    const saved = replaceSource(emptySaved(), 'ebird-list', { records: [], unmatched: [], skipped: 2, rows: 2, notCountable: ['norfli', 'mallar3'] })
+    expect(slotConnected(saved, 'ebird-list')).toBe(true)
+    expect(slotConnected(saved, 'ebird')).toBe(false)
+    expect(slotConnected(emptySaved(), 'ebird-list')).toBe(false)
   })
 
   it('dispatches xlsx and sheet-text through the parse worker handler', async () => {

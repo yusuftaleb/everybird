@@ -8,7 +8,7 @@ export function FiltersDock({ shown = 0, ...args }: Omit<Args, 'shown'> & { show
   const ui = useFiltersUi({ ...args, shown })
   return (
     <div className="eb-dockwrap">
-      <div className="eb-dock">{ui.button(false)}</div>
+      <div className="eb-dock">{ui.button}</div>
       {ui.below}
     </div>
   )

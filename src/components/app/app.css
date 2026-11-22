@@ -12,22 +12,17 @@
 }
 @media (min-width: 720px) { .eb-page { padding: 48px 32px 64px; --page-gap: 56px; } }
 
-.eb-head { display: flex; flex-direction: column; gap: 12px; }
-.eb-title { margin: 0; font-size: clamp(44px, 9vw, 72px); line-height: .95; letter-spacing: -.02em; }
-.eb-tagline { margin: 0; font-size: 18px; color: var(--muted); }
-.eb-head + * { margin-top: -16px; }
 
 .eb-lede-sm { margin: 0; font-size: 16px; line-height: 1.5; color: var(--muted); max-width: 640px; }
 
 /* Collage pages (/): the birds lead. A one-row hero on wide screens; tighter spacing above the stage. */
 .eb-page-collage { --page-gap: 16px; padding-top: 16px; }
 @media (min-width: 720px) { .eb-page-collage { --page-gap: 24px; padding-top: 24px; } }
-/* The landing carries the order chips under the dock; a little less air above keeps the sample's birds on a little under
-   half of a 1280×800 first screen (its order chips wrap onto four rows; e2e import.spec). */
-@media (min-width: 720px) { .eb-page-landing { --page-gap: 16px; padding-top: 20px; } }
+/* The landing: a little less air under its hero keeps more of the sample's birds on the first screen. Its top offset is
+   every titled page's (.eb-page-titled). */
+@media (min-width: 720px) { .eb-page-landing { --page-gap: 16px; } }
 .eb-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
 .eb-hero-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.eb-hero-title { margin: 0; font-size: clamp(28px, 4vw, 42px); line-height: 1.02; letter-spacing: -.02em; }
 .eb-hero-lede { margin: 0; font-size: 15px; line-height: 1.45; max-width: 72ch; text-wrap: balance; } /* two even lines, no orphan */
 @media (max-width: 719px) { .eb-hero-cta.eb-btn-big { min-height: 44px; font-size: 16px; padding: 0 18px; } }
 @media (min-width: 720px) {
@@ -77,11 +72,14 @@
   text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 3px;
 }
 .eb-textbtn svg { width: 16px; height: 16px; flex: none; }
+.eb-textbtn:disabled { color: var(--muted); text-decoration-color: transparent; cursor: default; }
 /* Drawn 36px, a 44px hit area; a short word ("Clear") gets 44px across too. */
 .eb-textbtn::after { content: ''; position: absolute; inset: -4px min(0px, calc(50% - 22px)); }
 
 /* The collage block: LifeList's column (12px between the stats line, the dock, the filters and the stage). */
-.eb-view { --eb-ease: cubic-bezier(.16, 1, .3, 1); display: flex; flex-direction: column; gap: 12px; min-width: 0; font-size: 14px; font-weight: 500; line-height: 1.3; }
+/* No scroll anchoring inside the view (round 6 polish): a chip row, path line, collage, list or tree that changes height
+   when something is chosen must never make the browser scroll the page (it would carry the dock and an open panel). */
+.eb-view { overflow-anchor: none; --eb-ease: cubic-bezier(.16, 1, .3, 1); display: flex; flex-direction: column; gap: 12px; min-width: 0; font-size: 14px; font-weight: 500; line-height: 1.3; }
 .eb-stats { margin: 0; }
 .eb-stat { white-space: nowrap; }
 .eb-view .eb-stage-wait { margin-top: 8px; }
@@ -89,115 +87,150 @@
 /* Controls bar: LifeList's dock (the Photography / Library tab bar), one row; Photography's search over it. */
 .eb-dockwrap { position: relative; z-index: 3; container-type: inline-size; }
 .eb-dock {
-  position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 4px;
+  --dock-px: 12px; --dock-gap: 4px; /* the right side's one rhythm (below): each item's side padding, the gap between items */
+  position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; column-gap: var(--dock-gap); padding: 4px;
   border: 1px solid var(--hairline); border-radius: 16px; background: var(--paper);
 }
-/* Four groups: view tabs | True size, Scientific | Filters | search. 4px inside a group (LifeList's dock gap),
-   12px between groups (a hairline would be one line too many in a bar this quiet). */
-.eb-dock-tabs, .eb-dock-tools, .eb-dock-filters, .eb-dock-end, .eb-dock-marks { display: flex; align-items: center; gap: 4px; transition: opacity .15s var(--eb-ease); }
-.eb-dock-tools { margin-left: auto; }
-.eb-dock-filters, .eb-dock-end { margin-left: 8px; } /* + the dock's 4px gap = 12px between groups */
-.eb-dock-marks { order: 2; flex: 1 0 100%; flex-wrap: wrap; margin: 0 -4px -4px; padding: 4px; border-top: 1px solid var(--hairline); }
+/* Three groups: the views | List's and Map's switches (ControlsBar's `.eb-dock-tools`) and the panel buttons (Taxa,
+   Display, Filters) | search. The switches live in the buttons' group, so they take its row wherever it goes.
+   The right side has one even rhythm (round 6 polish, Yusuf 2026-11-21): every item (the switches, the sort, Taxa,
+   Display, Filters) has the same side padding, `--dock-px`, and every gap between them, inside a group or between
+   groups (the dock's own column gap, before the search), is `--dock-gap`; so from one item's last ink to the next one's
+   first is 2 × --dock-px + --dock-gap everywhere: 28px, 20px under 600px, 10px under 330px of bar. The magnifier is the
+   views' 44px icon button, its 20px glyph leaving 12px a side, the wide bar's --dock-px (below 820px of bar it sits on
+   row one with the views, away from the rest). Breakpoints change the two variables, never one item. */
+.eb-dock-tabs, .eb-dock-tools, .eb-dock-filters, .eb-dock-end { display: flex; align-items: center; transition: opacity .15s var(--eb-ease); }
+.eb-dock-tabs { gap: 4px; }
+.eb-dock-tools, .eb-dock-filters, .eb-dock-end { gap: var(--dock-gap); }
+.eb-dock-tools { flex: none; }
 .eb-dock[data-finding] .eb-dock-tabs, .eb-dock[data-finding] .eb-dock-tools,
-.eb-dock[data-finding] .eb-dock-filters, .eb-dock[data-finding] .eb-dock-end,
-.eb-dock[data-finding] .eb-dock-marks { opacity: 0; pointer-events: none; }
-.eb-dock[data-finding] .eb-dock-marks { display: none; }
-/* Filters: a glyph, the label (and how many filter groups are on, " · 2"), a caret. Open: the pressed tab's Surface;
-   filtering: Accent text, full opacity, 600 (selection, as a pressed tab). */
+.eb-dock[data-finding] .eb-dock-filters, .eb-dock[data-finding] .eb-dock-end { opacity: 0; pointer-events: none; }
+/* The panel buttons (Filters.tsx DockPanelButton): Filters with its glyph, Taxa and Display with the label alone; the
+   label, a caret. Open: the pressed tab's Surface; something chosen: Accent text and full opacity, at the label's one
+   weight (nothing changes width). No count: how many is said only in the accessible name. */
 /* At every width the button can give way: the group may shrink, each drop may shrink (flex's default, said here so the rule
    reads whole), and the label shrinks inside it with an ellipsis, so a long summary ("Time · 2022–2024") cuts its own
    label and never pushes the magnifier out of the bar. The accessible name (aria-label) stays whole. Where nothing
-   overflows these change nothing. */
-.eb-dock-filters { min-width: 0; }
-.eb-dock-drop { flex: 0 1 auto; gap: 8px; padding: 0 10px 0 12px; }
+   overflows these change nothing. The group sits right of the views (margin-left: auto). */
+.eb-dock-filters { min-width: 0; margin-left: auto; }
+.eb-dock-drop { flex: 0 1 auto; gap: 8px; }
 .eb-drop-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .eb-dock-drop svg:not(.eb-drop-caret) { width: 18px; height: 18px; } /* :not() outweighs .eb-dock-tab svg's 20px */
 .eb-dock-drop .eb-drop-caret { width: 14px; height: 14px; transition: transform .2s var(--eb-ease); }
 .eb-dock-drop[aria-expanded="true"] { opacity: 1; background: var(--surface); }
 .eb-dock-drop[aria-expanded="true"] .eb-drop-caret { transform: rotate(180deg); }
-.eb-dock-drop[data-active] { opacity: 1; color: var(--accent); font-weight: 600; }
-.eb-drop-sum { font-variant-numeric: tabular-nums; }
-/* Under 820px of bar (a tablet's or a phone's) the Filters button takes a second row under a Hairline, rather than
-   squeeze the first; the search keeps row one. Under 600px it fills the row and drops its caret. */
+.eb-dock-drop[data-active] { opacity: 1; color: var(--accent); }
+/* Under 820px of bar (a tablet's or a phone's) the switches and the panel buttons take a second row under a Hairline,
+   rather than squeeze the first; the views and the search keep row one. Under 600px the buttons share what the switches
+   leave and drop their caret. */
 @container (max-width: 819px) {
   .eb-dock { flex-wrap: wrap; row-gap: 4px; }
   .eb-dock-filters {
-    order: 1; flex: 1 0 100%; margin: 0 -4px -4px; padding: 4px; gap: 4px; border-top: 1px solid var(--hairline);
+    order: 1; flex: 1 0 100%; margin: 0 -4px -4px; padding: 4px; border-top: 1px solid var(--hairline);
   }
-  .eb-dock:has(.eb-dock-marks) .eb-dock-filters { margin-bottom: 0; }
+  /* Row one: the views at the left, the magnifier at the right end, apart from them. */
+  .eb-dock-end { margin-left: auto; }
   .eb-find { bottom: auto; height: 44px; }
   .eb-dock[data-finding] .eb-dock-filters { display: none; }
 }
 @container (max-width: 599px) {
+  .eb-dock { --dock-px: 8px; }
   /* A slimmer second row (36px buttons, as the old filter toggles; the hit area stays 44px), so the landing's birds
      keep most of a phone's first screen. The dock's 4px inset holds all round: above the pressed tab, either side of
      the Hairline and under the buttons (the ≤820px row's 4px gap and padding). */
-  .eb-dock-filters .eb-dock-drop { position: relative; min-height: 36px; flex: 1 1 0; min-width: 0; justify-content: center; padding: 0 10px; }
+  .eb-dock-filters .eb-dock-drop { position: relative; min-height: 36px; flex: 1 1 auto; min-width: 0; justify-content: center; }
   .eb-dock-filters .eb-dock-drop::after { content: ''; position: absolute; inset: -4px 0; }
-  .eb-dock-filters .eb-drop-caret { display: none; } /* the row reads as two buttons; aria-expanded says the rest */
+  .eb-dock-filters .eb-drop-caret { display: none; } /* the row reads as buttons; aria-expanded says the rest */
+  .eb-dock-tools .eb-dock-sw { position: relative; min-height: 36px; }
+  .eb-dock-tools .eb-dock-sw::after { content: ''; position: absolute; inset: -4px 0; }
+}
+/* Under 600px of bar the row's controls and panel buttons wrap as whole controls: when the switches and the buttons
+   don't fit one row, the buttons take the next, each at its full width (never cutting its label) and sharing the
+   row's rest. */
+@container (max-width: 599px) {
+  .eb-dock-filters { flex-wrap: wrap; row-gap: 4px; }
+  .eb-dock-filters .eb-dock-drop { flex: 1 1 auto; min-width: max-content; }
+  /* One rule for every view's row two: each item (List's Sci. and Sort, then Taxa, Display, Filters) grows by the same
+     share, its content centred, so the gaps between them are even and the last ends the row. The List's two tools are
+     one group: it takes two shares and gives one to each. */
+  .eb-dock-tools { flex: 2 1 auto; }
+  .eb-dock-tools > *, .eb-dock-sortwrap > .eb-dock-dir { flex: 1 1 auto; }
 }
 .eb-view-below { display: contents; } /* the column's gaps stay; Filters dims and inertes everything in it while open */
-.eb-view-below[data-dim] > * { opacity: .3; transition: opacity .2s var(--eb-ease); }
-@media (prefers-reduced-motion: reduce) { .eb-view-below[data-dim] > * { transition: none; } }
+/* The transition sits on the children at rest too, so undimming eases as dimming does. */
+.eb-view-below > * { transition: opacity .2s var(--eb-ease); }
+.eb-view-below[data-dim] > * { opacity: .3; }
+@media (prefers-reduced-motion: reduce) { .eb-view-below > * { transition: none; } }
+/* The filters leave none of the list's birds (CollageView): one Muted line under the stage or list, and Clear all. */
+.eb-view-empty { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; margin: 0; }
 .eb-dock-tab {
   display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; min-width: 44px;
   padding: 0 16px 0 14px; border: 0; border-radius: 12px; background: transparent; color: inherit;
   font: inherit; white-space: nowrap; cursor: pointer; opacity: .66; -webkit-tap-highlight-color: transparent;
-  transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s var(--eb-ease);
+  transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s var(--eb-ease), color .15s var(--eb-ease);
 }
 .eb-dock-tab svg { width: 20px; height: 20px; flex: none; }
 .eb-dock-tab[aria-pressed="true"] { opacity: 1; color: var(--accent); background: var(--surface); font-weight: 600; }
-.eb-dock-sw { gap: 10px; padding: 0 12px 0 14px; }
+.eb-dock-sw { gap: 10px; }
+/* Every right-side item's one side padding (the switches, the sort and the panel buttons all sit in .eb-dock-filters). */
+.eb-dock-filters .eb-dock-tab { padding-inline: var(--dock-px); }
 .eb-dock-sci { font-style: italic; }
+/* The List view's Sort menu (ControlsBar SortMenu): a switch-sized button with the current order and the panel buttons'
+   caret, the pressed tab's Surface while its menu (.eb-menu, right-aligned under it) is open. */
+.eb-dock-sortwrap { position: relative; display: flex; flex: none; }
 .eb-dock-dir { gap: 6px; opacity: 1; }
-.eb-dock-dir svg { width: 16px; height: 16px; transition: transform .2s var(--eb-ease); }
+.eb-dock-dir .eb-drop-caret { width: 14px; height: 14px; transition: transform .2s var(--eb-ease); }
+.eb-dock-dir[aria-expanded="true"] { background: var(--surface); }
+.eb-dock-dir[aria-expanded="true"] .eb-drop-caret { transform: rotate(180deg); }
 .eb-dock-sw[aria-checked="true"] { opacity: 1; }
 .eb-dock-sw[aria-checked="true"] .eb-track { background: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .eb-dock-sw[aria-checked="true"] .eb-knob { transform: translateX(14px); background: var(--paper); }
 .eb-dock-find { padding: 0; width: 44px; }
 .eb-short { display: none; }
-/* Phones (LifeList's 600px): the bar's short form whatever the phone's width, so row one is always the view icons,
-   True and Sci. (or the list's "Heaviest") and the magnifier; the Filters button is row two. */
+/* Phones (LifeList's 600px): the bar's short form whatever the phone's width: row one is always the view icons and the
+   magnifier, row two the panel buttons (Taxa, Display, Filters), after the list's Sort and Sci. (or the map's
+   Sci.), which keep a row of their own when all don't fit. */
 @media (max-width: 600px) {
   .eb-dock .eb-long { display: none; }
   .eb-dock .eb-short { display: inline; }
   .eb-dock-tabs .eb-dock-tab span { display: none; }
   .eb-dock-tabs .eb-dock-tab { padding: 0; width: 44px; }
-  .eb-dock-tabs, .eb-dock-tools { gap: 2px; }
-  .eb-dock-sw { padding: 0 8px; gap: 6px; }
+  .eb-dock { --dock-px: 8px; }
+  .eb-dock-tabs { gap: 2px; }
+  .eb-dock-sw { gap: 8px; } /* the label clear of its switch, as a panel button's glyph of its label */
   .eb-dock .eb-track { width: 30px; height: 18px; border-radius: 9px; }
   .eb-dock .eb-knob { width: 12px; height: 12px; }
   .eb-dock-sw[aria-checked="true"] .eb-knob { transform: translateX(12px); }
-  .eb-dock-end { margin-left: 2px; }
 }
-/* The bar's own width from here (any screen: a phone, a tablet, a narrow window). Row one must hold the tabs, the tools
-   and the magnifier: the 820px rule lets the bar wrap (for the Filters button), so anything
-   too wide would push the magnifier onto a line of its own (row one holds from 280 to 1200px of bar). */
-@container (max-width: 460px) {
+/* The bar's own width from here (any screen: a phone, a tablet, a narrow window). One row needs the four views' words,
+   two switches with theirs and Filters, about 1,000px; under that the views are icons (row one holds from 280 to 1200px
+   of bar). */
+@container (max-width: 1099px) {
   .eb-dock-tabs .eb-dock-tab span { display: none; }
   .eb-dock-tabs .eb-dock-tab { padding: 0; width: 44px; }
 }
-/* "True size" and "Scientific" with the magnifier need about 540px of bar (with the tabs' words; 400px without):
-   short labels and the tighter switches below that. */
+/* "True size" and "Scientific" beside Filters on row two need about 540px of bar: short labels and the tighter switches
+   below that. */
 @container (max-width: 540px) {
   .eb-long { display: none; }
   .eb-short { display: inline; }
-  .eb-dock-tabs, .eb-dock-tools { gap: 2px; }
-  .eb-dock-sw { padding: 0 8px; gap: 6px; }
+  .eb-dock { --dock-px: 8px; }
+  .eb-dock-tabs { gap: 2px; }
+  .eb-dock-sw { gap: 8px; } /* the label clear of its switch, as a panel button's glyph of its label */
   .eb-dock .eb-track { width: 30px; height: 18px; border-radius: 9px; }
   .eb-dock .eb-knob { width: 12px; height: 12px; }
   .eb-dock-sw[aria-checked="true"] .eb-knob { transform: translateX(12px); }
 }
-/* Small phones (a 360px phone's bar and under): tighter, so the magnifier keeps row one. The icon buttons draw 40px
-   wide and keep a 44px press through their ::after. */
+/* Small phones (a 360px phone's bar and under): tighter, so the switches and Filters keep row two. The icon buttons draw
+   40px wide and keep a 44px press through their ::after. */
 @container (max-width: 330px) {
-  .eb-dock { column-gap: 2px; } /* the row gap stays 4px: the inset over the Hairline */
-  .eb-dock-end { margin-left: 0; }
-  .eb-dock-tools .eb-dock-sw { padding: 0 5px; gap: 5px; }
-  .eb-dock-tools .eb-dock-dir { padding: 0 3px; gap: 3px; } /* "Heaviest ↓" is the row's widest tool */
+  .eb-dock { --dock-px: 4px; --dock-gap: 2px; } /* the row gap stays 4px: the inset over the Hairline */
+  .eb-dock-tools .eb-dock-sw { gap: 5px; }
+  .eb-dock-tools .eb-dock-dir { gap: 3px; } /* "Heaviest ⌄" is the row's widest tool */
   .eb-dock-tabs .eb-dock-tab, .eb-dock-end .eb-dock-find { position: relative; width: 40px; min-width: 40px; }
   .eb-dock-tabs .eb-dock-tab::after, .eb-dock-end .eb-dock-find::after { content: ''; position: absolute; inset: 0 -2px; }
   .eb-dock-tabs { gap: 4px; } /* the two 44px press areas meet, never overlap */
+  .eb-dock-filters .eb-dock-drop { gap: 6px; } /* Taxa, Display and Filters keep one row in the longer languages */
 }
 /* A 320px phone's bar (288px) and narrower: 36px icon buttons (a 44px press through ::after), the switches' slimmest
    form (28×18, the knob moving 10px). */
@@ -205,8 +238,8 @@
   .eb-dock-tabs .eb-dock-tab, .eb-dock-end .eb-dock-find { width: 36px; min-width: 36px; }
   .eb-dock-tabs .eb-dock-tab::after, .eb-dock-end .eb-dock-find::after { inset: 0 -4px; }
   .eb-dock-tabs { gap: 8px; } /* the two 44px press areas meet, never overlap */
-  .eb-dock-tools .eb-dock-sw { padding: 0 4px; gap: 4px; }
-  .eb-dock-tools .eb-dock-dir { padding: 0 2px; gap: 2px; }
+  .eb-dock-tools .eb-dock-sw { gap: 4px; }
+  .eb-dock-tools .eb-dock-dir { gap: 2px; }
   .eb-dock .eb-track { width: 28px; }
   .eb-dock-sw[aria-checked="true"] .eb-knob { transform: translateX(10px); }
 }
@@ -246,6 +279,8 @@
 .eb-understood .eb-chiprow { flex: 1 1 200px; min-width: 0; }
 .eb-understood-go { padding: 0 14px; font-size: 14px; }
 .eb-understood-note { padding: 0 12px 8px; }
+/* The open, empty search's one line: what it understands, with an example. */
+.eb-find-hint { padding: 10px 12px; }
 .eb-results [role="option"] {
   display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; cursor: pointer;
   border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
@@ -267,46 +302,31 @@
 .eb-ways-wait { min-height: 360px; }
 .eb-legend { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
 .eb-legend p { margin: 0; }
+/* "Latest: Snow Goose, Sep 2026" is a text button finding the bird: the legend's own type and line, a 44px press. */
+.eb-legend .eb-legend-latest { display: inline; min-height: 0; padding: 0; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; text-align: inherit; }
+.eb-legend .eb-legend-latest::after { inset: calc((100% - 44px) / 2) min(0px, calc(50% - 22px)); }
 
 @media (max-width: 479px) { .eb-sm-hide { display: none; } }
 /* After an import on Settings: what landed, and the way to the collage. */
 /* Tools: downloads, restore, forget. */
 .eb-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.eb-tools-msg { flex-basis: 100%; }
+.eb-tools-msg { flex-basis: 100%; order: 1; } /* under the button row, never between its buttons */
 
 /* Settings: three tight sections (Your list, Counting, Your data), closer together than other pages' blocks. */
 .eb-page-settings { --page-gap: 32px; }
 @media (min-width: 720px) { .eb-page-settings { --page-gap: 40px; } }
 .eb-page-settings .eb-block { gap: 12px; }
-/* Counting and Your data side by side from 1024px. */
+/* Counting (left) and Your data (right) side by side from 1024px, stacked under it. Your data's buttons wrap inside
+   their column, and a label longer than the column wraps inside its button rather than overflow. */
 .eb-settings-pair, .eb-settings-one { display: flex; flex-direction: column; gap: var(--page-gap); min-width: 0; }
 .eb-settings-one:empty { display: none; }
+.eb-settings-pair .eb-tools > * { max-width: 100%; }
+.eb-settings-pair .eb-tools .eb-btn { white-space: normal; text-align: center; }
 @media (min-width: 1024px) {
   .eb-settings-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 40px; align-items: start; }
-  .eb-settings-pair .eb-namefield { flex-basis: 100%; max-width: none; }
-  .eb-settings-pair .eb-datarow > .eb-tools { padding-top: 0; }
 }
-/* Your data: the name field, then the downloads, restore and forget, on one row where there's room. */
-.eb-datarow { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 24px; }
-.eb-datarow > .eb-tools { padding-top: 26px; }
-@media (max-width: 719px) { .eb-datarow > .eb-tools { padding-top: 0; } }
-.eb-namefield { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; flex: 1 1 260px; max-width: 340px; }
-@media (max-width: 719px) { .eb-namefield { max-width: none; } }
-.eb-namefield-label { font-size: 14px; font-weight: 600; line-height: 20px; }
-.eb-namefield .eb-note { font-size: 13px; line-height: 1.4; }
-/* Your data, first: the language select (as wide as the name field), and under it the English-names switch. */
+/* Settings > Language: the English-names switch (the language itself is the top bar's menu). */
 .eb-langrow { display: flex; flex-direction: column; gap: 12px; }
-.eb-langrow .eb-langfield { flex: none; }
-@media (min-width: 1024px) { .eb-settings-pair .eb-langfield { max-width: 340px; } }
-/* The select and its "Change language" button on one row (the button wraps under on a narrow field). */
-.eb-langfield-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.eb-langfield-row .eb-select { flex: 1 1 160px; }
-.eb-confirm {
-  display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; max-width: 560px;
-  border: 1px solid var(--accent);
-  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
-}
-.eb-confirm p { margin: 0; }
 
 
 /* The top bar (the site's phone top bar): wordmark home, Collage / Settings / About, the language button and the theme
@@ -333,6 +353,8 @@
   color: var(--ink); text-decoration: none; white-space: nowrap;
   display: inline-flex; align-items: center; min-height: 44px; /* the whole 44px row is the link (Fitts) */
 }
+/* The origami bird that stands for the word on small phones (TopBar's OrigamiMark; the block under 381px below). */
+.eb-wordmark-mark { display: none; flex: none; }
 .eb-nav { margin-left: auto; }
 .eb-nav ul { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .eb-nav-link {
@@ -344,15 +366,21 @@
 /* The pill is 40px tall; the hit area is 44px, so a thumb that lands just above or below still counts, and at least
    44px across (a short label, "Over", is a narrower pill). */
 .eb-nav-link::after { content: ''; position: absolute; inset: -2px min(0px, calc((100% - 44px) / 2)); } /* and 44px across */
+/* Each page's icon (TopBar: Phosphor regular, 22px, as the theme switch's): shown only where the pages are icon tabs. */
+.eb-nav-icon { display: none; width: 22px; height: 22px; flex: none; }
 .eb-nav-link[aria-current="page"] { opacity: 1; color: var(--accent); background: var(--surface); border-color: var(--hairline); font-weight: 600; }
 .eb-theme {
   position: relative; display: grid; place-items: center; width: 44px; height: 44px; flex: none; padding: 0;
   border: 0; background: transparent; color: var(--ink); cursor: pointer; -webkit-tap-highlight-color: transparent;
   border-radius: calc(14px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  transition: background-color .15s cubic-bezier(.16, 1, .3, 1); /* the nav pills' fill ease, beside them */
 }
 .eb-theme svg { width: 22px; height: 22px; }
+/* ThemeToggle: the moon on the light theme, the sun on the dark, from <html data-theme> (set before the first paint). */
+.eb-theme-sun, :root[data-theme="dark"] .eb-theme-moon { display: none; }
+:root[data-theme="dark"] .eb-theme-sun { display: block; }
 .eb-theme::after { content: ''; position: absolute; inset: min(0px, calc((100% - 44px) / 2)); } /* 44px even when drawn at 40 or 36 */
-/* The language button (LanguageMenu, preview variants lang:a and c) sits with the theme switch at the row's end, the two always
+/* The language button (LanguageMenu) sits with the theme switch at the row's end, the two always
    together in row one. It is .eb-theme too (44px, 40 under 500px, 36 wide under 360px; Surface on hover), showing the
    language's code in Ink mono. Its menu is the ⋯ menu's popover, right-aligned under it (LanguageMenu shifts it right
    if it would leave the window). */
@@ -369,30 +397,50 @@
   animation: eb-menu-in .16s var(--ease-ui);
 }
 @keyframes eb-menu-in { from { opacity: 0; translate: 0 -4px; } }
+/* A menu in the shared top layer (menu-layer.ts: the share dialog's dropdowns, the ⋯ source menus), where nothing in the
+   page contains or clips it: the popover's own box rules give way to the menu's (placed by its inline coordinates, no
+   auto margin, the page's ink); opened upward (data-up), it eases in from below. */
+.eb-menu[popover] { margin: 0; color: var(--ink); }
+.eb-menu[data-up] { animation-name: eb-menu-up; }
+@keyframes eb-menu-up { from { opacity: 0; translate: 0 4px; } }
 .eb-menuitem {
   display: flex; align-items: center; min-height: 44px; padding: 0 12px; border: 0; background: none; color: var(--ink);
   font: inherit; font-size: 15px; font-weight: 500; text-align: left; white-space: nowrap; cursor: pointer;
   border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
 .eb-menuitem[data-danger] { color: var(--accent); }
+/* Every menu's rows, one rule (round 6 menu audit, item 6: the language menu's treatment for the ⋯ source menus,
+   MenuSelect's menus and the Sort menu too): no fill on the row a pointer open focuses; a Surface fill on a hovered row
+   and on a keyboard-focused one (:focus-visible), never on the current choice (aria-checked, its name in Accent with a
+   check) nor a hovered off one. The fill is the focus style, as in the language menu. */
 .eb-menuitem:focus { outline: none; }
-.eb-menuitem:focus-visible, .eb-menuitem:focus { background: var(--surface); }
-@media (hover: hover) and (pointer: fine) { .eb-menuitem:hover { background: var(--surface); } }
-/* The language menu: a quiet popover, as wide as its widest row, its right edge on the button's; never wider than the window.
-   Rows are 40px (44px on touch), the name left and its code right in Muted mono; the current one has no fill, its name in
-   Accent at 600 and a check where the code was. A Surface fill only on a hovered or keyboard-focused row that isn't current. */
-.eb-langmenu { width: max-content; min-width: 0; max-width: calc(100vw - 16px); }
+.eb-menuitem:not([aria-checked="true"]):focus-visible { background: var(--surface); }
+@media (hover: hover) and (pointer: fine) { .eb-menuitem:not([aria-checked="true"]):not([aria-disabled="true"]):hover { background: var(--surface); } }
+/* A choice listed but not open (MenuSelect's `off`: the Tree's levels over its tip limit): Muted, its reason under it. */
+.eb-menuitem[aria-disabled="true"] { color: var(--muted); cursor: default; }
+.eb-menu-off { display: grid; gap: 2px; padding: 6px 0; max-width: 260px; white-space: normal; }
+.eb-menu-why { font-size: 13px; font-weight: 400; line-height: 1.35; }
+/* The language menu (and MenuSelect's menus, which share its look): a quiet popover, as wide as its widest row, its right
+   edge on the button's; never wider than the window. Rows are 40px (44px on touch), the name left and its code right in
+   Muted mono; the current one has no fill, its name in Accent at 600 and a check where the code was. Its rows' fill is
+   every menu's (.eb-menuitem, above). */
+.eb-langmenu { width: max-content; min-width: 0; max-width: calc(100vw - 16px); overflow-y: auto; overscroll-behavior: contain; }
+/* The language menu's 14 languages in columns read down, so all show at once without scrolling: two of 7 rows, three of 5
+   from 480px (the widest names fit a 360px screen at two and 480px at three: tests/language-menu.test.tsx), every column
+   as wide as the widest row. ↑ and ↓ go through the list in order, ← and → to the next column (LanguageMenu.tsx). */
+.eb-langgrid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, auto); grid-auto-columns: 1fr; column-gap: 4px; }
+@media (min-width: 480px) { .eb-langgrid { grid-template-rows: repeat(5, auto); } }
 .eb-langmenu .eb-menuitem { justify-content: space-between; gap: 16px; min-height: 40px; padding: 0 10px; }
 @media (pointer: coarse) { .eb-langmenu .eb-menuitem { min-height: 44px; } }
-.eb-langmenu .eb-menuitem:focus { background: none; }
-.eb-langmenu .eb-menuitem[aria-checked="false"]:focus-visible { background: var(--surface); }
-@media (hover: hover) and (pointer: fine) {
-  .eb-langmenu .eb-menuitem[aria-checked="false"]:hover { background: var(--surface); }
-  .eb-langmenu .eb-menuitem[aria-checked="true"]:hover { background: none; }
-}
 .eb-langname[data-current] { color: var(--accent); font-weight: 600; }
 .eb-langcode { color: var(--muted); font-size: 12px; line-height: 1; letter-spacing: .06em; }
+/* A row that steps back a level (Add by hand's picker): a Muted arrow before its label. */
+.eb-menu-back { display: inline-flex; align-items: center; gap: 8px; }
+.eb-langmenu .eb-menu-back svg { color: var(--muted); }
 .eb-langmenu .eb-menuitem svg { width: 16px; height: 16px; flex: none; color: var(--accent); }
+/* An option's glyph before its label (MenuSelect's `icon`: the Arrangement menu), in the label's colour. */
+.eb-menu-glyph { display: inline-flex; align-items: center; gap: 8px; }
+.eb-langmenu .eb-menuitem svg.eb-menu-icon { color: inherit; }
 @media (hover: hover) and (pointer: fine) {
   .eb-nav-link:hover { opacity: 1; }
   .eb-theme:hover { background: var(--surface); }
@@ -402,7 +450,7 @@
 @media (max-width: 499px) {
   .eb-topbar-in { gap: 4px; }
   .eb-wordmark { font-size: 19px; }
-  .eb-nav ul { gap: 2px; }
+  .eb-nav ul { gap: 0px; } /* the nav is on row two here, spread by space-between: no gap needed */
   .eb-nav-link { padding: 0 8px; font-size: 14px; }
   .eb-theme { width: 40px; height: 40px; }
 }
@@ -416,83 +464,77 @@
   .eb-topbar-end { gap: 2px; }
 }
 
-/* Where row one can't hold the nav (preview variant lang, `data-topbar` on <html>, set by TopBar; none on the server
-   reads as a): the nav takes its own full-width row under the wordmark, the language button and the theme switch
-   staying in row one. Only the padding's block sides change, so the gutter stays 16px (12px under 360, 8px under 240).
-   Each split has its twin in tokens.css (--topbar-h 93px), the same media query and selector, so a one-row bar never
-   gets a two-row offset; tests/topbar-fit.test.ts checks the pairs and that every row fits.
-   a (default): the language button in row one; the nav on row two under 430px, in every language.
-   b (no top-bar button): under 384px in Spanish and Dutch, under 366px in English and Portuguese.
-   c (the language button; Collage hidden under 480px, the wordmark goes home): under 310px. */
-@media (max-width: 429px) {
-  :root:not([data-topbar="b"], [data-topbar="c"]) .eb-topbar-in { flex-wrap: wrap; row-gap: 0; padding-block: 4px; min-height: 0; }
-  :root:not([data-topbar="b"], [data-topbar="c"]) .eb-topbar-end { order: 1; margin-left: auto; }
-  :root:not([data-topbar="b"], [data-topbar="c"]) .eb-nav { order: 2; flex: 1 0 100%; margin-left: 0; }
-  :root:not([data-topbar="b"], [data-topbar="c"]) .eb-nav ul { justify-content: space-between; }
+/* Where row one can't hold the nav: the nav takes its own full-width row under the wordmark, the language button and
+   the theme switch staying in row one. Only the padding's block sides change, so the gutter stays 12px (8px under
+   240). The split has its twin in tokens.css (--topbar-h 93px), the same media query, so a one-row bar never gets a
+   two-row offset; tests/topbar-fit.test.ts checks the pair and that every row fits.
+   Four links (My birds, Compare, Settings, About) beside the wordmark and the buttons need about 620px of page; under
+   it the links are icon tabs on row one (below), under 381px beside the origami bird instead of the word, and only
+   under 320px of page (a phone at Safari's aA page zoom), where even that can't share row one, does the nav take its
+   own row, in words. */
+@media (max-width: 319px) {
+  :root .eb-topbar-in { flex-wrap: wrap; row-gap: 0; padding-block: 4px; min-height: 0; }
+  :root .eb-topbar-end { order: 1; margin-left: auto; }
+  :root .eb-nav { order: 2; flex: 1 0 100%; margin-left: 0; }
+  :root .eb-nav ul { justify-content: space-between; }
 }
-@media (max-width: 383px) {
-  :root[data-topbar="b"]:is(:lang(es), :lang(nl)) .eb-topbar-in { flex-wrap: wrap; row-gap: 0; padding-block: 4px; min-height: 0; }
-  :root[data-topbar="b"]:is(:lang(es), :lang(nl)) .eb-topbar-end { order: 1; margin-left: auto; }
-  :root[data-topbar="b"]:is(:lang(es), :lang(nl)) .eb-nav { order: 2; flex: 1 0 100%; margin-left: 0; }
-  :root[data-topbar="b"]:is(:lang(es), :lang(nl)) .eb-nav ul { justify-content: space-between; }
+/* Phones from 320px (the phone fixes, 2026-11-21): the four pages as icon tabs, so the whole bar is one line: the
+   wordmark, the icons, the language button and the theme switch. Each tab is the pill drawn 40px square (its Surface,
+   Hairline and Accent when current), 4px apart, so their 44px presses (.eb-nav-link::after) meet; named by its word
+   (aria-label), the icon titled by it. With the word it needs 381px at the 499px step's sizes; under that the
+   origami bird stands for it (below), down to 320px at the 359px step's (tests/topbar-fit.test.ts). */
+@media (min-width: 320px) and (max-width: 619px) {
+  .eb-nav ul { gap: 4px; }
+  .eb-nav-link { width: 40px; padding: 0; justify-content: center; }
+  .eb-nav-icon { display: block; }
+  .eb-nav-word { display: none; }
 }
-@media (max-width: 365px) {
-  :root[data-topbar="b"] .eb-topbar-in { flex-wrap: wrap; row-gap: 0; padding-block: 4px; min-height: 0; }
-  :root[data-topbar="b"] .eb-topbar-end { order: 1; margin-left: auto; }
-  :root[data-topbar="b"] .eb-nav { order: 2; flex: 1 0 100%; margin-left: 0; }
-  :root[data-topbar="b"] .eb-nav ul { justify-content: space-between; }
+/* Under 381px (360 and 375px phones): the site icon's origami bird instead of the word, 22px (the tabs' glyph) in Ink, at the gutter's
+   edge as the word was; the word is visually hidden (.eb-sr's rules), so the link is still named Everybird. The link
+   is 40px wide, its press 44px by reaching 4px into the gutter (never into the first tab's). */
+@media (max-width: 380px) {
+  .eb-wordmark { position: relative; width: 40px; }
+  .eb-wordmark::after { content: ''; position: absolute; inset: 0 0 0 -4px; }
+  .eb-wordmark-mark { display: block; width: 22px; height: 22px; }
+  .eb-wordmark-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
-@media (max-width: 309px) {
-  :root[data-topbar="c"] .eb-topbar-in { flex-wrap: wrap; row-gap: 0; padding-block: 4px; min-height: 0; }
-  :root[data-topbar="c"] .eb-topbar-end { order: 1; margin-left: auto; }
-  :root[data-topbar="c"] .eb-nav { order: 2; flex: 1 0 100%; margin-left: 0; }
-  :root[data-topbar="c"] .eb-nav ul { justify-content: space-between; }
+/* Under 320px of page (a phone at Safari's aA 150% or more) four links can't share row two at the bar's type in some
+   languages: the nav wraps onto a second line there (--topbar-h 133px in tokens.css) rather than shrink. */
+@media (max-width: 319px) {
+  .eb-nav ul { flex-wrap: wrap; }
 }
-@media (max-width: 479px) {
-  :root[data-topbar="c"] .eb-nav [data-nav="collage"] { display: none; }
-  :root[data-topbar="c"] .eb-wordmark[aria-current="page"] { color: var(--accent); }
-}
-/* Under 240px (a 390px phone at aA 200%): row two holds "Collage Ajustes Acerca de" and "Instellingen" at 13px with a
-   8px gutter and 3px inside each pill; the press stays 44px across (.eb-nav-link::after). */
+/* Under 240px (a 390px phone at aA 200%): row two's links at 13px with a 8px gutter and 3px inside each pill; the press
+   stays 44px across (.eb-nav-link::after). */
 /* Under 300px of page (a 390px phone at Safari's aA 150% or more, page zoom; the top bar has split above): the stats
-   line and button labels wrap, and the Filters button drops its glyph (the label says it). */
+   line and button labels wrap, and the Filters button drops its glyph (the label says it). Row one stays the views and
+   the magnifier (the 310px container rule's 36px icons), row two the switches and Filters. */
 @media (max-width: 299px) {
   .eb-stat { white-space: normal; }
   .eb-btn { white-space: normal; text-align: center; }
   .eb-dock-filters { min-width: 0; }
-  .eb-dock-filters .eb-dock-drop { gap: 0; padding: 0 6px; }
+  .eb-dock-filters .eb-dock-drop { gap: 0; }
   .eb-dock-filters .eb-dock-drop svg { display: none; }
-  /* Row one can't hold the magnifier too, so the bar is a grid here: the view tabs and the switches, then the Filters button
-     and the magnifier on the second row under one Hairline (never a magnifier alone on a row). */
-  .eb-dock { display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 0; row-gap: 4px; }
-  .eb-dock-tabs { grid-area: 1 / 1; }
-  .eb-dock-tools { grid-area: 1 / 2 / 2 / 4; justify-self: end; margin-left: 0; }
-  .eb-dock-filters { grid-area: 2 / 1 / 3 / 3; margin: 0 0 -4px -4px; border-top: 1px solid var(--hairline); align-self: stretch; }
-  .eb-dock-end { grid-area: 2 / 3; margin: 0 -4px -4px 0; padding: 4px; border-top: 1px solid var(--hairline); align-self: stretch; display: flex; align-items: center; }
-  .eb-dock-marks { grid-area: 3 / 1 / 4 / 4; }
-  .eb-dock:has(.eb-dock-marks) .eb-dock-filters,
-  .eb-dock:has(.eb-dock-marks) .eb-dock-end { margin-bottom: 0; }
 }
-/* Under 240px (a 390px phone at aA 200%): the tabs and the magnifier, then the two switches, then the Filters button. */
+/* Under 240px (a 390px phone at aA 200%): the views wrap beside the magnifier rather than push it off the row; the
+   switches take row two, Filters a row under them. */
 @media (max-width: 239px) {
   .eb-topbar-in { padding-inline: 8px; }
   .eb-nav-link { padding: 0 3px; }
-  .eb-dock { grid-template-columns: 1fr auto; }
-  .eb-dock-tabs { grid-area: 1 / 1; }
-  .eb-dock-end { grid-area: 1 / 2; margin: 0; padding: 0; border-top: 0; }
-  .eb-dock-tools { grid-area: 2 / 1 / 3 / 3; justify-self: stretch; justify-content: space-between; }
-  .eb-dock-filters { grid-area: 3 / 1 / 4 / 3; margin: 0 -4px -4px; }
-  .eb-dock-marks { grid-area: 4 / 1 / 5 / 3; }
+  .eb-dock-tabs { flex: 1 1 0; min-width: 0; flex-wrap: wrap; }
+  .eb-dock-filters { flex-wrap: wrap; }
+  .eb-dock-tools { flex: 1 0 100%; }
 }
 
 /* The footer: the way to every credit and the maker, its rule as wide as the content. */
 .eb-footer { padding: 0 16px 32px; }
 @media (min-width: 720px) { .eb-footer { padding: 0 32px 40px; } }
 .eb-footer-in {
-  max-width: 1088px; margin: 0 auto; padding-top: 20px; border-top: 1px solid var(--hairline);
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px;
+  max-width: 1088px; margin: 0 auto; padding-top: 8px; border-top: 1px solid var(--hairline);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0 20px;
 }
 .eb-footer p { margin: 0; }
+/* Each text link a 44px press (its line is the box), so wrapped rows on a phone never crowd the thumb. */
+.eb-footer p > a { display: inline-flex; align-items: center; min-height: 44px; }
 .eb-footer a { color: inherit; text-underline-offset: 3px; }
 /* The code on GitHub: an 18px Muted glyph pushed to the row's right edge (also when the row wraps: it ends the last
    line), Ink on hover and focus; a 44px press that reaches 13px past the glyph on each side, inside the 20px gaps. */
@@ -506,16 +548,18 @@
 @media (hover: hover) and (pointer: fine) { .eb-footer .eb-footer-gh:hover { color: var(--ink); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .eb-btn, .eb-dock-tab, .eb-dock-dir svg, .eb-dock-tabs, .eb-dock-tools, .eb-nav-link, .eb-footer-gh { transition: none; }
-  .eb-menu { animation: none; }
+  .eb-btn, .eb-dock-tab, .eb-dock-dir .eb-drop-caret, .eb-dock-drop .eb-drop-caret, .eb-dock-tabs, .eb-dock-tools, .eb-dock-filters, .eb-nav-link, .eb-footer .eb-footer-gh, .eb-theme { transition: none; }
+  .eb-menu, .eb-menu[data-up] { animation: none; }
   .eb-find, .eb-find-drop { animation: none; }
 }
 .eb-stagewrap { position: relative; }
 .eb-view .eb-stagewrap { margin-top: 8px; }
 
-/* One page head for Collage, Settings and About (PageHead.tsx): the same top offset, title type and gap to the
-   content on all three. The page's own gap differs (the collage keeps its birds close), so the head sets the space
-   under it itself: --head-gap minus the page's --page-gap. */
+/* One page head on every titled page: the same top offset (24px, 40px from 720px) and title type (.eb-pagehead-row
+   and .eb-pagehead-title), so the title sits the same distance under the top bar everywhere: Collage, Settings, About
+   and Compare (PageHead.tsx), the landing, the shared views and the 404 (the title in an .eb-hero, beside its
+   buttons). The page's own gap differs (the collage keeps its birds close), so PageHead sets the space under it
+   itself: --head-gap minus the page's --page-gap; a hero keeps the page's gap. */
 .eb-page-titled { --head-gap: 24px; padding-top: 24px; }
 @media (min-width: 720px) { .eb-page-titled { --head-gap: 32px; padding-top: 40px; } }
 .eb-pagehead { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
@@ -527,6 +571,10 @@
 .eb-pagehead-title {
   flex: 1 1 7ch; margin: 0; min-width: 0; font-family: var(--font-display); font-weight: 700;
   font-size: clamp(32px, 5vw, 48px); line-height: 1.05; letter-spacing: -.02em; overflow-wrap: break-word;
+  /* As tall as the 44px buttons beside it (its line centred in them), so its box starts at the row's top whether the
+     actions share its line or wrap under it (the collage's three at 390px): every page's title the same distance
+     under the top bar. */
+  padding-block: max(0px, calc((44px - 1.05em) / 2));
 }
 .eb-pagehead-actions { display: flex; gap: 8px; flex: none; }
 @media (max-width: 479px) { .eb-pagehead-actions .eb-btn-quiet { padding: 0; width: 44px; } }
@@ -534,15 +582,65 @@
 .eb-unmatched a { color: var(--accent); text-underline-offset: 3px; }
 
 /* "Removed … · Undo", for a few seconds after a bird is removed. */
+/* "Back to top" (BackToTop), as on yusuftaleb.com: a quiet 44px squircle in the bottom-right corner, Paper with a
+   Hairline edge and the arrow at 62%, both going to full Ink on hover (hover devices only, so a tap leaves no ring
+   behind). Hidden it sits 8px low; pressed it leaves upward, the way the page is going. */
+.eb-totop {
+  position: fixed; right: 24px; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: var(--z-totop);
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; cursor: pointer;
+  background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 1px var(--hairline);
+  border-radius: calc(14px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity .25s ease, translate .35s var(--ease-ui), scale .35s var(--ease-ui), box-shadow .18s ease, bottom .2s ease;
+}
+.eb-totop svg { width: 18px; height: 18px; opacity: .62; transition: opacity .18s ease; }
+.eb-totop[data-hidden] { opacity: 0; translate: 0 8px; pointer-events: none; }
+.eb-totop[data-hidden][data-launched] { translate: 0 -14px; scale: .9; transition: opacity .2s ease, translate .3s var(--ease-ui), scale .3s var(--ease-ui); }
+@media (hover: hover) and (pointer: fine) { .eb-totop:hover { box-shadow: inset 0 0 0 1px var(--ink); } .eb-totop:hover svg { opacity: 1; } }
+.eb-totop:focus-visible { box-shadow: inset 0 0 0 1px var(--ink); }
+.eb-totop:focus-visible svg { opacity: 1; }
+.eb-totop:active { scale: .94; }
+/* Out of the way while the bar's Filters panel or search results are open: they can reach this corner, and the
+   button would paint over them (it is a page layer, they are in-page ones). */
+body:has(.eb-drop, .eb-find-drop) .eb-totop { opacity: 0; visibility: hidden; }
+/* Focus lands on <main> after the trip, for the keyboard's sake only: no ring around the whole page. */
+main[tabindex="-1"]:focus { outline: none; }
+@media (max-width: 719.98px) {
+  .eb-totop { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); }
+  /* Phones: clear the undo toast, which spans the bottom edge there. */
+  body:has(.eb-toast) .eb-totop { bottom: calc(84px + env(safe-area-inset-bottom)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eb-totop, .eb-totop[data-hidden][data-launched] { transition: opacity .2s ease; }
+  .eb-totop[data-hidden], .eb-totop[data-hidden][data-launched] { translate: none; scale: none; }
+}
+@media print { .eb-totop { display: none; } }
+
 .eb-toast-slot { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: var(--z-toast); translate: -50% 0; width: max-content; max-width: calc(100vw - 32px); }
 .eb-toast {
   display: flex; align-items: center; gap: 12px; padding: 6px 8px 6px 16px; font-size: 15px;
   background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
   border-radius: calc(14px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
   box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
-  animation: eb-find-in .15s cubic-bezier(.16, 1, .3, 1) both;
+  /* It rises 6px from the bottom edge, as the welcome does; a fade alone under reduced motion. */
+  animation: eb-toast-in .2s var(--ease-ui) backwards;
+  min-height: 54px; box-sizing: border-box; /* the Undo toast's height, with or without a button */
 }
+@keyframes eb-toast-in { from { opacity: 0; translate: 0 6px; } }
+@media (prefers-reduced-motion: reduce) { .eb-toast { animation-name: eb-find-in; } }
+.eb-toast > :last-child:not(button) { padding-right: 8px; } /* a line alone (an import's done line): even sides */
 .eb-toast .eb-textbtn { min-height: 40px; padding: 0 8px; color: var(--accent); font-weight: 600; text-decoration-color: currentColor; }
+/* An import's toast (ImportToast): its line, a small spinner before it while nothing is counted yet, and the share
+   dialog's thin progress line under it once the total is known (.eb-share-bar). */
+.eb-toast-import { display: flex; flex-direction: column; gap: 8px; min-width: min(240px, calc(100vw - 96px)); padding: 6px 0; }
+.eb-toast-line { display: inline-flex; align-items: center; gap: 8px; }
+.eb-toast-import .eb-share-bar { flex: none; width: 100%; }
+.eb-toast-spin {
+  flex: none; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%;
+  border: 2px solid var(--hairline); border-top-color: var(--accent); animation: eb-toast-spin .8s linear infinite;
+}
+@keyframes eb-toast-spin { to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) { .eb-toast-spin { animation: none; } } /* a still ring */
 .eb-filter-note { font-size: 13px; }
 /* The shared view's closing "Make yours". */
 .eb-endcta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding-top: 8px; }
@@ -569,7 +667,12 @@
 .eb-setrow-note { font-size: 14px; line-height: 1.45; color: var(--muted); }
 .eb-setrow-btn[aria-checked="true"] .eb-track { background: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .eb-setrow-btn[aria-checked="true"] .eb-knob { transform: translateX(14px); background: var(--paper); }
-@media (hover: hover) and (pointer: fine) { .eb-setrow-btn:not(:disabled):hover { background: var(--surface); } }
+/* A switch row is a toggle, not a button (Yusuf, 2026-11-21): no row highlight on hover; the switch itself answers, as
+   the share dialog's switches do (share.css .eb-share-switch). */
+@media (hover: hover) and (pointer: fine) {
+  .eb-setrow-btn:not(:disabled)[aria-checked="false"]:hover .eb-track { box-shadow: inset 0 0 0 1px var(--muted); }
+  .eb-setrow-btn:not(:disabled)[aria-checked="true"]:hover .eb-track { opacity: .88; }
+}
 @media (prefers-reduced-motion: reduce) { .eb-setrow-btn { transition: none; } }
 
 /* The first visit's welcome (Welcome.tsx): a small card over the landing's sample, a bottom sheet on phones (600px and
@@ -608,3 +711,73 @@
 @media (prefers-reduced-motion: reduce) {
   .eb-welcome { animation-name: eb-welcome-fade; }
 }
+
+/* The sample's guided tour (Tour.tsx): the welcome's card, small and fixed beside its target, which wears an Accent
+   ring. Over the top bar, under every dialog (a dialog opened from it covers it). */
+.eb-tour {
+  position: fixed; z-index: var(--z-tour); box-sizing: border-box; width: min(320px, calc(100vw - 32px)); padding: 16px;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
+  border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
+  animation: eb-welcome-fade .2s ease both;
+}
+.eb-tour:focus { outline: none; }
+.eb-tour:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eb-tour-count { margin: 0 0 6px; color: var(--muted); }
+.eb-tour-text { margin: 0 0 14px; }
+.eb-tour-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.eb-tour .eb-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[data-tour-on] { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .eb-tour { animation: none; } }
+
+/* The controls bar's Display panel (DisplayPanel.tsx): every row one line, the label at the left and its control at
+   the right. The segmented choices (Layout's words; Arrangement's two 16px icons, no words) in the share dialog's small
+   segmented style (`.eb-share-seg`'s numbers, said here since the page may not have loaded share.css): 28px segments in
+   a 2px inset and a 1px border, a 44px press; a row too narrow for its words lets the control drop under the label.
+   Then the switches: compact rows, 32px with a mouse, 44px for touch, no rules or boxes; the row's Surface on hover. */
+.eb-disp { display: flex; flex-direction: column; gap: 10px; font-size: 14px; font-weight: 500; }
+.eb-disp-seg { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; min-height: 32px; }
+.eb-disp-slot:empty { display: none; }
+/* An unavailable choice pressed: its reason in one Muted line under the row. Empty, the status stays in the page (so
+   its first words are read) but out of the flow, adding no gap. */
+.eb-disp-why { flex: 1 0 100%; margin: 0; font-size: 13px; }
+.eb-disp-why:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.eb-disp-slot { display: contents; }
+.eb-disp-label { margin: 0; }
+.eb-disp .eb-seg {
+  display: flex; flex: none; gap: 2px; padding: 2px; border: 1px solid var(--hairline); margin-left: auto; /* wrapped under its label: right-aligned, as the share dialog's */
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-disp .eb-seg-btn {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  min-height: 28px; padding: 0 10px; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 500;
+  white-space: nowrap; cursor: pointer; opacity: .66; -webkit-tap-highlight-color: transparent;
+  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  transition: opacity .25s cubic-bezier(.25, .1, .25, 1), background-color .15s var(--eb-ease);
+}
+.eb-disp .eb-seg-btn[data-icon] { padding: 0 8px; }
+.eb-disp .eb-seg-btn::after { content: ''; position: absolute; inset: -8px 0; } /* 44px press */
+.eb-disp .eb-seg-btn svg { display: block; flex: none; width: 16px; height: 16px; }
+.eb-disp .eb-seg-btn[aria-pressed="true"] { opacity: 1; background: var(--surface); }
+/* An option that can't be picked: Muted text at full strength, the share dialog's rule (the Quiet Disabled Rule, P3). */
+.eb-disp .eb-seg-btn[aria-disabled="true"] { opacity: 1; color: var(--muted); cursor: default; }
+.eb-disp .eb-seg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eb-disp-switches { display: flex; flex-direction: column; margin: 0 -8px; }
+.eb-setrow-btn.eb-disp-sw { min-height: 32px; padding: 0 8px; gap: 12px; border-radius: 8px; }
+.eb-disp-sw .eb-setrow-label { font-size: 14px; font-weight: 500; }
+.eb-disp-sw .eb-track { flex: none; }
+.eb-setrow-btn.eb-disp-sw:focus-visible { outline-offset: 0; border-radius: 8px; }
+/* Touch (the phone's sheet, and any coarse pointer): every switch row 44px; the segments the share dialog's on touch
+   (--seg-touch, 32px drawn) with a 44px press through the ::after, every segment at least 44px wide. */
+.eb-drop-sheet .eb-setrow-btn.eb-disp-sw { min-height: 44px; }
+.eb-drop-sheet .eb-disp .eb-seg-btn { min-height: var(--seg-touch); }
+.eb-drop-sheet .eb-disp .eb-seg-btn { min-width: 44px; } /* a short word ("Fan") too */
+.eb-drop-sheet .eb-disp .eb-seg-btn::after { inset: calc((var(--seg-touch) - 44px) / 2) 0; }
+@media (pointer: coarse) {
+  .eb-setrow-btn.eb-disp-sw { min-height: 44px; }
+  .eb-disp .eb-seg-btn { min-height: var(--seg-touch); }
+  .eb-disp .eb-seg-btn { min-width: 44px; }
+  .eb-disp .eb-seg-btn::after { inset: calc((var(--seg-touch) - 44px) / 2) 0; }
+}
+@media (hover: hover) and (pointer: fine) { .eb-disp .eb-seg-btn:not([aria-disabled="true"]):hover { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .eb-disp .eb-seg-btn { transition: none; } }

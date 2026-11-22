@@ -1,7 +1,7 @@
 // Builds src/components/about/how-it-works-data.ts, the About demo's birds: where each sticker sits in the demo's
 // collage (all birds, and Herons chosen) and in its share images (story, post, square), packed by the product's own
-// code: packBest with the masks in public/data/masks (painted-area sizes from relSizes, the count's hole from
-// count-box.ts) for the collage, and cardLayout + packFrame + fitPack (src/lib/share/image.ts) for the images.
+// code in the Oval arrangement (Yusuf, 2026-11-21: the demo stays Oval, whatever the site's default): packBest with
+// the masks in public/data/masks (painted-area sizes from relSizes, the count's hole from count-box.ts) for the collage, and cardLayout + packFrame + fitPack (src/lib/share/image.ts) for the images.
 // The demo's list is made up (BIRDS below; TOTAL species in all); the boxes are the product's for these birds.
 // Rerun after changing the birds, the demo's collage box (STAGE) or the packer:
 //
@@ -14,7 +14,7 @@ import { collageHole, scaleHole } from '../../src/lib/layout/count-box'
 import { decodeMask } from '../../src/lib/layout/mask'
 import { packBest, packFrame, relSizes, type Box, type PackBird } from '../../src/lib/layout/pack'
 import type { MaskTable } from '../../src/lib/layout/layout.worker'
-import { cardLayout, fitPack, maxTileSide, packSpec, spreadY, SPREAD, type ImageFormat } from '../../src/lib/share/image'
+import { cardLayout, fitBox, fitPack, maxTileSide, packSpec, type ImageFormat } from '../../src/lib/share/image'
 import { NAME_BASES } from '../../src/lib/species/name-locales'
 import type { NameSet } from '../../src/lib/species/names'
 import { THREATENED as THREAT_CATS } from '../../src/lib/species/iucn'
@@ -42,10 +42,11 @@ const LATEST = 'triher'
 const HERON_FAMILY = 'Ardeidae'
 
 /** The demo's collage box per design (px; layout units are px), its stretch, and the count's font size (F). The box is
- * the part of the window the stage shows below the filter (wide: 300-470 of the 720x470 stage; compact: 253-356 of
- * 358x356), so every bird packed into it is on screen; e2e/about.spec.ts checks the rendered stickers against it. */
+ * the part of the window the stage shows below the breadcrumb's row (wide: 268-470 of the 720x470 stage; compact:
+ * 253-356 of 358x356), so every bird packed into it is on screen; e2e/about.spec.ts checks the rendered stickers
+ * against it. */
 const STAGE = {
-  wide: { W: 524, H: 166, stretch: 3.1, F: 44, z: 2 },
+  wide: { W: 524, H: 198, stretch: 2.6, F: 44, z: 2 },
   compact: { W: 310, H: 100, stretch: 2.9, F: 32, z: 3 },
 } as const
 
@@ -89,11 +90,11 @@ export function makeHowtoData(readData: <T>(file: string) => T = read): string {
     // The count's hole is the drawn count's (its label a fixed 12px), scaled up with the box
     const drawn = { W: s.W, F: s.F, minWidth: s.W, maxWidth: s.W }
     const hole = (n: number) => scaleHole(collageHole(n, drawn), z)
-    const all = packBest(birds, layout, 'even', { fixedStage: [W, H], rel, hole: hole(TOTAL) })
+    const all = packBest(birds, layout, 'even', { fixedStage: [W, H], rel, hole: hole(TOTAL), oval: true })
     if (all.boxes.size !== TOTAL) throw new Error(`${name}: packed ${all.boxes.size} of ${TOTAL}`)
     for (const [id, [x, y, w, h]] of all.boxes) if (x < 0 || y < 0 || x + w > W || y + h > H) throw new Error(`${name}: ${BIRDS[id]} outside the box`)
     const six = birds.filter((b) => HERONS.includes(BIRDS[b.id]))
-    const herons = packBest(six, layout, 'even', { fixedStage: [W, H], rel, refBase: all.base, hole: hole(HERONS.length) })
+    const herons = packBest(six, layout, 'even', { fixedStage: [W, H], rel, refBase: all.base, hole: hole(HERONS.length), oval: true })
     const unz = (m: Map<number, Box>) => new Map([...m].map(([id, b]) => [id, b.map((v) => v / z) as unknown as Box]))
     return [name, { W: s.W, H: s.H, F: s.F, z, all: pick(unz(all.boxes)), herons: pick(unz(herons.boxes)) }]
   }))
@@ -102,17 +103,15 @@ export function makeHowtoData(readData: <T>(file: string) => T = read): string {
   const share = Object.fromEntries((['story', 'post', 'square'] as ImageFormat[]).map((format) => {
     const L = cardLayout(format, { name: false, filter: false, latest: true, count: TOTAL })
     const spec = packSpec(L)
-    const p = packFrame(birds, spec.aspect, { hole: spec.hole, maxTile: spec.maxTile })
-    const fit = fitPack({ W: p.W, H: p.H, boxes: new Map([...p.boxes].map(([id, b]) => [BIRDS[id], b])) }, L.collage, maxTileSide(L.collage.w, L.maxTile), SPREAD[format])
-    const tiles = Object.fromEntries([...p.boxes].map(([id, b]) => {
-      const w = b[2] * fit.s, h = b[3] * fit.s
-      return [BIRDS[id], box([fit.cx + (b[0] - fit.ux) * fit.s, spreadY(fit, b[1] + b[3] / 2) - h / 2, w, h])]
-    }))
+    const p = packFrame(birds, spec.aspect, { hole: spec.hole, maxTile: spec.maxTile, oval: true })
+    const fit = fitPack({ W: p.W, H: p.H, boxes: new Map([...p.boxes].map(([id, b]) => [BIRDS[id], b])) }, L.collage, maxTileSide(L.collage.w, L.maxTile))
+    const tiles = Object.fromEntries([...p.boxes].map(([id, b]) => [BIRDS[id], box(fitBox(fit, b))]))
     const g = Math.min(fit.grow, 1.3)
     const count = { cx: r1(fit.cx), cy: r1(fit.cy), size: Math.round(L.count.size * g), labelSize: Math.round(L.count.labelSize * Math.min(g, 1.15)), gap: Math.round(L.count.gap * g) }
-    // The row's four numbers (the About demo draws the row above the hairline; x and the column width are the card's own).
-    const { y, icon, label, name } = L.latest!
-    return [format, { W: L.W, H: L.H, tiles, count, latest: { y, icon, label, name }, rule: L.rule.y, footer: L.footer.y }]
+    // The row's numbers (the About demo draws the row above the hairline; x and the column width are the card's own), and
+    // whether it is the one-line row (round 6, item 17: Post and Square; the Story stacks it).
+    const { y, icon, label, name, inline } = L.latest!
+    return [format, { W: L.W, H: L.H, tiles, count, latest: { y, icon, label, name, ...(inline ? { inline } : {}) }, rule: L.rule.y, footer: L.footer.y }]
   }))
 
   const threatened = BIRDS.filter((c) => { const iu = byCode.get(c)!.iu; return !!iu && THREAT_CATS.includes(iu) }).length
@@ -131,9 +130,9 @@ export const THREATENED = ${threatened}
 export const BIRDS: string[] = ${JSON.stringify(BIRDS)}
 export const HERONS: string[] = ${JSON.stringify(HERONS)}
 /** The latest lifer's name, English and per base language (es, pt_BR, nl; from public/data/names.<base>.v1.json, English where a file has none). */
-export const LATEST: { code: string; name: string; names: Record<'es' | 'pt_BR' | 'nl', string> } = ${JSON.stringify({ code: LATEST, name: byCode.get(LATEST)!.com, names: latestNames })}
+export const LATEST: { code: string; name: string; names: Record<'es' | 'pt_BR' | 'nl' | 'pl' | 'fr_FR' | 'de' | 'it' | 'sv' | 'da' | 'ru' | 'ja' | 'zh_SIM' | 'zh', string> } = ${JSON.stringify({ code: LATEST, name: byCode.get(LATEST)!.com, names: latestNames })}
 /** The Herons order's one family (taxonomy name, \`fam\`), its eBird English name, and per base language as the names files word it. */
-export const FAMILY: { fam: string; name: string; names: Record<'es' | 'pt_BR' | 'nl', string> } = ${JSON.stringify({ fam: HERON_FAMILY, name: byCode.get(HERONS[0])!.famCom, names: familyNames })}
+export const FAMILY: { fam: string; name: string; names: Record<'es' | 'pt_BR' | 'nl' | 'pl' | 'fr_FR' | 'de' | 'it' | 'sv' | 'da' | 'ru' | 'ja' | 'zh_SIM' | 'zh', string> } = ${JSON.stringify({ fam: HERON_FAMILY, name: byCode.get(HERONS[0])!.famCom, names: familyNames })}
 /** Width over height of each sticker (species.v1.json \`ar\`), the sticker version (\`sv\`) where there is one, the name. */
 export const AR: Record<string, number> = ${JSON.stringify(ar)}
 export const SV: Record<string, string> = ${JSON.stringify(sv)}
@@ -142,7 +141,7 @@ export const NAMES: Record<string, string> = ${JSON.stringify(names)}
  * box, drawn at 1/z), each sticker's box (px, from the box's top left). */
 export const COLLAGE: Record<'wide' | 'compact', { W: number; H: number; F: number; z: number; all: Record<string, Box>; herons: Record<string, Box> }> = ${JSON.stringify(collage)}
 /** The share images (px of the 1080-wide image): sticker tiles, the count at the collage's centre, the latest lifer row, the rule and the footer. */
-export const SHARE: Record<'story' | 'post' | 'square', { W: number; H: number; tiles: Record<string, Box>; count: { cx: number; cy: number; size: number; labelSize: number; gap: number }; latest: { y: number; icon: number; label: number; name: number }; rule: number; footer: number }> = ${JSON.stringify(share)}
+export const SHARE: Record<'story' | 'post' | 'square', { W: number; H: number; tiles: Record<string, Box>; count: { cx: number; cy: number; size: number; labelSize: number; gap: number }; latest: { y: number; icon: number; label: number; name: number; inline?: boolean }; rule: number; footer: number }> = ${JSON.stringify(share)}
 `
   return out
 }

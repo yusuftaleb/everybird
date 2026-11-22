@@ -1,43 +1,43 @@
 import { expect, type BrowserContext, type Page } from "@playwright/test";
+import { en } from "../src/i18n/messages/en";
+import { es } from "../src/i18n/messages/es";
+import { nl } from "../src/i18n/messages/nl";
+import { pt } from "../src/i18n/messages/pt";
 
-// The top bar's rows per preview variant (lang:a|b|c) and language, as app.css lays them out (tests/topbar-fit.test.ts
-// models the same thresholds with the fonts' advances). Shared by text-size.spec.ts and responsive.spec.ts.
+// The top bar's rows per language, as app.css lays them out (tests/topbar-fit.test.ts
+// models the same thresholds with the fonts' advances). Used by about.spec.ts.
 
-export type TopbarVariant = "a" | "b" | "c";
 export type TopbarLang = "en" | "es" | "pt" | "nl";
 
-/** Whether the nav has its own second row: a under 430px; b under 384px (es, nl) or 366px (en, pt); c under 310px. */
-export function navSplits(variant: TopbarVariant, lang: TopbarLang, width: number): boolean {
-  if (variant === "a") return width < 430;
-  if (variant === "b") return width < (lang === "es" || lang === "nl" ? 384 : 366);
-  return width < 310;
+/** Whether the nav has its own second row: under 620px (tokens.css's --topbar-h rules). */
+export function navSplits(width: number): boolean {
+  return width < 620;
 }
 
-/** The nav labels per language (src/i18n/messages, ui.shell.nav). */
-export const NAV: Record<TopbarLang, [string, string, string]> = {
-  en: ["Collage", "Settings", "About"],
-  es: ["Collage", "Ajustes", "Acerca de"],
-  pt: ["Colagem", "Ajustes", "Sobre"],
-  nl: ["Collage", "Instellingen", "Over"],
-};
-const BUTTON: Record<TopbarLang, string> = { en: "Language: English", es: "Idioma: Español", pt: "Idioma: Português", nl: "Taal: Nederlands" };
+/** The nav labels per language, in the bar's order (src/i18n/messages, ui.shell.nav). */
+export const NAV: Record<TopbarLang, string[]> = Object.fromEntries(
+  Object.entries({ en, es, pt, nl }).map(([l, m]) => {
+    const n = m.ui.shell.nav;
+    return [l, [n.collage, n.compare, n.settings, n.about]];
+  }),
+) as Record<TopbarLang, string[]>;
+// Named with the visible code first (WCAG 2.5.3, LanguageMenu.tsx).
+const BUTTON: Record<TopbarLang, string> = { en: "EN, Language: English", es: "ES, Idioma: Español", pt: "PT, Idioma: Português", nl: "NL, Taal: Nederlands" };
 
 export async function useLang(context: BrowserContext, baseURL: string, lang: TopbarLang) {
   if (lang !== "en") await context.addCookies([{ name: "everybird-lang", value: lang, url: baseURL }]);
 }
 
-/** Opens `path` under the variant and checks the bar's rows: row one is the wordmark, the language button (a, c) and
- *  the theme switch, all inside the bar's gutter; the nav shares it or has row two to itself; in c under 480px the
- *  Collage link is gone; nothing scrolls sideways; the bar's height is --topbar-h. */
-export async function checkTopbar(page: Page, path: string, variant: TopbarVariant, lang: TopbarLang, width: number) {
-  await page.goto(`${path}${path.includes("?") ? "&" : "?"}v=lang:${variant}`);
+/** Opens `path` and checks the bar's rows: row one is the wordmark, the language button and the theme switch, all
+ *  inside the bar's gutter; the nav shares it or has row two to itself; nothing scrolls sideways; the bar's height is
+ *  --topbar-h. */
+export async function checkTopbar(page: Page, path: string, lang: TopbarLang, width: number) {
+  await page.goto(path);
   const bar = page.getByTestId("topbar");
   await expect(bar).toBeVisible();
-  await expect(page.locator(`html[data-topbar="${variant}"]`)).toHaveCount(1);
   const theme = bar.getByRole("switch");
   const btn = bar.getByRole("button", { name: BUTTON[lang] });
-  if (variant === "b") await expect(btn).toHaveCount(0);
-  else await expect(btn).toBeVisible();
+  await expect(btn).toBeVisible();
   const inner = await bar.locator(".eb-topbar-in").evaluate((el) => {
     const cs = getComputedStyle(el);
     const r = el.getBoundingClientRect();
@@ -47,19 +47,12 @@ export async function checkTopbar(page: Page, path: string, variant: TopbarVaria
   // The last control ends inside the gutter (a row that overflows eats the gutter first, still "on screen").
   expect(t!.x + t!.width, `${path}: the theme switch inside the gutter`).toBeLessThanOrEqual(inner.right + 0.5);
   expect(t!.y, `${path}: the theme switch in row one`).toBeLessThan(w!.y + w!.height);
-  if (variant !== "b") {
-    const b = (await btn.boundingBox())!;
-    expect(Math.abs(b.y - t!.y), `${path}: the language button and the theme switch share a row`).toBeLessThan(1);
-    expect(b.x + b.width, `${path}: the language button comes first`).toBeLessThanOrEqual(t!.x + 0.5);
-  }
-  const split = navSplits(variant, lang, width);
-  const hidden = variant === "c" && width < 480;
-  for (const [i, name] of NAV[lang].entries()) {
+  const b = (await btn.boundingBox())!;
+  expect(Math.abs(b.y - t!.y), `${path}: the language button and the theme switch share a row`).toBeLessThan(1);
+  expect(b.x + b.width, `${path}: the language button comes first`).toBeLessThanOrEqual(t!.x + 0.5);
+  const split = navSplits(width);
+  for (const name of NAV[lang]) {
     const link = bar.getByRole("link", { name, exact: true });
-    if (i === 0 && hidden) {
-      await expect(link, `${path}: Collage hidden in c under 480px`).toBeHidden();
-      continue;
-    }
     const l = (await link.boundingBox())!;
     expect(l.x, `${path}: ${name} inside the gutter`).toBeGreaterThanOrEqual(inner.left - 0.5);
     expect(l.x + l.width, `${path}: ${name} inside the gutter`).toBeLessThanOrEqual(inner.right + 0.5);

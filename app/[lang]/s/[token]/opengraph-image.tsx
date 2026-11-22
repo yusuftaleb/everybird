@@ -6,13 +6,14 @@ import { EXP, LAYOUTS } from '@/lib/layout/constants'
 import { packBest, relSizes, type Box } from '@/lib/layout/pack'
 import { latestLifer } from '@/lib/list/build-list'
 import type { ListEntry } from '@/lib/list/model'
+import { plural } from '@/i18n/core'
 import { formatMonth } from '@/i18n/format'
 import { getMessages } from '@/i18n/server'
 import { countDisplay } from '@/lib/layout/count-box'
 import { OG_COUNT_MAX, SHARE_COLORS, FOOTER_LINE, countLayout, ogCountHole, type CountLayout } from '@/lib/share/image'
 import { ymToDate } from '@/lib/share/convert'
 import type { SharePayload } from '@/lib/share/link'
-import { OG_COLLAGE, OG_SIZE, ogDescription, ogName, ogResponseOptions, pickOgStickers, tryDecodeShare } from '@/lib/share/og'
+import { OG_COLLAGE, OG_SIZE, ogDescription, ogLang, ogName, ogResponseOptions, pickOgStickers, tryDecodeShare } from '@/lib/share/og'
 import { OG_LARGE_TILE, fetchStickers, ogFonts, serverMasks, serverNames, serverSpecies } from '@/lib/share/og-server'
 
 // English in every language: Next's file convention takes a static `alt`, and a per-language one (generateImageMetadata)
@@ -23,9 +24,10 @@ export const contentType = 'image/png'
 export const runtime = 'nodejs'
 
 const C = SHARE_COLORS.light
-const CABINET = '"Cabinet Grotesk", sans-serif'
-const SATOSHI = 'Satoshi, sans-serif'
-const MONO = '"Geist Mono", monospace'
+// "Noto Sans" draws a Russian card's Cyrillic (ogFonts loads it for Russian only; satori skips an unloaded family).
+const CABINET = '"Cabinet Grotesk", "Noto Sans", sans-serif'
+const SATOSHI = 'Satoshi, "Noto Sans", sans-serif'
+const MONO = '"Geist Mono", "Noto Sans", monospace'
 
 type Placed = { code: string; box: Box; src: string }
 
@@ -33,7 +35,7 @@ type Placed = { code: string; box: Box; src: string }
 const ogCount = (n: number): CountLayout => countLayout(OG_COUNT_MAX, n, OG_COLLAGE.w)
 
 /**
- * Up to 60 birds of the list that have stickers, packed with the wide layout into the collage area around the count's
+ * Up to 60 birds of the list that have stickers, packed in Free (the default arrangement) with the wide layout into the collage area around the count's
  * hole (ogCountHole: the column satori draws, grown by its pad; the stage is drawn 1:1, so the hole is in px), with
  * their stickers.
  */
@@ -47,7 +49,7 @@ async function collage(payload: SharePayload, species: Awaited<ReturnType<typeof
   const pack = list.map(([, b]) => b)
   // A short list: no sticker taller than 40% of the collage (one ostrich shouldn't fill the card).
   const maxRel = Math.max(...relSizes(pack, EXP).values())
-  const r = packBest(pack, wide, 'even', { fixedStage: [OG_COLLAGE.w, OG_COLLAGE.h], hole: ogCountHole(ogCount(payload.birds.length)), maxBase: (0.4 * OG_COLLAGE.h) / maxRel })
+  const r = packBest(pack, wide, 'even', { fixedStage: [OG_COLLAGE.w, OG_COLLAGE.h], hole: ogCountHole(ogCount(payload.birds.length)), maxBase: (0.4 * OG_COLLAGE.h) / maxRel, free: true })
   // Tiles drawn past OG_LARGE_TILE get the 384 px file, so a short list's big birds stay sharp.
   const large = new Set(list.flatMap(([c, b]) => { const box = r.boxes.get(b.id); return box && Math.max(box[2], box[3]) > OG_LARGE_TILE ? [c] : [] }))
   const stickers = await fetchStickers(list.map(([code]) => ({ code, sv: species.get(code)?.sv })), undefined, large)
@@ -60,9 +62,9 @@ async function collage(payload: SharePayload, species: Awaited<ReturnType<typeof
   return { placed, expected: picked.length }
 }
 
-function frame(children: React.ReactNode) {
+function frame(children: React.ReactNode, lang: string) {
   return (
-    <div style={{ display: 'flex', width: '100%', height: '100%', background: C.paper, color: C.ink, fontFamily: SATOSHI }}>
+    <div lang={ogLang(lang)} style={{ display: 'flex', width: '100%', height: '100%', background: C.paper, color: C.ink, fontFamily: SATOSHI }}>
       {children}
     </div>
   )
@@ -75,7 +77,7 @@ export default async function Image({ params }: { params: Promise<{ lang: string
   if (!isLang(lang)) notFound()
   // The card's words in the URL's language (base names only: the card is cached a year per URL). No date stamp here.
   const t = getMessages(lang).ui
-  const [payload, fonts] = [tryDecodeShare(token), ogFonts()]
+  const [payload, fonts] = [tryDecodeShare(token), ogFonts(lang)]
   let placed: Placed[] = [], expected = 0, failed = false, namesFailed = false, latest: { name: string; date?: string } | undefined
   if (payload) {
     try {
@@ -99,14 +101,19 @@ export default async function Image({ params }: { params: Promise<{ lang: string
   const K = payload ? ogCount(payload.birds.length) : null
   // The drawn count in the URL's language (K's number and label are the geometry's, the same in every language).
   const countNum = payload ? countDisplay(payload.birds.length, t.num) : ''
-  const countLabel = t.count.label.toUpperCase()
+  const countLabel = plural(t.count.word, payload?.birds.length ?? 0).toUpperCase()
 
-  // The footer, as the share images': the wordmark and one quiet line, the site and the sticker credit ("… · stickers by
-  // huashu"). Beside the wordmark on the wide text card; under it beside the collage, where the column is too narrow.
+  // The footer, as the share images': the wordmark and the link to the credits (FOOTER_LINE, no date). Beside the
+  // wordmark on the wide text card; beside the collage the column (380px) can't hold both at 14px (about 385px), so
+  // there the link is alone on its line under the wordmark.
   const credit = (
     <div style={{ display: 'flex', flexDirection: placed.length ? 'column' : 'row', alignItems: placed.length ? 'flex-start' : 'baseline', gap: placed.length ? 8 : 12 }}>
       <div style={{ display: 'flex', fontFamily: CABINET, fontWeight: 700, fontSize: 24 }}>Everybird</div>
-      <div style={{ display: 'flex', fontFamily: MONO, fontSize: placed.length ? 14 : 16, color: C.muted, whiteSpace: 'nowrap' }}>{FOOTER_LINE}</div>
+      {placed.length ? (
+        <div style={{ display: 'flex', fontFamily: MONO, fontSize: 14, color: C.muted, whiteSpace: 'nowrap' }}>{FOOTER_LINE}</div>
+      ) : (
+        <div style={{ display: 'flex', fontFamily: MONO, fontSize: 16, color: C.muted, whiteSpace: 'nowrap' }}>{FOOTER_LINE}</div>
+      )}
     </div>
   )
   // The count in the middle of the collage, as the share images and the app's Tally: the number over a mono label.
@@ -154,5 +161,5 @@ export default async function Image({ params }: { params: Promise<{ lang: string
       </div>
     </>
   )
-  return new ImageResponse(frame(body), { ...OG_SIZE, ...ogResponseOptions(await fonts, { placed: placed.length, expected, failed, broken: !payload, namesFailed }) })
+  return new ImageResponse(frame(body, lang), { ...OG_SIZE, ...ogResponseOptions(await fonts, { placed: placed.length, expected, failed, broken: !payload, namesFailed, lang }) })
 }

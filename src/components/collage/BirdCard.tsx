@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useLayoutEffect, useMemo, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { createContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { trapTab, useEscapeCapture, useHoldTopBar, useIsSheet } from '@/components/dialog-utils'
 import { formatMass, formatMonth } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
@@ -14,12 +14,17 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import { displayName } from '@/lib/species/names'
 import { useNames } from '@/lib/species/use-names'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
-import { CloseIcon } from './icons'
+import { albumSlug, albumUrl, loadAlbumSlugs } from '@/lib/bird-album'
+import { cardFallback, cardSrcSet } from '@/lib/sticker-url'
 import { IucnBadge } from './IucnPill'
 import { markLabel, Marks, marksOf } from './Marks'
 import './card-list.css'
+import './Sticker.css'
 
-export type CardAnchor = Element | DOMRect | null
+/** The card's illustration link, handed to its actions (EditBird ends its Remove row with it); null when there is none. */
+export const CardEndLink = createContext<ReactNode>(null)
+
+type CardAnchor = Element | DOMRect | null
 
 type Props = {
   entry: ListEntry
@@ -52,7 +57,7 @@ function rectOf(a: CardAnchor): DOMRect | null {
   return 'getBoundingClientRect' in a ? a.getBoundingClientRect() : a
 }
 
-/** The mass label (a tooltip and screen-reader text: the card shows only the value, as on LifeList). */
+/** The mass label (screen-reader text: the card shows only the value, as on LifeList). */
 export function massLabel(row: SpeciesRow, t: Ui): string {
   if (row.gSrc === 'genus') return t.card.massGenus
   if (row.gSrc === 'family') return t.card.massFamily
@@ -68,7 +73,7 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
   const row = species.byCode.get(entry.code)
   const { t } = useI18n()
   useNames() // the card's name follows the names file and the English switch
-  const sheet = useIsSheet()
+  const sheet = useIsSheet({ short: true })
   const shown = useMemo(() => entryInFilter(entry, filter, seen), [entry, filter, seen])
   const ref = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
@@ -80,26 +85,31 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
     returnRef.current = returnFocus
   })
 
-  // Popover: below the anchor (above when there is no room), clamped inside the viewport. Written straight
-  // to the element's style, in a layout effect, so it is placed before paint and before focus moves in
-  // (browsers ignore focus() on hidden elements, so we never hide it).
+  // Popover: below the anchor (above when there is no room), clamped inside the viewport under the top bar. Written
+  // straight to the element's style, in a layout effect, so it is placed before paint and before focus moves in
+  // (browsers ignore focus() on hidden elements, so we never hide it). It never covers the top bar, and once a scroll
+  // takes its bird out of view (behind the bar or below the window) it closes, as the bird's own page content would
+  // go (Yusuf, 2026-11-21: it stayed over the bar).
   useLayoutEffect(() => {
     const el = ref.current
     if (!el || sheet) return
-    const place = () => {
+    const place = (scrolled = false) => {
       const a = rectOf(anchorRef.current)
       const w = el.offsetWidth, h = el.offsetHeight
       const vw = window.innerWidth, vh = window.innerHeight
+      const bar = Math.max(0, document.querySelector('.eb-topbar')?.getBoundingClientRect().bottom ?? 0)
+      if (scrolled && a && (a.bottom <= bar || a.top >= vh)) { onCloseRef.current(); return }
+      const lo = bar + MARGIN
       const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(v, Math.max(lo, hi)))
       let left: number, top: number
       if (!a) {
         left = clamp((vw - w) / 2, MARGIN, vw - w - MARGIN)
-        top = clamp((vh - h) / 2, MARGIN, vh - h - MARGIN)
+        top = clamp((vh - h) / 2, lo, vh - h - MARGIN)
       } else {
         const below = a.bottom + GAP
-        const t = below + h <= vh - MARGIN ? below : a.top - GAP - h >= MARGIN ? a.top - GAP - h : below
+        const t = below + h <= vh - MARGIN ? below : a.top - GAP - h >= lo ? a.top - GAP - h : below
         left = clamp(a.left + a.width / 2 - w / 2, MARGIN, vw - w - MARGIN)
-        top = clamp(t, MARGIN, vh - h - MARGIN)
+        top = clamp(t, lo, vh - h - MARGIN)
       }
       el.style.left = `${left}px`
       el.style.top = `${top}px`
@@ -116,20 +126,28 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
       }
       trail = requestAnimationFrame(step)
     }
+    let scrolled = false
     const again = () => {
       if (raf) return
       raf = requestAnimationFrame(() => {
         raf = 0
-        place()
+        place(scrolled)
+        scrolled = false
       })
     }
+    const onScroll = () => { scrolled = true; again() }
     window.addEventListener('resize', again, { passive: true })
-    window.addEventListener('scroll', again, { passive: true, capture: true })
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true })
+    // The card grows after placement (the "Illustration ↗" line arrives with the album's slugs): placed again, so one
+    // above its bird never grows over it.
+    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(again) : null
+    ro?.observe(el)
     return () => {
+      ro?.disconnect()
       if (raf) cancelAnimationFrame(raf)
       if (trail) cancelAnimationFrame(trail)
       window.removeEventListener('resize', again)
-      window.removeEventListener('scroll', again, { capture: true })
+      window.removeEventListener('scroll', onScroll, { capture: true })
     }
   }, [anchor, sheet, entry.code, follow])
 
@@ -170,7 +188,10 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
     entry.assigned === 'region' ? t.card.assignedRegion : entry.assigned === 'default' ? t.card.assignedDefault : '',
   ].filter((n): n is string => !!n)
 
-  // LifeList's card (layout C), with a close button and the edit actions under it.
+  // LifeList's card (layout C), with the edit actions under it and the illustration link in the bottom-right corner (with
+  // actions, at the right of their Remove row, on the same line: CardEndLink). No
+  // visible close button: a press outside and Esc close it; a visually hidden one (shown on keyboard focus) keeps it
+  // closable without a pointer.
   const card = (
     <div
       ref={ref}
@@ -179,17 +200,20 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
       aria-modal={sheet ? true : undefined}
       aria-label={displayName(row)}
       data-variant={sheet ? 'sheet' : 'popover'}
+      data-sticker={row.st ? '' : undefined}
       tabIndex={-1}
       onKeyDown={trap}
     >
-      <BirdFacts entry={shown} row={row} regions={regions} sci={sci} statusTip>
-        <button type="button" className="eb-card-close" aria-label={t.card.close} onClick={onClose}>
-          <CloseIcon />
-        </button>
-      </BirdFacts>
+      <button type="button" className="eb-sr eb-card-close" onClick={onClose}>{t.card.close}</button>
+      {row.st && <CardSticker key={row.code} row={row} sheet={sheet} />}
+      <BirdFacts entry={shown} row={row} regions={regions} sci={sci} statusTip />
       {!row.st && <p className="eb-card-note" data-testid="no-drawing">{t.card.noDrawing}</p>}
       {notes.length > 0 && <p className="eb-card-note">{notes.join(' · ')}</p>}
-      {actions && <div className="eb-card-actions">{actions}</div>}
+      {actions ? (
+        <CardEndLink.Provider value={row.st ? <AlbumLink row={row} /> : null}>
+          <div className="eb-card-actions">{actions}</div>
+        </CardEndLink.Provider>
+      ) : row.st && <AlbumLink row={row} />}
     </div>
   )
 
@@ -199,17 +223,45 @@ export function BirdCard({ entry, species, regions, anchor = null, onClose, acti
 }
 
 /**
+ * The card's sticker, large, on the card's paper: a fixed box (card-list.css: 180px tall in the popover, 230px in the
+ * sheet) reserved before the file loads, so place() measures the card right at once; the sticker contained in it, so a
+ * tall heron and a long loon both fit and never cover the words. The 384 or 1024 file by the screen's density
+ * (cardSrcSet); a failed 1024 falls back to the 384 once (cardFallback). Decorative: the name is the card's heading.
+ * Fades in on load as every sticker does (Sticker.css `img.eb-st`, instant under reduced motion).
+ */
+function CardSticker({ row, sheet }: { row: SpeciesRow; sheet: boolean }) {
+  const { src, srcSet } = cardSrcSet(row.code, row.sv)
+  const [fallback, setFallback] = useState<string | null>(null)
+  return (
+    <div className="eb-card-sticker" data-testid="card-sticker">
+      {/* Plain <img>: stickers come from the static stickers site, not the Next image optimizer. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        key={fallback ?? 'set'}
+        className="eb-st"
+        src={fallback ?? src}
+        srcSet={fallback ? undefined : srcSet}
+        sizes={fallback ? undefined : sheet ? 'calc(100vw - 46px)' : 'min(270px, calc(100vw - 46px))'}
+        alt=""
+        decoding="async"
+        onLoad={(e) => { e.currentTarget.dataset.ld = '' }}
+        onError={(e) => { if (!fallback) setFallback(cardFallback(e.currentTarget.currentSrc, row.code, row.sv)) }}
+      />
+    </div>
+  )
+}
+
+/**
  * What the card and the hover tooltip say (LifeList's card, layout C): the name with its marks and the other name under
  * it on the left; on the right, in a column that never shrinks below its content (`.eb-card-side`), the body mass and,
- * under it, a species' Red List pill alone (then `children`, the card's close button); then the date line (with the
+ * under it, a species' Red List pill alone; then the date line (with the
  * marks in words) and the place, both mono. `heading` names the bird with an h2 (the card) or a plain paragraph (the
  * tooltip). The date and place are the entry's: callers inside a Places or Time filter pass `entryInFilter`'s entry. The card's pill is a button whose tip names the category, the tooltip's a plain aria-hidden span.
  */
-export function BirdFacts({ entry, row, regions, sci = false, heading = true, statusTip = false, children }: {
+export function BirdFacts({ entry, row, regions, sci = false, heading = true, statusTip = false }: {
   entry: ListEntry; row: SpeciesRow; regions: Regions; sci?: boolean; heading?: boolean
   /** The pill is a toggletip button (the card); off, a plain aria-hidden span (the aria-hidden hover tooltip). */
   statusTip?: boolean
-  children?: ReactNode
 }) {
   const { lang, t } = useI18n()
   useNames()
@@ -228,10 +280,9 @@ export function BirdFacts({ entry, row, regions, sci = false, heading = true, st
           <p className="eb-card-other" lang={sci ? undefined : 'la'}>{sci ? com : row.sci}</p>
         </div>
         <div className="eb-card-side">
-          <span className="eb-card-mass" title={massLabel(row, t)}><span className="eb-sr">{massLabel(row, t)} </span>{massValue(row, t)}</span>
+          <span className="eb-card-mass"><span className="eb-sr">{massLabel(row, t)} </span>{massValue(row, t)}</span>
           {badge}
         </div>
-        {children}
       </div>
       {(when.length > 0 || place) && (
         <div className="eb-card-when">
@@ -245,5 +296,22 @@ export function BirdFacts({ entry, row, regions, sci = false, heading = true, st
         </div>
       )}
     </>
+  )
+}
+
+/**
+ * The credit link to the bird's page on Bird Album, where its sticker comes from, in the card's bottom-right corner: the
+ * one word "Illustration ↗", named in full for screen readers; shown once the slugs have loaded.
+ */
+function AlbumLink({ row }: { row: SpeciesRow }) {
+  const { t, lang } = useI18n()
+  const [slugs, setSlugs] = useState<Record<string, string> | null>(null)
+  useEffect(() => { loadAlbumSlugs().then(setSlugs, () => {}) }, [])
+  if (!slugs) return null
+  return (
+    <p className="eb-card-note eb-card-credit">
+      <a className="eb-card-album" href={albumUrl(slugs[row.code] ?? albumSlug(row.com), lang)} target="_blank" rel="noopener noreferrer"
+        aria-label={t.card.albumSpoken}>{t.card.album}<span aria-hidden="true"> ↗</span></a>
+    </p>
   )
 }

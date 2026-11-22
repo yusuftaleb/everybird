@@ -10,13 +10,14 @@
 //   2. MyEBirdData is connected ("112 species · 3 skipped why? · Imported 6 Nov") and the summary line says "Your
 //      collage has 112 species, all from eBird." with "See my collage"; pressed, the page swaps to the collage:
 //      stickers arrive around the count as it rolls up to 112.
-//   3. The Herons chip is pressed: the chips give way to the breadcrumb ("All birds / Herons / Herons, Egrets, and
-//      Bitterns", an order with one family), the six herons glide and grow into the middle, the rest step out, the
-//      count rolls to 6. "All birds" in the breadcrumb (the product's way back) brings everyone back.
+//   3. Taxa in the controls bar opens its panel (the order chips, "7 of 45 orders"); Herons is pressed and the panel
+//      closed again with Taxa: the breadcrumb ("All birds / Herons / Herons, Egrets, and Bitterns", an order with one
+//      family) shows under the bar, the six herons glide and grow into the middle, the rest step out, the count rolls
+//      to 6. "All birds" in the breadcrumb (the product's way back) brings everyone back.
 //   4. Share: the share dialog opens on Story; Post, then Square, are pressed and the preview follows. Its ✕ closes
 //      it; Settings in the top bar takes the window back to the start.
 // On phones (compact) there is no desktop: "Add" on MyEBirdData, then "Choose your eBird file", instead of a drag; the
-// orders are the "Choose an order" picker and its sheet.
+// Taxa panel is its sheet, closed by "Show 6 species" at its foot.
 //
 // Smoothness (H1): everything that moves is a transform or an opacity on its own element (no height, grid or margin
 // animation, one transform property per element so the compositor runs it); the drag image follows the cursor by a
@@ -82,21 +83,20 @@ function makeScript(drag: Drag) {
     await a.set({ birds: true, count: TOTAL })
     await a.wait(1800)
 
-    // 3. Herons: the six glide into the middle; "All birds" in the breadcrumb brings everyone back
-    if (wide) {
-      await a.move({ at: 'herons', x: 0.62, y: 0.64 })
-      await a.click()
-    } else {
-      await a.move({ at: 'picker', x: 0.5, y: 0.6 })
-      await a.click()
-      await a.set({ sheet: true })
-      await a.wait(500)
-      await a.move({ at: 'sheet-herons', x: 0.6, y: 0.62 })
-      await a.click()
-      await a.set({ sheet: false })
-    }
+    // 3. Herons, from the Taxa panel: the six glide into the middle; "All birds" in the breadcrumb brings everyone back
+    await a.move({ at: 'taxa', x: 0.5, y: 0.6 })
+    await a.click()
+    await a.set({ taxa: true })
+    await a.wait(500)
+    await a.move({ at: wide ? 'herons' : 'sheet-herons', x: 0.62, y: 0.64 })
+    await a.click()
     a.mark('herons')
     await a.set({ herons: true, count: HERONS.length })
+    await a.wait(450)
+    // Closed with Taxa again (wide), or the sheet's "Show 6 species" (compact)
+    await a.move({ at: wide ? 'taxa' : 'sheet-show', x: 0.5, y: 0.6 })
+    await a.click()
+    await a.set({ taxa: false })
     await a.wait(1100)
     await a.move({ at: 'all-birds', x: 0.72, y: 1.05 })
     await a.click()
@@ -151,7 +151,8 @@ function useSiteTheme(): 'light' | 'dark' {
   return theme
 }
 
-export default function HowItWorksStage() {
+/** `paused`: the About page's Pause (HowItWorksDemo): the stage shows its still frame until Play. */
+export default function HowItWorksStage({ paused = false }: { paused?: boolean }) {
   const theme = useSiteTheme()
   const [drag] = useState<Drag>(newDrag)
   const [script] = useState(() => makeScript(drag))
@@ -160,11 +161,13 @@ export default function HowItWorksStage() {
       width={720}
       height={470}
       compact={{ below: 560, width: 358, height: 356 }}
+      fill
       initial={initial}
       poster={poster}
       script={script}
       theme={theme}
       cursor={{ at: REST }}
+      paused={paused}
       className="ebd"
     >
       {(s, _rect, layout) => <Scene s={s} layout={layout} drag={drag} />}

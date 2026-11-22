@@ -10,7 +10,8 @@ import { makeSub1Index, SUB1_ALIASES } from './sub1-index'
 import { SUB1_PARENT } from './sub1-parents'
 import { excelSerialToIso, readXlsx } from './xlsx'
 
-export type SheetParseResult = ImportResult & { duplicates: number }
+/** `noDate`: rows left out because the sheet's date column marks which birds were seen and they have none. */
+type SheetParseResult = ImportResult & { duplicates: number; noDate?: number }
 
 type ColMap = {
   sci: number
@@ -190,18 +191,49 @@ function makePlaceResolver(regions?: Regions) {
     return countries.get(folded)
   }
 
-  const resolveCountries = (raw: string): string[] => {
+  // Whole names first: "Congo, Democratic Republic of the" is one country, "Canada, Kenya" two. In an `address`
+  // (a Location cell, "San Diego, CA, USA") a two-letter part is a province code once a part names a country in full.
+  const resolveCountries = (raw: string, address = false): string[] => {
     const out: string[] = []
-    for (const part of raw.split(/[,;/]+/)) {
-      const code = countryCode(part)
-      if (code && !out.includes(code)) out.push(code)
+    const codeOnly: string[] = []
+    const push = (code: string | undefined, part: string) => {
+      if (!code || out.includes(code)) return
+      out.push(code)
+      if (/^[A-Za-z]{2}$/.test(part.trim())) codeOnly.push(code)
     }
-    return out
+    for (const seg of raw.split(/[;/]+/)) {
+      const whole = countryCode(seg)
+      if (whole) push(whole, seg)
+      else for (const part of seg.split(',')) push(countryCode(part), part)
+    }
+    return address && codeOnly.length < out.length ? out.filter((c) => !codeOnly.includes(c)) : out
   }
 
-  const resolvePlace = (country: string, division: string): Place | undefined => {
-    const div = division.trim()
-    const rawSub1 = div ? sub1Index(country, div) : undefined
+  // A province by name or by its code after the country's ("BC" in Canada).
+  const sub1Of = (country: string, name: string): string | undefined => {
+    const byName = sub1Index(country, name)
+    if (byName) return byName
+    const code = `${country}-${name.trim().toUpperCase()}`
+    return /^[A-Z]{2}-[A-Z0-9]{1,3}$/.test(code) && Object.hasOwn(regions.sub1, code) ? code : undefined
+  }
+
+  /** `division` is the place cell; the parts naming one of the row's `countries` are not a division (with a country
+   *  column, `address` false, only when they aren't also its province: Belize's Belize district). The rest is tried
+   *  whole, then part by part, against the province index; only an unmatched rest becomes a province of its own. */
+  const resolvePlace = (country: string, division: string, rowCountries: readonly string[] = [country], address = false): Place | undefined => {
+    const whole = division.trim()
+    const isRowCountry = (s: string) => rowCountries.includes(countryCode(s) ?? '') && (address || !sub1Of(country, s))
+    const parts = isRowCountry(whole) ? [] : whole.split(',').map((s) => s.trim()).filter(Boolean)
+    const rest = parts.filter((s) => !isRowCountry(s))
+    let div = !rest.length ? '' : rest.length === parts.length ? whole : rest.join(', ')
+    let rawSub1 = div ? sub1Of(country, div) : undefined
+    if (!rawSub1 && rest.length > 1) {
+      const part = rest.find((s) => sub1Of(country, s))
+      if (part) {
+        div = part
+        rawSub1 = sub1Of(country, part)
+      }
+    }
     const top = rawSub1 ? topOf(rawSub1) : undefined
     const sub1 = top && regions.sub1[top] ? top : rawSub1
     if (regions.registry && (div || sub1)) {
@@ -410,17 +442,22 @@ function isRowMarked(row: string[], col: number, dateOrder: DateOrder): boolean 
   return MARK_YES.has(raw.toLowerCase()) || !!parseSheetDate(raw, dateOrder, true)
 }
 
+/** `lines[i]` is row i's number in the birder's file ("Spreadsheet row 6"), when `rows` leaves blank rows out. */
 export function parseSheetRows(
   rows: string[][],
   t: TaxonomyIndex,
   regions?: Regions,
   onProgress?: (rows: number) => void,
+  lines: readonly number[] = rows.map((_, i) => i + 1),
 ): SheetParseResult | { error: 'no-birds' } {
-  const nonEmpty = rows.filter((r) => r.some((c) => c.trim()))
+  const kept = rows.map((_, i) => i).filter((i) => rows[i].some((c) => c.trim()))
+  const nonEmpty = kept.map((i) => rows[i])
+  const lineOf = kept.map((i) => lines[i] ?? i + 1)
   if (!nonEmpty.length) return { error: 'no-birds' }
 
   const header = findHeaderRow(nonEmpty)
   const dataRows = header ? nonEmpty.slice(header.idx + 1) : nonEmpty
+  const rowNo = header ? lineOf.slice(header.idx + 1) : lineOf
   if (!dataRows.length) return { error: 'no-birds' }
 
   const { resolveCountries, resolvePlace } = makePlaceResolver(regions)
@@ -436,6 +473,7 @@ export function parseSheetRows(
   const unmatchedMap = new Map<string, Unmatched>()
   const suggestions = new Map<string, string | undefined>()
   let duplicates = 0
+  let noDate = 0
   let readRows = 0
 
   for (let i = 0; i < dataRows.length; i++) {
@@ -444,7 +482,10 @@ export function parseSheetRows(
     if (onProgress && readRows % 500 === 0) onProgress(readRows)
 
     if (filterMode === 'mark' && !isRowMarked(r, cols.mark, dateOrder)) continue
-    if (filterMode === 'date' && !parseSheetDate(r[cols.date], dateOrder, true)) continue
+    if (filterMode === 'date' && !parseSheetDate(r[cols.date], dateOrder, true)) {
+      noDate++
+      continue
+    }
 
     const rawSci = cols.sci >= 0 ? (r[cols.sci] ?? '').trim() : ''
     const rawCom = cols.com >= 0 ? (r[cols.com] ?? '').trim() : ''
@@ -462,7 +503,7 @@ export function parseSheetRows(
       if (!unmatchedMap.has(key)) {
         unmatchedMap.set(key, {
           source: 'sheet',
-          row: i + 1,
+          row: rowNo[i],
           ...(sci && !cols.singleNameCol ? { sci } : {}),
           ...(com ? { com } : sci ? { sci } : {}),
           reason: 'not-species',
@@ -477,13 +518,12 @@ export function parseSheetRows(
     const rawPlace = cols.place >= 0 ? (r[cols.place] ?? '').trim() : ''
 
     let countryCodes = rawCountry ? resolveCountries(rawCountry) : []
-    if (!countryCodes.length && rawPlace && cols.country < 0) {
-      countryCodes = resolveCountries(rawPlace)
-    }
+    const fromPlace = !countryCodes.length && !!rawPlace && cols.country < 0
+    if (fromPlace) countryCodes = resolveCountries(rawPlace, true)
 
     const rowPlaces: Place[] = []
     for (const cc of countryCodes) {
-      const p = resolvePlace(cc, rawPlace)
+      const p = resolvePlace(cc, rawPlace, countryCodes, fromPlace)
       if (p) rowPlaces.push(p)
     }
     const primaryPlace = rowPlaces[0]
@@ -500,7 +540,7 @@ export function parseSheetRows(
         }
         unmatchedMap.set(key, {
           source: 'sheet',
-          row: i + 1,
+          row: rowNo[i],
           ...(sci && !cols.singleNameCol ? { sci } : {}),
           ...(com ? { com } : sci ? { sci } : {}),
           reason: 'no-match',
@@ -522,16 +562,20 @@ export function parseSheetRows(
       byCode.set(res.code, rec)
     } else {
       duplicates++
+      // The lifer is the earliest row, with that row's own place (none if it has none, as in the Scythebill import);
+      // a later row's place is in `seen`, never the lifer's.
       if (earlier(date, prev.date)) {
         prev.date = date
         if (primaryPlace) prev.place = primaryPlace
-      } else if (!prev.place && primaryPlace) {
+        else delete prev.place
+      } else if (date === prev.date && !prev.place && primaryPlace) {
         prev.place = primaryPlace
       }
     }
   }
 
-  if (!byCode.size && !unmatchedMap.size) return { error: 'no-birds' }
+  // No row names a species: a budget or a notes file, not a bird list (its cells would be "unmatched names").
+  if (!byCode.size) return { error: 'no-birds' }
 
   const records = [...byCode.values()]
   for (const r of records) {
@@ -549,19 +593,31 @@ export function parseSheetRows(
     skipped: 0,
     rows: dataRows.length,
     duplicates,
+    ...(noDate ? { noDate } : {}),
   }
 }
 
-export function textToRows(text: string): string[][] {
+/** The text's rows, blank ones kept (as ['']), so a row's index is its line in the file. */
+function textToRows(text: string): string[][] {
   const clean = text.replace(/^\uFEFF/, '')
   if (!clean.trim()) return []
-  const hasTabs = clean.includes('\t')
-  const parsed = Papa.parse<string[]>(clean, {
+  // The delimiter is guessed without the blank rows (they would sway papaparse's guess), then every row is kept.
+  const delimiter = clean.includes('\t') ? '\t' : Papa.parse<string[]>(clean, { preview: 10, skipEmptyLines: 'greedy' }).meta.delimiter
+  const parse = (quoteChar?: string) => Papa.parse<string[]>(clean, {
     header: false,
-    ...(hasTabs ? { delimiter: '\t' } : {}),
-    skipEmptyLines: 'greedy',
+    delimiter,
+    ...(quoteChar ? { quoteChar } : {}),
+    skipEmptyLines: false,
   })
-  return parsed.data.map((r) => r.map((c) => (typeof c === 'string' ? c : String(c ?? ''))))
+  let parsed = parse()
+  // A quote that never closes ("Mallard pasted with a stray quote) would swallow every later line: read the text
+  // without quoting instead, and drop the stray quotes around cells.
+  const unclosed = parsed.errors.some((e) => e.code === 'MissingQuotes')
+  if (unclosed) parsed = parse('\u0000')
+  return parsed.data.map((r) => r.map((c) => {
+    const cell = typeof c === 'string' ? c : String(c ?? '')
+    return unclosed ? cell.replace(/^\s*"|"\s*$/g, '') : cell
+  }))
 }
 
 export function parseSheetText(
@@ -580,11 +636,11 @@ export function parseSheetXlsx(
   onProgress?: (rows: number) => void,
 ): SheetParseResult | { error: 'no-birds' } {
   const sheets = readXlsx(data)
-  if (sheets.length === 1) return parseSheetRows(sheets[0].rows, t, regions, onProgress)
+  if (sheets.length === 1) return parseSheetRows(sheets[0].rows, t, regions, onProgress, sheets[0].lines)
 
   let bestResult: SheetParseResult | null = null
   for (const sheet of sheets) {
-    const res = parseSheetRows(sheet.rows, t, regions, onProgress)
+    const res = parseSheetRows(sheet.rows, t, regions, onProgress, sheet.lines)
     if ('error' in res) continue
     if (!bestResult || res.records.length > bestResult.records.length) {
       bestResult = res

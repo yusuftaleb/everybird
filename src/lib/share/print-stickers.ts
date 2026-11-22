@@ -5,7 +5,7 @@
 // with a StickerReleased error, never an AbortError, so a release bug can't pass for a user cancel.
 import { abortError } from './image'
 
-export type PrintStickerSource = { fetch: typeof fetch; decode: (b: Blob) => Promise<ImageBitmap> }
+type PrintStickerSource = { fetch: typeof fetch; decode: (b: Blob) => Promise<ImageBitmap> }
 export type PrintStickers = {
   get(s: { url: string; fallback: string | null }, signal?: AbortSignal): Promise<ImageBitmap | null>
   release(url: string): void

@@ -99,10 +99,10 @@ describe('store reducer', () => {
     expect(s.saved.edits.fixes).toEqual({ 'ebird:9': 'crow' })
   })
 
-  it('mode, view, massOrder only touch themselves and keep saved identity', () => {
+  it('mode, view, listOrder only touch themselves and keep saved identity', () => {
     const s0 = run(initialState(), { type: 'import', source: 'ebird', result: result([rec('duck', 'ebird')]) })
-    const s = run(s0, { type: 'mode', mode: 'true' }, { type: 'view', view: 'list' }, { type: 'massOrder', massOrder: 'lightest' })
-    expect([s.mode, s.view, s.massOrder]).toEqual(['true', 'list', 'lightest'])
+    const s = run(s0, { type: 'mode', mode: 'true' }, { type: 'view', view: 'list' }, { type: 'listOrder', listOrder: 'lightest' })
+    expect([s.mode, s.view, s.listOrder]).toEqual(['true', 'list', 'lightest'])
     expect(s.saved).toBe(s0.saved)
     expect(s.list).toBe(s0.list)
   })
@@ -117,7 +117,7 @@ describe('store reducer', () => {
   })
 
   it('restore recomputes everything from the backup', () => {
-    const saved = { ...emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('crow', 'ebird')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], manual: [] } }
+    const saved = { ...emptySaved(), records: { obsorg: [], 'obsorg-list': [], ebird: [rec('crow', 'ebird')], 'ebird-list': [], inat: [], sheet: [], scythebill: [], igoterra: [], manual: [] } }
     const s = run(initialState(), { type: 'restore', saved })
     expect(s.saved).toBe(saved)
     expect(s.list.map((e) => e.code)).toEqual(['crow'])
@@ -125,12 +125,12 @@ describe('store reducer', () => {
 
   it('forget resets to empty', () => {
     let s = run(initialState(), { type: 'import', source: 'ebird', result: result([rec('duck', 'ebird')]) })
-    s = run(s, { type: 'filter', filter: { countries: ['CA'] } }, { type: 'mode', mode: 'true' }, { type: 'view', view: 'list' }, { type: 'massOrder', massOrder: 'lightest' })
+    s = run(s, { type: 'filter', filter: { countries: ['CA'] } }, { type: 'mode', mode: 'true' }, { type: 'view', view: 'list' }, { type: 'listOrder', listOrder: 'lightest' })
     s = run(s, { type: 'forget' })
     const fresh = initialState()
     expect(s.list).toEqual([])
     expect(s.saved.records).toEqual(fresh.saved.records)
-    expect([s.filter, s.mode, s.view, s.massOrder]).toEqual([{}, 'even', 'collage', 'heaviest'])
+    expect([s.filter, s.mode, s.view, s.listOrder]).toEqual([{}, 'even', 'collage', 'newest'])
   })
 
   it('name sets Saved.name (trimmed to nothing when blank) and leaves the list alone', () => {

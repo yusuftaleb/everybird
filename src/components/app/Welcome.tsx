@@ -1,7 +1,6 @@
 'use client'
 import { stripLang } from '@/i18n/path'
-import { ArrowRight } from '@phosphor-icons/react'
-import Link from '@/components/app/IntentLink'
+import { ArrowRight } from '@/components/phosphor-icons'
 import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CloseIcon } from '@/components/collage/icons'
@@ -11,21 +10,25 @@ import { rememberWelcomed, welcomed } from '@/lib/welcome'
 
 /**
  * The first visit's welcome, over the landing's sample collage (Landing renders it, so never with a list on the device,
- * never before storage has been read, never on /settings, /about or a shared view). One line, "Make mine" (to the ways
- * in on Settings) and "Explore the sample"; ✕, Esc and a press outside are Explore. Closed once, it stays closed on this
+ * never before storage has been read, never on /settings, /about or a shared view). One line, "Make mine" (the Add birds
+ * dialog, as the hero's "Make yours" and the tour's last step open) and "Explore the sample", which starts the sample's
+ * tour; ✕, Esc and a press outside close it
+ * without the tour. Closed once, it stays closed on this
  * device (src/lib/welcome.ts). A small card from 601px, the phones' bottom sheet at 600px and under; a light scrim
  * keeps the sample in view.
  */
-export function Welcome() {
+export function Welcome({ onExplore, onAdd }: { onExplore?: () => void; onAdd?: () => void }) {
   // Landing only renders on the client, after storage is read, so this is never a server render.
   const [open, setOpen] = useState(() => !welcomed())
   if (!open) return null
-  return createPortal(<WelcomeDialog onClose={() => setOpen(false)} />, document.body)
+  return createPortal(<WelcomeDialog onClose={() => setOpen(false)} onExplore={onExplore} onAdd={onAdd} />, document.body)
 }
 
-function WelcomeDialog({ onClose }: { onClose: () => void }) {
+function WelcomeDialog({ onClose, onExplore, onAdd }: { onClose: () => void; onExplore?: () => void; onAdd?: () => void }) {
   const ref = useRef<HTMLDivElement>(null)
-  const primary = useRef<HTMLAnchorElement>(null)
+  const primary = useRef<HTMLButtonElement>(null)
+  // Make mine: focus is on the hero's "Make yours" before the dialog opens, so the dialog gives it back there.
+  const adding = useRef(false)
   const lineId = useId()
   const { t } = useI18n()
   const sheet = useIsSheet()
@@ -40,7 +43,7 @@ function WelcomeDialog({ onClose }: { onClose: () => void }) {
     // Closed (and not off to Settings), focus goes back to the page: the sample's first control (its view tabs), or the
     // hero's "Make yours" while the sample is still loading.
     return () => {
-      if (stripLang(location.pathname) !== '/') return
+      if (adding.current || stripLang(location.pathname) !== '/') return
       const back = document.querySelector<HTMLElement>('.eb-page-landing .eb-view button:not(:disabled)') ?? document.querySelector<HTMLElement>('.eb-page-landing .eb-hero-cta')
       back?.focus({ preventScroll: true })
     }
@@ -59,11 +62,21 @@ function WelcomeDialog({ onClose }: { onClose: () => void }) {
       >
         <p id={lineId} className="eb-welcome-line">{t.landing.welcome}</p>
         <div className="eb-welcome-actions">
-          <Link ref={primary} href="/settings#sources" className="eb-btn" onClick={rememberWelcomed}>
+          <button
+            ref={primary} type="button" className="eb-btn" aria-haspopup="dialog"
+            onClick={() => {
+              rememberWelcomed()
+              adding.current = true
+              document.querySelector<HTMLElement>('.eb-page-landing .eb-hero-cta')?.focus({ preventScroll: true })
+              onClose()
+              onAdd?.()
+            }}
+          >
             {t.landing.makeMine}
             <ArrowRight aria-hidden="true" focusable="false" weight="bold" />
-          </Link>
-          <button type="button" className="eb-btn eb-btn-quiet" onClick={explore}>{t.landing.explore}</button>
+          </button>
+          {/* The button (not ✕, Esc or a press outside) starts the sample's guided tour (Tour.tsx). */}
+          <button type="button" className="eb-btn eb-btn-quiet" onClick={() => { explore(); onExplore?.() }}>{t.landing.explore}</button>
         </div>
         <button type="button" className="eb-welcome-close" aria-label={t.collage.close} onClick={explore}>
           <CloseIcon />

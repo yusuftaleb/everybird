@@ -3,9 +3,11 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { useState } from 'react'
+import type { ListOrder } from '@/lib/list/list-order'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BirdCard, BirdFacts } from '@/components/collage/BirdCard'
+import { BirdTip } from '@/components/collage/BirdTip'
+import { STICKER_BASE } from '@/lib/sticker-url'
 import { ListView } from '@/components/collage/ListView'
 import type { ListEntry } from '@/lib/list/model'
 import { IUCN_COLORS } from '@/lib/species/iucn'
@@ -51,7 +53,7 @@ describe('BirdCard', () => {
     expect(dlg.querySelector('.eb-card-name .eb-mark')).toHaveTextContent(/^\*†$/)
     const mass = dlg.querySelector('.eb-card-mass')!
     expect(mass).toHaveTextContent('Average body mass 400 g')
-    expect(mass).toHaveAttribute('title', 'Average body mass')
+    expect(mass).not.toHaveAttribute('title')
     expect(dlg).not.toHaveTextContent('estimated')
     expect(dlg).not.toHaveAttribute('aria-modal')
   })
@@ -66,7 +68,8 @@ describe('BirdCard', () => {
     expect(dlg.querySelector('.eb-card-place')).toBeNull()
     const mass = dlg.querySelector('.eb-card-mass')!
     expect(mass).toHaveTextContent('~4.3 g')
-    expect(mass).toHaveAttribute('title', 'Average body mass, estimated from its family')
+    expect(mass).toHaveTextContent('Average body mass, estimated from its family')
+    expect(mass).not.toHaveAttribute('title')
   })
 
   it('phone: bottom sheet with aria-modal; Esc closes; focus moves in and returns', () => {
@@ -83,6 +86,8 @@ describe('BirdCard', () => {
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
+    // No visible ×: the close button is visually hidden, for screen readers and the keyboard.
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveClass('eb-sr')
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalledTimes(2)
     unmount()
@@ -114,6 +119,32 @@ describe('BirdCard', () => {
     anchor.remove()
   })
 
+  it('the popover stays under the top bar and closes once a scroll takes its bird behind the bar or below the window', async () => {
+    setWidth(1000)
+    vi.stubGlobal('innerHeight', 800)
+    const bar = document.createElement('header')
+    bar.className = 'eb-topbar'
+    bar.getBoundingClientRect = () => ({ left: 0, right: 1000, top: 0, bottom: 64, width: 1000, height: 64, x: 0, y: 0, toJSON() {} })
+    document.body.append(bar)
+    let top = 90
+    const anchor = document.createElement('button')
+    anchor.getBoundingClientRect = () => ({ left: 400, right: 420, top, bottom: top + 20, width: 20, height: 20, x: 400, y: top, toJSON() {} })
+    document.body.append(anchor)
+    const onClose = vi.fn()
+    render(<BirdCard entry={full} species={species} regions={regions} anchor={anchor} onClose={onClose} />)
+    expect(parseFloat(screen.getByRole('dialog').style.top)).toBeGreaterThanOrEqual(64 + 8)
+    top = 50 // half behind the bar: still shown
+    fireEvent.scroll(window)
+    await new Promise((r) => setTimeout(r, 40))
+    expect(onClose).not.toHaveBeenCalled()
+    top = 30 // wholly behind the bar
+    fireEvent.scroll(window)
+    await new Promise((r) => setTimeout(r, 40))
+    expect(onClose).toHaveBeenCalledTimes(1)
+    anchor.remove()
+    bar.remove()
+  })
+
   it('popover on wide screens positions inside the viewport near the anchor', () => {
     setWidth(1000)
     vi.stubGlobal('innerHeight', 800)
@@ -127,6 +158,59 @@ describe('BirdCard', () => {
     expect(left).toBeGreaterThanOrEqual(8)
     expect(left).toBeLessThanOrEqual(1000)
     anchor.remove()
+  })
+
+  it('the popover is fixed at its bird in window coordinates: centred on it, 10px under it (menu audit, round 6)', () => {
+    setWidth(1000)
+    vi.stubGlobal('innerHeight', 800)
+    const anchor = document.createElement('button')
+    anchor.getBoundingClientRect = () => ({ left: 400, right: 440, top: 300, bottom: 340, width: 40, height: 40, x: 400, y: 300, toJSON() {} })
+    document.body.append(anchor)
+    render(<BirdCard entry={full} species={species} regions={regions} anchor={anchor} onClose={() => {}} />)
+    const dlg = screen.getByRole('dialog')
+    // jsdom measures the card 0 × 0: its left is the bird's centre, its top 10px under the bird.
+    expect(dlg.style.left).toBe('420px')
+    expect(dlg.style.top).toBe('350px')
+    anchor.remove()
+  })
+})
+
+describe('BirdCard sticker', () => {
+  it('the card shows the sticker in its box (384 and 1024 by density, decorative); a failed 1024 falls back to the 384 once', () => {
+    setWidth(1280)
+    const idx = buildSpeciesIndex([{ ...row('crowa', 'Alpha Crow', 1, 400), sv: 'ab12' }])
+    render(<BirdCard entry={entry('crowa')} species={idx} regions={regions} onClose={() => {}} />)
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-sticker')
+    const img = screen.getByTestId('card-sticker').querySelector('img')!
+    expect(img).toHaveAttribute('alt', '')
+    expect(img).toHaveAttribute('srcset', `${STICKER_BASE}/v1/384/crowa.ab12.webp 384w, ${STICKER_BASE}/v1/1024/crowa.ab12.webp 1024w`)
+    expect(img).toHaveAttribute('sizes', 'min(270px, calc(100vw - 46px))')
+    Object.defineProperty(img, 'currentSrc', { value: `${STICKER_BASE}/v1/1024/crowa.ab12.webp` })
+    fireEvent.error(img)
+    const again = screen.getByTestId('card-sticker').querySelector('img')!
+    expect(again).toHaveAttribute('src', `${STICKER_BASE}/v1/384/crowa.ab12.webp`)
+    expect(again).not.toHaveAttribute('srcset')
+    fireEvent.error(again)
+    expect(screen.getByTestId('card-sticker').querySelector('img')).toHaveAttribute('src', `${STICKER_BASE}/v1/384/crowa.ab12.webp`)
+  })
+  it('the sheet gives the box the phone width; no box for a species without a sticker; the hover tooltip has none', () => {
+    setWidth(390)
+    const { unmount } = render(<BirdCard entry={entry('crowa')} species={species} regions={regions} onClose={() => {}} />)
+    expect(screen.getByTestId('card-sticker').querySelector('img')).toHaveAttribute('sizes', 'calc(100vw - 46px)')
+    unmount()
+    const { unmount: u2 } = render(<BirdCard entry={entry('bigge')} species={species} regions={regions} onClose={() => {}} />)
+    expect(screen.queryByTestId('card-sticker')).toBeNull()
+    expect(screen.getByRole('dialog')).not.toHaveAttribute('data-sticker')
+    u2()
+    const wrap = { current: document.createElement('div') }
+    const { container } = render(<BirdTip entry={entry('crowa')} row={species.byCode.get('crowa')!} regions={regions} wrap={wrap} />)
+    expect(container.querySelector('[data-testid="card-sticker"], img')).toBeNull()
+  })
+  it('the box has a fixed height in both variants, so the card is placed right before the file loads', () => {
+    const css = readFileSync(resolve(__dirname, '../src/components/collage/card-list.css'), 'utf8')
+    expect(css).toMatch(/\.eb-card-sticker \{[^}]*height: 180px/)
+    expect(css).toMatch(/\[data-variant="sheet"\] \.eb-card-sticker \{ height: 230px; \}/)
+    expect(css).toMatch(/\.eb-card-sticker img \{[^}]*object-fit: contain/)
   })
 })
 
@@ -168,7 +252,6 @@ describe('BirdCard Red List pill', () => {
   }
   afterEach(() => {
     history.replaceState(null, '', '/')
-    sessionStorage.removeItem('everybird:variants')
   })
 
   it('the card shows the pill alone, under the mass: a button named "Red List: Vulnerable" with a toggletip', () => {
@@ -178,7 +261,8 @@ describe('BirdCard Red List pill', () => {
     const pill = screen.getByRole('button', { name: 'Red List: Vulnerable' })
     expect(badge.contains(pill)).toBe(true)
     expect(pill).toHaveTextContent('VU')
-    expect(pill).toHaveAttribute('title', 'Red List: Vulnerable')
+    // One tooltip, the site's: no browser `title` beside it.
+    expect(pill).not.toHaveAttribute('title')
     expect(pill).toHaveAttribute('aria-expanded', 'false')
     expect(pill.style.getPropertyValue('--iucn-fill')).toBe('#f9e814')
     // The full name is only in the aria-hidden tip, not as visible text beside the pill.
@@ -251,23 +335,23 @@ describe('ListView', () => {
     entry('tinyc'),
     entry('bigge'),
   ]
-  const names = () => screen.getAllByRole('listitem').map((li) => within(li).getByText(/^(Alpha|Beta|Gamma|Delta) /).textContent)
+  const names = () => [...document.querySelectorAll('.eb-lrow')].map((li) => within(li as HTMLElement).getByText(/^(Alpha|Beta|Gamma|Delta) /).textContent)
 
-  function Harness({ onPick = () => {} }: { onPick?: (c: string) => void }) {
-    const [order, setOrder] = useState<'heaviest' | 'lightest'>('heaviest')
-    return (
-      <>
-        <button onClick={() => setOrder(order === 'heaviest' ? 'lightest' : 'heaviest')}>Reverse</button>
-        <ListView entries={entries} species={species} regions={regions} order={order} onPick={onPick} />
-      </>
-    )
+  function Harness({ onPick = () => {}, order = 'heaviest' }: { onPick?: (c: string) => void; order?: ListOrder }) {
+    return <ListView entries={entries} species={species} regions={regions} order={order} onPick={onPick} />
   }
 
-  it('list sorts by mass, heaviest or lightest first (the direction lives in the controls bar)', () => {
-    render(<Harness />)
+  it('list sorts by the Sort menu: family, newest or oldest (undated last), heaviest or lightest', () => {
+    const { rerender } = render(<Harness />)
     expect(names()).toEqual(['Delta Heavy', 'Alpha Crow', 'Beta Wren', 'Gamma Tiny'])
-    fireEvent.click(screen.getByRole('button', { name: 'Reverse' }))
+    rerender(<Harness order="lightest" />)
     expect(names()).toEqual(['Gamma Tiny', 'Beta Wren', 'Alpha Crow', 'Delta Heavy'])
+    rerender(<Harness order="family" />)
+    expect(names()).toEqual(['Alpha Crow', 'Beta Wren', 'Gamma Tiny', 'Delta Heavy'])
+    rerender(<Harness order="newest" />)
+    expect(names()).toEqual(['Beta Wren', 'Alpha Crow', 'Gamma Tiny', 'Delta Heavy'])
+    rerender(<Harness order="oldest" />)
+    expect(names()).toEqual(['Alpha Crow', 'Beta Wren', 'Gamma Tiny', 'Delta Heavy'])
   })
 
   it('rows show mass, place and date, and open the card', () => {
@@ -279,6 +363,23 @@ describe('ListView', () => {
     expect(li).toHaveTextContent('2022')
     fireEvent.click(within(li).getByRole('button'))
     expect(onPick).toHaveBeenCalledWith('crowa', expect.any(HTMLElement))
+  })
+
+  it('Family puts one heading per family over its rows; the other orders have none', () => {
+    const fams = buildSpeciesIndex([
+      { ...row('a1', 'Alpha One', 1, 50), fam: 'Anatidae', famCom: 'Ducks' },
+      { ...row('a2', 'Alpha Two', 2, 900), fam: 'Anatidae', famCom: 'Ducks' },
+      { ...row('b1', 'Beta One', 3, 10), fam: 'Picidae', famCom: 'Woodpeckers' },
+    ])
+    const list = [entry('b1'), entry('a2'), entry('a1')]
+    const { rerender } = render(<ListView entries={list} species={fams} regions={regions} order="family" onPick={() => {}} />)
+    const heads = screen.getAllByRole('heading', { level: 2 })
+    expect(heads.map((h) => h.textContent)).toEqual(['Ducks2, 2 species', 'Woodpeckers1, 1 species'])
+    expect(heads[0].closest('li')!.querySelectorAll('.eb-lrow')).toHaveLength(2)
+    rerender(<ListView entries={list} species={fams} regions={regions} order="family" sci onPick={() => {}} />)
+    expect(screen.getAllByRole('heading', { level: 2 })[0]).toHaveAccessibleName('Anatidae, 2 species')
+    rerender(<ListView entries={list} species={fams} regions={regions} order="newest" onPick={() => {}} />)
+    expect(screen.queryByRole('heading')).toBeNull()
   })
 
   it('renders 5,000 rows', () => {
@@ -369,21 +470,48 @@ describe('in Spanish', () => {
     render(<BirdCard entry={entry('tinyc')} species={heavy} regions={regions} onClose={() => {}} />, { wrapper: withI18n('es') })
     const mass = screen.getByRole('dialog').querySelector('.eb-card-mass')!
     expect(mass).toHaveTextContent('~4,3 g')
-    expect(mass).toHaveAttribute('title', 'Masa corporal media, estimada a partir de su familia')
+    expect(mass).toHaveTextContent('Masa corporal media, estimada a partir de su familia')
   })
-  it("the list view's rows and the direction switch: es.ui's heaviest first", () => {
+  it("the list view's rows and the Sort menu: es.ui's heaviest first", () => {
     render(
       <>
-        <ControlsBar view="list" onView={() => {}} trueSize={false} onTrueSize={() => {}} lightFirst={false} onDirection={() => {}} sci={false} onSci={() => {}} />
+        <ControlsBar view="list" onView={() => {}} listOrder="heaviest" onListOrder={() => {}} sci={false} onSci={() => {}} />
         <ListView entries={[entry('pelica', { date: '2026-09-02' })]} species={heavy} regions={regions} order="heaviest" onPick={() => {}} />
       </>,
       { wrapper: withI18n('es') },
     )
     const c = es.ui.collage.controls
-    const dir = screen.getByRole('button', { name: c.sortedHeaviest })
+    const dir = screen.getByRole('button', { name: `${c.sort}: ${c.heaviestFirst}` })
     expect(dir).toHaveTextContent(c.heaviestFirst)
     const list = screen.getByRole('list', { name: 'Lista de vida' })
     expect(list).toHaveTextContent('2,4 kg')
     expect(list).toHaveTextContent('sept 2026')
+  })
+})
+
+describe('the card\'s Remove row (EditBird)', () => {
+  it('"Remove" and the card\'s illustration link alone on one row that never wraps; without actions the link keeps the corner', async () => {
+    const { CardEndLink } = await import('@/components/collage/BirdCard')
+    const { EditBird } = await import('@/components/edit/EditBird')
+    // A mark edited: "Marks from my records" shows, under the marks, not in the Remove row.
+    render(
+      <CardEndLink.Provider value={<p className="eb-card-credit"><a href="#a">Illustration</a></p>}>
+        <EditBird entry={entry('crowa')} edits={{ marks: { crowa: { heard: true } }, removed: [] } as never} dispatch={() => {}} onRemoved={() => {}} />
+      </CardEndLink.Provider>,
+    )
+    const remove = screen.getByRole('button', { name: 'Remove' })
+    const row = remove.parentElement!
+    expect(row).toHaveClass('eb-edit-row')
+    expect([...row.children]).toEqual([remove, row.lastElementChild])
+    expect(row.lastElementChild).toHaveClass('eb-card-credit')
+    const reset = screen.getByRole('button', { name: 'Marks from my records' })
+    expect(reset).toHaveClass('eb-edit-reset')
+    expect(reset.nextElementSibling).toBe(row)
+    const css = readFileSync(resolve(__dirname, '../src/components/edit/edit.css'), 'utf8')
+    expect(css).toMatch(/\.eb-edit-row \{ display: flex; align-items: center; justify-content: space-between; gap: 8px; \}/)
+    expect(css).not.toMatch(/\.eb-edit-row \{[^}]*flex-wrap/)
+    expect(css).toMatch(/\.eb-edit-row > \* \{ flex: none; white-space: nowrap; \}/)
+    expect(css).toMatch(/\.eb-edit-row > \.eb-card-credit \{ margin-left: auto; align-self: center; \}/) // on Remove's line, not the card's corner rule
+    expect(readFileSync(resolve(__dirname, '../src/components/collage/card-list.css'), 'utf8')).toMatch(/\.eb-card-credit \{ align-self: flex-end; white-space: nowrap; \}/)
   })
 })

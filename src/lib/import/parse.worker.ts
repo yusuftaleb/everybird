@@ -6,10 +6,11 @@ import { parseEbirdMyData } from './ebird-mydata'
 import { DamagedCsvError, parseObsOrgSpecies, parseObsOrgObservations, type ObsOrgObservationsResult } from './obsorg'
 import { parseSheetText, parseSheetXlsx } from './sheet'
 import { parseScythebillCsv, parseScythebillEbird } from './scythebill'
+import { parseIgoterra } from './igoterra'
 import { DamagedXlsxError } from './xlsx'
 import type { Regions } from '@/lib/species/types'
 
-export type ParseKind = 'ebird-lifelist' | 'ebird-mydata' | 'obsorg-species' | 'obsorg-observations' | 'scythebill-csv' | 'scythebill-ebird' | 'xlsx' | 'sheet-text' | 'sheet-paste'
+export type ParseKind = 'ebird-lifelist' | 'ebird-mydata' | 'obsorg-species' | 'obsorg-observations' | 'scythebill-csv' | 'scythebill-ebird' | 'igoterra' | 'xlsx' | 'sheet-text' | 'sheet-paste'
 /** Observation.org uses iNaturalist synonyms. File types with locations also use the place registry. */
 export type ParseRequest =
   | { kind: 'ebird-lifelist'; file: File; regions?: Regions }
@@ -18,10 +19,11 @@ export type ParseRequest =
   | { kind: 'obsorg-observations'; file: File; synonyms: Record<string, string>; regions: Regions }
   | { kind: 'scythebill-csv'; file: File; regions?: Regions }
   | { kind: 'scythebill-ebird'; file: File; regions?: Regions }
+  | { kind: 'igoterra'; file: File; regions?: Regions }
   | { kind: 'xlsx'; file: File; regions?: Regions }
   | { kind: 'sheet-text'; file: File; regions?: Regions }
   | { kind: 'sheet-paste'; text: string; regions?: Regions }
-export type ParseResult = ImportResult & { excluded?: ObsOrgObservationsResult['excluded']; undated?: number; duplicates?: number }
+export type ParseResult = ImportResult & { excluded?: ObsOrgObservationsResult['excluded']; undated?: number; duplicates?: number; noDate?: number }
 /**
  * Why a parse failed, for the UI to switch on: 'no-birds' (a readable file without a bird), 'damaged' (not readable as
  * the CSV it claims to be, or anything else the file's parser or its reading threw), 'missing-options' (a caller bug:
@@ -30,7 +32,8 @@ export type ParseResult = ImportResult & { excluded?: ObsOrgObservationsResult['
  */
 export type ParseErrorCode = 'no-birds' | 'damaged' | 'missing-options'
 export type ParseResponse =
-  | { type: 'progress'; rows: number }
+  /** `frac`: how far through the file (0 to 1), from the parsers that stream it (MyEBirdData, observation.org's observations). */
+  | { type: 'progress'; rows: number; frac?: number }
   | { type: 'done'; result: ParseResult }
   | { type: 'error'; code?: ParseErrorCode; message: string }
 
@@ -59,12 +62,12 @@ export async function handleParseMessage(
     parsing = true
     let last = 0
     let lastRows = 0
-    const onProgress = (rows: number) => {
+    const onProgress = (rows: number, frac?: number) => {
       const now = Date.now()
       if (now - last >= PROGRESS_MS || rows - lastRows >= PROGRESS_ROWS) {
         last = now
         lastRows = rows
-        post({ type: 'progress', rows })
+        post(frac === undefined ? { type: 'progress', rows } : { type: 'progress', rows, frac: Math.min(1, Math.max(0, frac)) })
       }
     }
     let result: ParseResult | { error: 'no-birds' }
@@ -86,6 +89,9 @@ export async function handleParseMessage(
         break
       case 'scythebill-ebird':
         result = parseScythebillEbird(await msg.file.text(), t, msg.regions, onProgress)
+        break
+      case 'igoterra':
+        result = parseIgoterra(await msg.file.text(), t, msg.regions, onProgress)
         break
       case 'xlsx':
         result = parseSheetXlsx(await msg.file.arrayBuffer(), t, msg.regions, onProgress)

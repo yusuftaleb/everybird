@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useMemo, useReducer, useState } from 'react'
+import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { loadRegions } from '@/lib/import/places'
 import { initialState, makeReducer } from '@/lib/list/store'
@@ -30,19 +31,38 @@ export function missingFilters(p: SharePayload): { places: boolean; dates: boole
 export function SharedView({ payload }: { payload: SharePayload }) {
   const [data, setData] = useState<{ species: SpeciesIndex; regions: Regions } | null>(null)
   const [failed, setFailed] = useState(false)
+  // Try again loads them again (neither loader caches a failure).
+  const [tries, setTries] = useState(0)
   const { t } = useI18n()
   useEffect(() => {
     let live = true
     Promise.all([loadSpecies(), loadRegions()]).then(([species, regions]) => { if (live) setData({ species, regions }) }, () => { if (live) setFailed(true) })
     return () => { live = false }
-  }, [])
+  }, [tries])
+  // The link's count is known at once: the page's headline while the birds load, as the collage's own wait shows it.
+  const n = useMemo(() => new Set(payload.birds.map((b) => b.code)).size, [payload])
 
-  if (failed) return <p className="eb-error eb-notice" role="alert">{t.collage.notices.loadFailed}</p>
-  if (!data) return <div className="eb-stage-wait eb-sample-wait" aria-hidden="true" />
-  return <Loaded payload={payload} species={data.species} regions={data.regions} />
+  if (failed) {
+    return (
+      <p className="eb-error eb-notice" role="alert">
+        {t.collage.notices.loadFailed}{' '}
+        <button type="button" className="eb-textbtn" onClick={() => { setFailed(false); setTries(tries + 1) }}>{t.shared.retry}</button>
+      </p>
+    )
+  }
+  if (!data) {
+    return (
+      <div className="eb-stage-wait eb-sample-wait" role="status">
+        <span className="eb-num">{formatInt(n, t.num)}</span>
+        <span className="eb-mono">{t.collage.arranging}</span>
+      </div>
+    )
+  }
+  return <SharedCollage payload={payload} species={data.species} regions={data.regions} />
 }
 
-function Loaded({ payload, species, regions }: { payload: SharePayload; species: SpeciesIndex; regions: Regions }) {
+/** One payload's collage in its own store (also a comparison's group, compare/CompareView). */
+function SharedCollage({ payload, species, regions }: { payload: SharePayload; species: SpeciesIndex; regions: Regions }) {
   const { t } = useI18n()
   const shown = useMemo(() => payloadToRecords(payload, regions), [payload, regions])
   const reducer = useMemo(

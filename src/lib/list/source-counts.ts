@@ -26,14 +26,20 @@ export function slottedRecords(saved: Saved): { slot: Slot; record: SourceRecord
   return out
 }
 
+/** Whether a source's slot is on the list (Settings shows it connected, with Remove): it holds records, unmatched rows
+ *  or species it marks not countable (a life list of only escapees still hides them, so it must be removable). */
+export function slotConnected(saved: Pick<Saved, 'records' | 'unmatched' | 'notCountable'>, slot: Slot): boolean {
+  return (saved.records[slot]?.length ?? 0) > 0 || (saved.notCountable?.[slot]?.length ?? 0) > 0 || saved.unmatched.some((u) => (u.slot ?? u.source) === slot)
+}
+
 /** The species any source marks not countable (Saved.notCountable, every slot together). */
 export function notCountedCodes(saved: Pick<Saved, 'notCountable'>): Set<string> {
   return new Set(Object.values(saved.notCountable ?? {}).flatMap((codes) => codes ?? []))
 }
 
 /** The source groups the summary compares: a source's export slots count together. */
-export type Group = 'ebird' | 'inat' | 'obsorg' | 'sheet' | 'scythebill' | 'manual'
-export const GROUPS: readonly Group[] = ['ebird', 'inat', 'obsorg', 'sheet', 'scythebill', 'manual']
+export type Group = 'ebird' | 'inat' | 'obsorg' | 'sheet' | 'scythebill' | 'igoterra' | 'manual'
+const GROUPS: readonly Group[] = ['ebird', 'inat', 'obsorg', 'sheet', 'scythebill', 'igoterra', 'manual']
 const groupOf = (slot: Slot): Group => slotSource(slot)
 const ONLY_IN: Partial<Record<Group, RowCount['onlyIn']>> = { ebird: 'eBird', obsorg: 'observation.org' }
 

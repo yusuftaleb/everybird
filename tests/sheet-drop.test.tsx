@@ -3,7 +3,8 @@ import '@testing-library/jest-dom/vitest'
 import { act, cleanup, fireEvent, render, renderHook, screen, within } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { useImportJobs } from '@/components/app/use-import-jobs'
+import { fileMessage, useImportJobs } from '@/components/app/use-import-jobs'
+import { en } from '@/i18n/messages/en'
 import { MatchReport } from '@/components/import/MatchReport'
 import { SheetDrop } from '@/components/import/SheetDrop'
 import * as parseClient from '@/lib/import/parse-client'
@@ -78,6 +79,9 @@ describe('SheetDrop and review flow', () => {
     )
 
     const review = screen.getByTestId('sheet-review')
+    // The review takes focus, named by its summary, so it is announced.
+    expect(review).toHaveFocus()
+    expect(screen.getByRole('group', { name: '1 species matched · 1 duplicate · 1 unmatched' })).toBe(review)
     expect(review).toHaveTextContent('1 species matched')
     expect(review).toHaveTextContent('1 duplicate')
     expect(review).toHaveTextContent('1 unmatched')
@@ -119,6 +123,49 @@ describe('SheetDrop and review flow', () => {
     })
     expect(onImport).toHaveBeenCalledTimes(1)
     expect(onImport.mock.calls[0][0]).toBe('sheet')
+  })
+
+  it('says how many rows were skipped for having no date', async () => {
+    mockWorker()
+    const { result } = renderHook(() => useImportJobs(vi.fn()))
+    // 25 species, 5 dated: the date column marks the birds seen, so the 20 undated rows are left out.
+    const names = rawSpecies.species.slice(0, 25).map((r) => r.sci)
+    const text = ['Scientific Name,Date', ...names.map((n, i) => `${n},${i < 5 ? '2024-05-0' + (i + 1) : ''}`)].join('\n')
+    await act(async () => {
+      await result.current.parsePaste(text)
+    })
+    expect(result.current.sheetReview?.matched).toBe(5)
+    expect(result.current.sheetReview?.noDate).toBe(20)
+    render(
+      <SheetDrop
+        job={result.current.sheet}
+        onFile={() => {}}
+        onPaste={() => {}}
+        review={result.current.sheetReview}
+        onConfirm={() => {}}
+        onCancel={() => {}}
+        species={species}
+      />,
+    )
+    expect(screen.getByTestId('sheet-review')).toHaveTextContent('5 species matched · 20 rows skipped: no date')
+  })
+
+  it('tells the birder to export CSV when an Excel file is given to the eBird or observation.org row', async () => {
+    mockWorker()
+    const onImport = vi.fn()
+    const { result } = renderHook(() => useImportJobs(onImport))
+    const xlsx = () => new File(['PK\u0003\u0004'], 'MyEBirdData.xlsx')
+    await act(async () => {
+      await result.current.readEbird(xlsx())
+    })
+    expect(result.current.ebird.error).toBe('xlsx')
+    expect(fileMessage('xlsx', en.ui)).toBe('This is an Excel file. Everybird reads CSV files: export as CSV and add that file instead.')
+    await act(async () => {
+      await result.current.readObsOrg(xlsx())
+    })
+    expect(result.current.obsorg.error).toBe('xlsx')
+    expect(parseClient.parseInWorker).not.toHaveBeenCalled()
+    expect(onImport).not.toHaveBeenCalled()
   })
 
   it('rejects unsupported spreadsheet files and leaves the list unchanged', async () => {

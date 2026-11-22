@@ -9,7 +9,9 @@
 //  - StateLayout also carries `base` (the packer's base size; scale = base / full-collage base).
 //  - `scale` is relative to the full collage of the SAME mode (true-mode states are scaled against the
 //    true-mode full collage), and true-mode filtered states are searched around that base like even mode.
-//  - Cache key is `${layout}|${mode}|${filterKey(f)}`; it is also StateLayout.key.
+//  - Cache key is `${layout}|${mode}|${filterKey(f)}`, the layout class marked `${layout}~oval` for Oval and `${layout}~free`
+//    for Free (arrangement.ts: every state packed inside the stage's ellipse, or settled as Fit was before it filled the
+//    rectangle, each with its own full collage first); it is also StateLayout.key.
 //
 // Ordering rules:
 //  - Per layout class and mode, the full list's layout is computed first; its trimmed stage and base fix
@@ -34,9 +36,32 @@
 //    rejects every get() of that list.
 //  - A get() never waits behind queued prefetches (only behind the single job already on the worker); a get
 //    also bumps the priority of anything it depends on that is still queued.
+//
+// The device's layout cache (`store`, layout-store.ts; the birder's own collage only): every state first looks itself up
+// there and is packed only on a miss. Full collages are stored once packed, other states once a get() has asked for
+// them (prefetches the birder never saw are not). The id is storeId's: the pack version, the species and masks files,
+// the list (codes, masses, orders), the state's key and the codes its filter resolved to, so any change is a miss. A
+// hit was packed from the same inputs by the same code, so it is the layout a fresh pack gives: it is shown as is,
+// not packed again to check (that would hold the worker for seconds and every filter behind it). A result packed
+// with fallback masks (a masks download failed) is never stored.
+//
+// Provisional (provisional.ts): a get() given `early` whose full collage misses the store and holds at least
+// PROVISIONAL_FROM birds also starts a short-lived second worker for a quick one-pass full collage, handed to `early`
+// unless the final one lands first. The final is packed exactly as without it.
 import { filterKey, type Filter } from '@/lib/list/filters'
+import type { Arrangement } from '@/lib/arrangement'
 import type { Box } from './pack'
 import type { LayoutName, ListEntryMsg, WorkerReply, WorkerRequest } from './layout.worker'
+import type { MaskTable } from '../data-url'
+import { DATA_FILES } from '../data-files'
+import { hashText, type LayoutStore } from './layout-store'
+import { PROVISIONAL_FROM } from './provisional'
+
+/**
+ * Bump when packing gives different layouts for the same inputs (pack.ts, grid.ts, count-box.ts, constants.ts, the
+ * worker), so stored layouts miss. tests/layout-store.test.ts fingerprints the packer's output per version.
+ */
+export const PACK_VERSION = 1
 
 export type StateLayout = {
   key: string
@@ -49,11 +74,13 @@ export type StateLayout = {
   base: number
 }
 export type LayoutClient = {
-  setList(entries: ListEntryMsg[], resolve?: (f: Filter) => string[]): void
+  /** `masks`: every entry's mask by order then code (data-url.ts masksInHand), so the worker needn't fetch the masks file. */
+  setList(entries: ListEntryMsg[], resolve?: (f: Filter) => string[], masks?: Record<string, MaskTable>): void
   /** Same entries, new filter resolution: keeps the full collages, drops the filtered states (see the header). */
   refilter(resolve?: (f: Filter) => string[]): void
-  get(f: Filter, layout: LayoutName, mode: 'even' | 'true'): Promise<StateLayout>
-  prefetch(fs: Filter[], layout: LayoutName): void
+  /** `arrangement`: Fit (the default), Oval (packed inside the stage's ellipse) or Free (arrangement.ts). */
+  get(f: Filter, layout: LayoutName, mode: 'even' | 'true', arrangement?: Arrangement, early?: (l: StateLayout) => void): Promise<StateLayout>
+  prefetch(fs: Filter[], layout: LayoutName, arrangement?: Arrangement): void
   /** Terminate the worker; in-flight and queued work rejects with an AbortError, later calls reject. */
   dispose(): void
 }
@@ -61,7 +88,13 @@ type Mode = 'even' | 'true'
 
 const HIGH = 2, LOW = 1
 type Job = { prio: number; msg: WorkerRequest | null; resolve: (r: WorkerReply) => void; reject: (e: unknown) => void; epoch: number }
-type Entry = { promise: Promise<StateLayout>; prio: number; job?: Job; deps: Entry[]; done: boolean; full: boolean }
+type Entry = {
+  promise: Promise<StateLayout>; prio: number; job?: Job; deps: Entry[]; done: boolean; full: boolean
+  /** A get() asked for it; `save` stores it once it is packed (and clears itself). */
+  seen?: boolean; save?: () => void
+  /** Full collages: true once the store missed and it goes to the worker; `quick` the provisional, started on demand. */
+  missed?: Promise<boolean>; quick?: Promise<StateLayout | null>; endQuick?: () => void
+}
 
 const abortError = () => {
   const e = new Error('layout request aborted: the list changed')
@@ -74,14 +107,43 @@ const idle = (fn: () => void) => {
   else setTimeout(fn, 0)
 }
 
-export const CACHE_CAP = 300
+const CACHE_CAP = 300
+/** A state's key without its filter part: "wide|even|", "wide~oval|true|". */
+const fullKey = (layout: LayoutName, mode: Mode, arr: Arrangement) => `${layout}${arr === 'packed' ? '' : `~${arr}`}|${mode}|`
 
-export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter) => string[]; cacheCap?: number } = {}): LayoutClient {
+const newWorker = () => new Worker(new URL('./layout.worker.ts', import.meta.url), { type: 'module' })
+let spare: Worker | null = null
+
+/**
+ * Start a layout worker and its masks download before any collage asks for one (`/` as soon as storage says the device
+ * holds a list, EverybirdProvider), so they overlap the species download. The next createLayoutClient() takes it.
+ */
+export function warmLayoutWorker(): void {
+  if (spare || typeof Worker === 'undefined') return
+  spare = newWorker()
+  spare.postMessage({ type: 'warm' })
+}
+
+/** A stored state's id: what its layout depends on (see the header). */
+export function storeId(list: string, key: string, codes: string[]): string {
+  return `${PACK_VERSION}|${DATA_FILES['species.v1.json']}|${DATA_FILES['masks.v3.bin']}|${list}|${key}|${hashText(codes.join(','))}`
+}
+
+export function createLayoutClient(
+  worker?: Worker,
+  opts: { resolve?: (f: Filter) => string[]; cacheCap?: number; store?: LayoutStore; spawn?: () => Worker } = {},
+): LayoutClient {
+  const { store } = opts
+  const spawn = opts.spawn ?? newWorker
   const cap = opts.cacheCap ?? CACHE_CAP
-  const w: Worker = worker ?? new Worker(new URL('./layout.worker.ts', import.meta.url), { type: 'module' })
+  const w: Worker = worker ?? spare ?? newWorker()
+  if (w === spare) spare = null
   let epoch = 0
   let hasList = false
   let allCodes: string[] = []
+  let listEntries: ListEntryMsg[] = []
+  let listId = ''
+  const quicks = new Set<() => void>() // provisional workers still running: ended by setList and dispose
   let resolveFn: ((f: Filter) => string[]) | undefined = opts.resolve
   let cache = new Map<string, Entry>()
   let nextId = 1
@@ -157,24 +219,40 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
   }
 
   // --- states ---
-  function ensure(f: Filter, layout: LayoutName, mode: Mode, prio: number): Entry {
-    const key = `${layout}|${mode}|${filterKey(f)}`
+  function ensure(f: Filter, layout: LayoutName, mode: Mode, prio: number, arr: Arrangement = 'packed'): Entry {
+    const key = fullKey(layout, mode, arr) + filterKey(f)
     const hit = cache.get(key)
     if (hit) { bump(hit, prio); cache.delete(key); cache.set(key, hit); return hit } // refresh LRU position
     const my = epoch
     const isFull = filterKey(f) === ''
     const entry: Entry = { prio, deps: [], done: false, full: isFull, promise: undefined as unknown as Promise<StateLayout> }
+    let missed: (m: boolean) => void = () => {}
+    if (isFull && mode === 'even') entry.missed = new Promise((r) => { missed = r })
     cache.set(key, entry)
     entry.promise = (async () => {
-      // Dependencies are registered synchronously (before the first await) so bump() can reach them.
-      const evenE = mode === 'true' ? ensure(f, layout, 'even', entry.prio) : undefined
-      const fullE = isFull ? undefined : ensure({}, layout, mode, entry.prio)
+      // The store first: a stored state needs none of its dependencies (a stored true-mode or filtered state shows
+      // without its even or full collage being packed). Its codes are those of the list in hand (refilter drops it).
+      const first = store && listId ? codesFor(f) : undefined
+      const id = first ? storeId(listId, key, first) : ''
+      if (first) {
+        const hit = await store!.get(id)
+        if (my !== epoch) throw abortError()
+        if (hit && hit.key === key && hit.boxes.size === first.length && first.every((c) => hit.boxes.has(c))) {
+          missed(false)
+          entry.done = true
+          return hit
+        }
+      }
+      missed(true)
+      // Dependencies are registered synchronously after the lookup (before the next await) so bump() can reach them.
+      const evenE = mode === 'true' ? ensure(f, layout, 'even', entry.prio, arr) : undefined
+      const fullE = isFull ? undefined : ensure({}, layout, mode, entry.prio, arr)
       if (evenE) entry.deps.push(evenE)
       if (fullE) entry.deps.push(fullE)
       const [even, full] = await Promise.all([evenE?.promise, fullE?.promise])
       if (my !== epoch) throw abortError()
       if (listError) throw listError
-      const codes = codesFor(f)
+      const codes = first ?? codesFor(f)
       let targets: Float32Array | undefined
       // Fixed stage: the full collage's (untrimmed) stage; for the true-mode full collage, the even one's.
       const stage = full ?? even
@@ -190,7 +268,7 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
       }
       const reply = await send({
         type: 'layout', key, codes, layout, mode,
-        refBase: full?.base, fixedStage: stage ? [stage.W, stage.H] : undefined, targets, fit: !isFull,
+        refBase: full?.base, fixedStage: stage ? [stage.W, stage.H] : undefined, targets, fit: !isFull, ...(arr === 'oval' ? { oval: true } : arr === 'free' ? { free: true } : {}),
       }, entry)
       if (reply.type !== 'result') throw new Error('unexpected worker reply')
       const boxes = new Map<string, Box>()
@@ -199,9 +277,19 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
       entry.done = true
       entry.deps = []
       entry.job = undefined
-      return { key, layout, mode, W: reply.W, H: reply.H, boxes, base: reply.base, scale: fullBase ? reply.base / fullBase : 1 }
+      entry.endQuick?.()
+      const result: StateLayout = { key, layout, mode, W: reply.W, H: reply.H, boxes, base: reply.base, scale: fullBase ? reply.base / fullBase : 1 }
+      if (id && !reply.degraded) {
+        entry.save = () => { entry.save = undefined; store!.put(id, result) }
+        if (entry.full || entry.seen) entry.save()
+      }
+      return result
     })()
-    entry.promise.catch(() => { if (cache.get(key) === entry) cache.delete(key) }) // failures can be retried
+    entry.promise.catch(() => {
+      missed(false)
+      entry.endQuick?.()
+      if (cache.get(key) === entry) cache.delete(key) // failures can be retried
+    })
     for (const [k, e] of cache) { // LRU cap: oldest settled non-full entry goes first
       if (cache.size <= cap) break
       if (e.done && !e.full) cache.delete(k)
@@ -209,11 +297,36 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
     return entry
   }
 
+  // The provisional full collage for a full entry that missed the store (see the header), started once.
+  function quick(entry: Entry, layout: LayoutName, arr: Arrangement): Promise<StateLayout | null> {
+    const my = epoch
+    const entries = listEntries
+    return (entry.quick ??= entry.missed!.then((miss) => {
+      if (!miss || entry.done || my !== epoch || disposed || entries.length < PROVISIONAL_FROM || (typeof Worker === 'undefined' && !opts.spawn)) return null
+      const q = spawn()
+      return new Promise<StateLayout | null>((res) => {
+        const end = (l: StateLayout | null) => { if (entry.endQuick) quicks.delete(entry.endQuick); entry.endQuick = undefined; q.terminate(); res(l) }
+        entry.endQuick = () => end(null)
+        quicks.add(entry.endQuick)
+        q.onmessage = (e: MessageEvent<WorkerReply>) => {
+          const r = e.data
+          if (r.type !== 'result' || entry.done || my !== epoch) return end(null)
+          const boxes = new Map<string, Box>()
+          r.codes.forEach((c, i) => boxes.set(c, [r.boxes[4 * i], r.boxes[4 * i + 1], r.boxes[4 * i + 2], r.boxes[4 * i + 3]]))
+          end({ key: r.key, layout, mode: 'even', W: r.W, H: r.H, boxes, base: r.base, scale: 1 })
+        }
+        q.onerror = () => end(null)
+        q.postMessage({ type: 'provisional', id: 0, key: fullKey(layout, 'even', arr), entries, layout, ...(arr === 'oval' ? { oval: true } : arr === 'free' ? { free: true } : {}) } satisfies WorkerRequest)
+      })
+    }))
+  }
+
   return {
-    setList(entries, resolve) {
+    setList(entries, resolve, masks) {
       if (disposed) return
       epoch++
       cache = new Map()
+      ;[...quicks].forEach((end) => end())
       const aborted = queue.splice(0)
       aborted.forEach((j) => j.reject(abortError()))
       // jobs already on the worker finish there; their replies are rejected as stale in onmessage
@@ -221,9 +334,12 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
       for (const k of Object.keys(getEntries)) delete getEntries[k]
       resolveFn = resolve ?? opts.resolve
       allCodes = entries.map((e) => e.code)
+      listEntries = entries
+      // The landing sample (masks handed over) has its seed layouts and is never stored.
+      listId = store && !masks ? hashText(entries.map((e) => `${e.code}:${e.mass}:${e.ord}`).join(',')) : ''
       hasList = true
       const myEpoch = epoch
-      const job: Job = { prio: HIGH, msg: { type: 'setList', id: nextId++, entries }, resolve: () => {}, reject: (e) => { if (epoch === myEpoch) listError = e instanceof Error ? e : new Error(String(e)) }, epoch }
+      const job: Job = { prio: HIGH, msg: { type: 'setList', id: nextId++, entries, ...(masks ? { masks } : {}) }, resolve: () => {}, reject: (e) => { if (epoch === myEpoch) listError = e instanceof Error ? e : new Error(String(e)) }, epoch }
       queue.unshift(job)
       pump()
     },
@@ -234,15 +350,19 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
       for (const [k, e] of cache) if (!e.full) cache.delete(k)
     },
 
-    get(f, layout, mode) {
+    get(f, layout, mode, arr = 'packed', early) {
       if (disposed) return Promise.reject(new Error('layout client disposed'))
       if (!hasList) return Promise.reject(new Error('setList() must be called before get()'))
       const tok = (seq[layout] = (seq[layout] ?? 0) + 1)
       const stale = () => tok !== seq[layout]
       // The newest request runs next: earlier gets' queued jobs drop to prefetch priority (they still cache).
       ;(getEntries[layout] ?? []).forEach(demote)
-      const entry = ensure(f, layout, mode, HIGH)
+      const entry = ensure(f, layout, mode, HIGH, arr)
+      entry.seen = true
+      entry.save?.()
       getEntries[layout] = [entry]
+      const fullE = early && cache.get(fullKey(layout, 'even', arr))
+      if (fullE?.missed && !fullE.done) void quick(fullE, layout, arr).then((l) => { if (l && !stale() && !entry.done) early!(l) })
       const p = entry.promise.then(
         (r) => (stale() ? latest[layout] : r),
         (e) => { if (stale()) return latest[layout]; throw e },
@@ -251,11 +371,11 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
       return p
     },
 
-    prefetch(fs, layout) {
+    prefetch(fs, layout, arr = 'packed') {
       const my = epoch
       idle(() => {
         if (my !== epoch || disposed) return
-        for (const f of fs) ensure(f, layout, 'even', LOW).promise.catch(() => {})
+        for (const f of fs) ensure(f, layout, 'even', LOW, arr).promise.catch(() => {})
       })
     },
 
@@ -264,6 +384,7 @@ export function createLayoutClient(worker?: Worker, opts: { resolve?: (f: Filter
       disposed = true
       epoch++
       cache = new Map()
+      ;[...quicks].forEach((end) => end())
       failAll(abortError())
       w.terminate()
     },

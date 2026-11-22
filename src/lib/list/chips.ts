@@ -22,7 +22,7 @@ export type Chip = { kind: ChipKind; label: string; token: string; spoken?: stri
 /** The token of a collapsed chip ("5 places"): every value of its kind. */
 export const ALL = '*'
 /** More values than this in one kind collapse to a single "N places" chip. */
-export const MAX_CHIPS = 3
+const MAX_CHIPS = 3
 
 type Names = Pick<Regions, 'countries' | 'sub1'>
 

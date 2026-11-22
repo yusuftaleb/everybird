@@ -1,11 +1,13 @@
 'use client'
-import { CaretDown } from '@phosphor-icons/react'
-import { useId, useRef, useState, type ReactNode } from 'react'
+import { CaretDown } from '@/components/phosphor-icons'
+import { useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useMenuLayer } from '@/components/menu-layer'
 import { fmt, plural } from '@/i18n/core'
 import { formatInt, shortDay } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import type { Ui } from '@/i18n/messages/en'
-import type { EbirdDetails, InatDetails, ObsOrgDetails, ScythebillDetails, SheetDetails } from '@/lib/list/storage'
+import type { EbirdDetails, IgoterraDetails, InatDetails, ObsOrgDetails, ScythebillDetails, SheetDetails } from '@/lib/list/storage'
 import { obsorgNotCounted } from './obsorg-copy'
 import { SourceMenu, type MenuItem, type SourceMenuHandle } from './SourceMenu'
 
@@ -14,7 +16,7 @@ const fallback = (kind: EbirdDetails['kind'], t: Ui) => (kind === 'full-export' 
 
 /** A connected source's file or username (after the title) and the status parts after its counts and skipped entries
  *  ("Imported 6 Nov"). The counts ("185 species · 12 only here", source-counts.ts) lead the line (SourceRow). */
-export type SourceState = { name: string; parts: string[] }
+type SourceState = { name: string; parts: string[] }
 
 /** One eBird file: its name, then "Imported 6 Nov" (shortDay: no year this year). Unknown details say so. */
 export function ebirdLine(kind: EbirdDetails['kind'], d: EbirdDetails | undefined, t: Ui, now?: Date): SourceState {
@@ -52,6 +54,12 @@ export function scythebillLine(d: ScythebillDetails | undefined, t: Ui, now?: Da
   return { name, parts: date ? [fmt(t.import.imported, { date })] : [] }
 }
 
+export function igoterraLine(d: IgoterraDetails | undefined, t: Ui, now?: Date): SourceState {
+  if (!d) return { name: t.import.igoterra.fallback, parts: [t.import.detailsUnknown] }
+  const date = d.at ? shortDay(d.at, t.date.months, now) : ''
+  return { name: d.file || t.import.igoterra.fallback, parts: date ? [fmt(t.import.imported, { date })] : [] }
+}
+
 type Props = {
   title: string
   /** Connected: the file name or username, after the title (" · ebird_world_life_list.csv"). */
@@ -82,13 +90,21 @@ type Props = {
  * username), a muted sentence-case status ("185 species · 12 only here · 10 skipped · Updated 6 Nov"), and the row's primary
  * button on the right; a connected source's line leads with its counts ("185 species · 12 only here") and adds a ⋯ menu (SourceMenu) holding its other actions and Remove. Remove asks
  * once, inline, before taking the source's birds away. Edits always stay. "why?" after the skipped count opens the
- * entries that weren't counted under the row.
+ * entries that weren't counted in a small popover beside it (WhyPopover). `.eb-src-main` is the source's cell in the
+ * list's grid; everything after it (the Remove question, `children`) spans the grid under the cell's row, the Add
+ * panels under the whole grid (import.css).
  */
 export function SourceRow({ title, name, parts, counts, skipped, primary, menu, what, onRemove, disabled, children, testId }: Props) {
   const id = useId()
   const { t } = useI18n()
   const [asking, setAsking] = useState(false)
   const [why, setWhy] = useState(false)
+  const whyBtn = useRef<HTMLButtonElement>(null)
+  const whyPop = useRef<HTMLDivElement>(null)
+  const whyKeys = useWhyPopover(why, () => setWhy(false), whyBtn, whyPop)
+  // The popover under the link (over it when there is no room below), its left edge on the link's, kept 8px inside the
+  // window, in the shared top layer (menu-layer.ts): the Add birds dialog's scrolling box never clips it.
+  useMenuLayer(whyPop, whyBtn, { on: why, align: 'start', cap: 260 })
   const menuBtn = useRef<SourceMenuHandle>(null)
   const items: MenuItem[] = [...(menu ?? []), ...(what ? [{ label: t.import.remove, danger: true, keepFocus: true, onSelect: () => setAsking(true) }] : [])]
   const skippedN = { n: formatInt(skipped?.n ?? 0, t.num) }
@@ -112,12 +128,15 @@ export function SourceRow({ title, name, parts, counts, skipped, primary, menu, 
           </h3>
           <p className="eb-src-meta">
             {lead.map((p, i) => <span key={p}>{i > 0 && ' · '}<span className="eb-nowrap">{p}</span></span>)}
-            {why0 && (
+            {why0 && skipped && (
               <>
                 {' · '}
                 <span className="eb-nowrap">
                   {why0.label}{' '}
-                  <button type="button" className="eb-whybtn" aria-expanded={why} aria-controls={`${id}-why`} aria-label={why0.ask} onClick={() => setWhy((w) => !w)}>
+                  <button
+                    ref={whyBtn} type="button" className="eb-whybtn" aria-expanded={why} aria-controls={`${id}-why`} aria-label={why0.ask}
+                    onClick={() => setWhy((w) => !w)} {...whyKeys}
+                  >
                     {t.import.why}
                   </button>
                 </span>
@@ -130,24 +149,48 @@ export function SourceRow({ title, name, parts, counts, skipped, primary, menu, 
           {primary}
           {items.length > 0 && <SourceMenu ref={menuBtn} label={fmt(t.import.more, { title })} items={items} disabled={disabled} />}
         </div>
-      </div>
-      {why0 && skipped && (
-        <div id={`${id}-why`} className="eb-src-why" hidden={!why} data-testid="not-counted">
-          {skipped.body}
-        </div>
-      )}
-      {what && asking && (
-        <div className="eb-confirm eb-src-confirm" role="group" aria-label={fmt(t.import.removeLabel, { what })}>
-          <p>{fmt(t.import.removeAsk, { what })}</p>
-          <div className="eb-row">
-            <button type="button" className="eb-btn eb-btn-danger-solid" autoFocus onClick={() => { setAsking(false); onRemove?.() }}>{t.import.removeYes}</button>
-            <button type="button" className="eb-btn eb-btn-quiet" onClick={() => { setAsking(false); menuBtn.current?.focus() }}>{t.import.keep}</button>
+        {why0 && skipped && (
+          // What "why?" explains, in a small popover under it (useMenuLayer places it, in the top layer).
+          <div ref={whyPop} id={`${id}-why`} className="eb-whypop" hidden={!why} data-testid="not-counted" {...whyKeys}>
+            {skipped.body}
           </div>
-        </div>
+        )}
+      </div>
+      {what && asking && (
+        <ConfirmDialog
+          ask={fmt(t.import.removeAsk, { what })} yes={t.import.removeYes} keep={t.import.keep}
+          onYes={() => { setAsking(false); onRemove?.() }} onKeep={() => setAsking(false)}
+          returnTo={() => menuBtn.current}
+        />
       )}
       {children}
     </div>
   )
+}
+
+/**
+ * "why?"'s popover (placed by SourceRow under the link, inside the cell, `.eb-src-main`): it closes on a press outside, Esc (focus back on "why?"), focus leaving
+ * the link and the popover, or "why?" again (SourceRow's button).
+ */
+function useWhyPopover(open: boolean, close: () => void, btn: RefObject<HTMLButtonElement | null>, pop: RefObject<HTMLDivElement | null>) {
+  const inside = (n: Node | null) => !!n && (!!btn.current?.contains(n) || !!pop.current?.contains(n))
+  useEffect(() => {
+    if (!open) return
+    const down = (e: PointerEvent) => { if (!inside(e.target as Node)) close() }
+    document.addEventListener('pointerdown', down)
+    return () => document.removeEventListener('pointerdown', down)
+  })
+  return {
+    onKeyDown: (e: KeyboardEvent) => {
+      // Esc closes the popover only (the Add birds dialog checks defaultPrevented before closing itself).
+      if (e.key !== 'Escape' || !open) return
+      e.preventDefault()
+      e.stopPropagation()
+      close()
+      btn.current?.focus({ preventScroll: true })
+    },
+    onBlur: (e: FocusEvent) => { if (open && !inside(e.relatedTarget as Node | null)) close() },
+  }
 }
 
 /** Inside an Add panel: the how-to behind a small disclosure ("How do I get this file?"). */

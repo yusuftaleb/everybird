@@ -35,7 +35,7 @@ export const monthShort = (m: Month, t: Pick<Ui, 'date'>): string => formatMonth
 /** The current month (UTC). */
 export const todayMonth = (now = new Date()): Month => `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
 
-export type MonthBins = { months: Month[]; counts: number[]; max: number; undated: number }
+type MonthBins = { months: Month[]; counts: number[]; max: number; undated: number }
 
 /**
  * New species per month of `list`, over the months from the first lifer of `spanOf` (default: `list`) to `today` (or
@@ -66,9 +66,9 @@ export function monthBins(list: readonly ListEntry[], today: Month, spanOf: read
 }
 
 /** An empty stretch at least this many months long is drawn as a short break (monthAxis). */
-export const GAP_MIN_MONTHS = 12
+const GAP_MIN_MONTHS = 12
 /** How many months' width a collapsed gap takes. */
-export const GAP_UNITS = 2
+const GAP_UNITS = 2
 
 /**
  * The strip's horizontal scale. Every month is one unit wide, except runs of GAP_MIN_MONTHS or more empty months
@@ -76,7 +76,7 @@ export const GAP_UNITS = 2
  * long gap before regular birding no longer stretch the strip off screen. `start[i]` is month i's left edge in units
  * (`start[N]` = `units`); `gaps` are the collapsed runs (month indices, inclusive).
  */
-export type MonthAxis = { units: number; start: number[]; gaps: { from: number; to: number }[] }
+type MonthAxis = { units: number; start: number[]; gaps: { from: number; to: number }[] }
 export function monthAxis(counts: readonly number[], minGap = GAP_MIN_MONTHS, gapUnits = GAP_UNITS): MonthAxis {
   const N = counts.length
   const width = new Array<number>(N).fill(1)

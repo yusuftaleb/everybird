@@ -39,3 +39,20 @@ export function printStickerUrl(code: string, devicePx: number, sv?: string): { 
     fallback: size === PRINT ? `${STICKER_BASE}/${stickerPath(code, LARGE, sv)}` : null,
   }
 }
+
+/**
+ * The bird card's large sticker (BirdCard): the 384 and 1024 files as a srcset, each described by its nominal long side,
+ * so with `sizes` the card's box width a 1× screen takes 384 and a 2× or 3× screen 1024. `src` is the 384 file.
+ */
+export function cardSrcSet(code: string, sv?: string): { src: string; srcSet: string } {
+  const src = `${STICKER_BASE}/${stickerPath(code, LARGE, sv)}`
+  return { src, srcSet: `${src} ${LARGE}w, ${STICKER_BASE}/${stickerPath(code, PRINT, sv)} ${PRINT}w` }
+}
+
+/**
+ * The card's one fallback: when the file that failed is the 1024 (R2 only; the GitHub Pages copy has no 1024 tier), the
+ * same species' 384 file, as printStickerUrl's fallback for posters; null when the 384 itself failed.
+ */
+export function cardFallback(failed: string, code: string, sv?: string): string | null {
+  return failed === `${STICKER_BASE}/${stickerPath(code, PRINT, sv)}` ? cardSrcSet(code, sv).src : null
+}

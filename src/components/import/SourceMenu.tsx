@@ -1,6 +1,7 @@
 'use client'
-import { DotsThree } from '@phosphor-icons/react'
+import { DotsThree } from '@/components/phosphor-icons'
 import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState, type KeyboardEvent } from 'react'
+import { useMenuLayer } from '@/components/menu-layer'
 
 export type MenuItem = {
   label: string
@@ -12,13 +13,15 @@ export type MenuItem = {
   keepFocus?: boolean
 }
 
-export type SourceMenuHandle = { focus: () => void }
+/** The ⋯ button itself (focus goes back to it after a confirmation). */
+export type SourceMenuHandle = HTMLButtonElement
 
 /**
  * A source row's ⋯ menu (Settings > Your list): a real menu button. Enter, Space or ArrowDown opens it on the first
  * item, ArrowUp on the last; the arrows move (wrapping), Home and End jump, Escape closes it and focus returns to the
  * button; Tab or a press outside closes it. Picking an item closes it, then runs the item (focus back on the button
- * unless the item moves focus itself).
+ * unless the item moves focus itself). The open menu is right-aligned under the button (upward when it doesn't fit
+ * below) in the shared top layer (menu-layer.ts), so the Add birds dialog's scrolling box never clips it.
  */
 export const SourceMenu = forwardRef<SourceMenuHandle, { label: string; items: MenuItem[]; disabled?: boolean }>(function SourceMenu({ label, items, disabled }, ref) {
   const id = useId()
@@ -26,13 +29,14 @@ export const SourceMenu = forwardRef<SourceMenuHandle, { label: string; items: M
   const btn = useRef<HTMLButtonElement>(null)
   const menu = useRef<HTMLDivElement>(null)
   const startAt = useRef(0)
-  useImperativeHandle(ref, () => ({ focus: () => btn.current?.focus() }), [])
+  useImperativeHandle(ref, () => btn.current!, [])
+  useMenuLayer(menu, btn, { on: open })
 
   const itemEls = () => [...(menu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])]
   useEffect(() => {
     if (!open) return
     const els = itemEls()
-    els[(startAt.current + els.length) % els.length]?.focus()
+    els[(startAt.current + els.length) % els.length]?.focus({ preventScroll: true }) // opening never scrolls the page
     const away = (e: PointerEvent) => {
       const t = e.target as Node
       if (!menu.current?.contains(t) && !btn.current?.contains(t)) setOpen(false)
@@ -43,7 +47,7 @@ export const SourceMenu = forwardRef<SourceMenuHandle, { label: string; items: M
   useEffect(() => { if (disabled) setOpen(false) }, [disabled])
 
   const show = (at: number) => { startAt.current = at; setOpen(true) }
-  const close = (refocus: boolean) => { setOpen(false); if (refocus) btn.current?.focus() }
+  const close = (refocus: boolean) => { setOpen(false); if (refocus) btn.current?.focus({ preventScroll: true }) }
 
   const onButtonKey = (e: KeyboardEvent) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); show(0) }

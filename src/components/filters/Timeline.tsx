@@ -3,8 +3,11 @@
 // the busiest month; empty months a baseline tick), a year axis under it, and two handles that choose a range of
 // months; Clear (top right, as the Places panel's) resets the range to the whole span. While a handle is held (or keys repeat) the collage previews the range over its current
 // layout (birds outside it hidden, no re-pack); on release (or KEY_COMMIT_MS after the last key) the range is
-// committed: one re-pack, one travel. Layouts are cached by range. On phones the strip scrolls sideways; the handles are sliders for keyboards (arrows a
-// month, PageUp/PageDown a year, Home/End). Logic in src/lib/list/timeline.ts.
+// committed: one re-pack, one travel. Layouts are cached by range. A tap or click on the strip moves the nearer handle
+// there and commits (on click, so a sideways pan still scrolls the strip). On phones the strip scrolls sideways; the
+// handles are sliders for keyboards (arrows a month, PageUp/PageDown a year, Home/End). The readout is not a live
+// region (each step of a drag would be read): the handles' aria-valuetext and the panel head's status say it.
+// Logic in src/lib/list/timeline.ts.
 import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { plural } from '@/i18n/core'
 import { formatInt } from '@/i18n/format'
@@ -17,7 +20,7 @@ import type { SpeciesIndex } from '@/lib/species/load'
 import './timeline.css'
 
 /** Narrowest month on screen (px): below it the strip scrolls sideways. (A collapsed gap's months are narrower.) */
-export const MONTH_PX = 6
+const MONTH_PX = 6
 /** Keyboard steps commit the range this long after the last key (a pointer drag commits on release). */
 export const KEY_COMMIT_MS = 350
 
@@ -33,12 +36,14 @@ type Props = {
   onFilter: (f: Filter) => void
   /** The range being dragged (open at the span's edges), or null once committed. */
   onPreview?: (r: { from?: Month; to?: Month } | null) => void
+  /** The section title's id: Clear is named "Clear Time" by it. */
+  titleId?: string
 }
 
-export const Timeline = memo(function Timeline({ entries, seen, filter, species, months, today, onFilter, onPreview }: Props) {
+export const Timeline = memo(function Timeline({ entries, seen, filter, species, months, today, onFilter, onPreview, titleId }: Props) {
   const N = months.length
-  const baseId = useId()
   const { t } = useI18n()
+  const clearId = useId()
   // Bars count the birds of the other filters (birds, places) over the whole span, so the handles never jump.
   const others = useMemo(() => applyFilter(entries, timeless(filter), species, seen), [entries, filter, species, seen])
   const bins = useMemo(() => monthBins(others, today, entries), [others, today, entries])
@@ -47,15 +52,6 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
   const frac = (i: number) => axis.start[i] / Math.max(1e-9, axis.units)
   const pct = (i: number) => `${frac(i) * 100}%`
   const chosen = useMemo(() => rangeIndices(filter, months), [filter, months])
-  // The basis switch is for lists with month sets (MyEBirdData, iNaturalist, observation.org observations); without, nothing changes by it.
-  const hasMonths = useMemo(() => hasSeenMonths(seen), [seen])
-  const basis = filter.basis === 'seen' ? 'seen' : 'lifer'
-  const setBasis = useCallback((b: 'lifer' | 'seen') => {
-    const next: Filter = { ...latest.current.filter }
-    if (b === 'seen') next.basis = 'seen'
-    else delete next.basis
-    latest.current.onFilter(next)
-  }, [])
   const [drag, setDrag] = useState<[number, number] | null>(null)
   const [lo, hi] = drag ?? chosen
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -172,6 +168,23 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
     onPointerUp: () => { if (dragging.current) { dragging.current = null; commit() } },
     onPointerCancel: () => { if (dragging.current) { dragging.current = null; commit() } },
   }
+  // A tap or click on the strip (not a handle): the nearer handle moves to that month and the range commits at once. On
+  // click, which a sideways pan of the strip never fires, so panning still scrolls.
+  const onStripClick = (e: React.MouseEvent) => {
+    if (!N || (e.target as Element).closest('.eb-time-handle')) return
+    const which = pickHandle(e.clientX, xOf(lo), xOf(hi + 1), 0) ?? 'hi'
+    // The month under the pointer, taken in whole: the start moves to its start, the end to its end.
+    const r = track.current!.getBoundingClientRect()
+    const u = ((e.clientX - r.left) / Math.max(1, r.width)) * axis.units
+    let i = 0
+    while (i < N - 1 && axis.start[i + 1] <= u) i++
+    const [a, b] = which === 'lo' ? [Math.min(i, hi), hi] : [lo, Math.max(i, lo)]
+    if (a === lo && b === hi) return
+    const { filter: f, months: ms, onFilter: set } = latest.current
+    set(rangeFilter(f, a, b, ms))
+  }
+  // The refs are read in the handlers, not in render (the React compiler lints this component whenever RepeatSwitch shares its file).
+  /* eslint-disable react-hooks/refs */
   const handleProps = (which: 'lo' | 'hi') => {
     const v = which === 'lo' ? lo : hi
     const [min, max] = which === 'lo' ? [0, hi] : [lo, N - 1]
@@ -196,6 +209,7 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
       ...pointer,
     } as const
   }
+  /* eslint-enable react-hooks/refs */
 
   // Readout: the range and its species.
   const ranged = lo > 0 || hi < N - 1
@@ -212,44 +226,16 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
   return (
     <div className="eb-time" data-testid="timeline">
       <div className="eb-time-head">
-        <p className="eb-mono eb-time-read" data-testid="timeline-read" aria-live="polite">
+        <p className="eb-mono eb-time-read" data-testid="timeline-read">
           {/* Wraps only between its parts, never inside a date or the count. */}
           {read.split(' · ').map((part, i) => <span key={i}>{i > 0 && ' · '}<span className="eb-nowrap">{part}</span></span>)}
         </p>
         {ranged && (
-          <button type="button" className="eb-textbtn" data-testid="time-clear" onClick={clear}>{t.filters.clear}</button>
+          <button type="button" id={clearId} className="eb-textbtn" aria-labelledby={titleId ? `${clearId} ${titleId}` : undefined} data-testid="time-clear" onClick={clear}>{t.filters.clear}</button>
         )}
       </div>
-      {hasMonths && (
-        <div className="eb-time-basis">
-          <p className="eb-time-basis-label" id={`${baseId}-basis`}>{t.filters.basis.label}</p>
-          <div className="eb-time-basis-seg" role="radiogroup" aria-labelledby={`${baseId}-basis`} data-testid="time-basis">
-            {(['lifer', 'seen'] as const).map((b) => (
-              <button
-                key={b}
-                type="button"
-                role="radio"
-                aria-checked={basis === b}
-                tabIndex={basis === b ? 0 : -1}
-                className="eb-time-basis-btn"
-                data-testid={`time-basis-${b}`}
-                onClick={() => setBasis(b)}
-                onKeyDown={(e) => {
-                  if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
-                  e.preventDefault()
-                  const other = b === 'lifer' ? 'seen' : 'lifer'
-                  setBasis(other)
-                  e.currentTarget.parentElement?.querySelector<HTMLElement>(`[data-testid="time-basis-${other}"]`)?.focus()
-                }}
-              >
-                {b === 'lifer' ? t.filters.basis.first : t.filters.basis.any}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
       <div ref={scroller} className="eb-time-scroll" onScroll={edges} data-more={more || undefined}>
-        <div ref={track} className="eb-time-track" style={{ width }} data-ranged={ranged ? '' : undefined}>
+        <div ref={track} className="eb-time-track" style={{ width }} data-ranged={ranged ? '' : undefined} onClick={onStripClick}>
           <div className="eb-time-bars" aria-hidden="true">
             <div className="eb-time-sel" style={{ left: pct(lo), width: `${(frac(hi + 1) - frac(lo)) * 100}%` }} data-ranged={ranged ? '' : undefined} />
             <svg viewBox={`0 0 ${axis.units} 100`} preserveAspectRatio="none">
@@ -275,3 +261,30 @@ export const Timeline = memo(function Timeline({ entries, seen, filter, species,
     </div>
   )
 })
+
+/** "Count repeat sightings" (`Filter.basis`), at the right of the Time section's head (Filters.tsx): off, a bird counts
+ *  where and when it was first seen (the lifer); on ('seen'), everywhere and every year it was seen, so Places and Time
+ *  mean seen there in that period. The note saying so is its tooltip and accessible description, never a line of text,
+ *  so the switch never moves when it flips. Only for lists with month sets (MyEBirdData, iNaturalist, observation.org
+ *  observations): without, nothing changes by it and it isn't shown. */
+export function RepeatSwitch({ filter, seen, onFilter }: { filter: Filter; seen?: SeenIndex; onFilter: (f: Filter) => void }) {
+  const id = useId()
+  const { t } = useI18n()
+  const hasMonths = useMemo(() => hasSeenMonths(seen), [seen])
+  if (!hasMonths) return null
+  const on = filter.basis === 'seen'
+  const note = on ? t.filters.basis.on : t.filters.basis.off
+  const toggle = () => {
+    const next: Filter = { ...filter }
+    if (on) delete next.basis
+    else next.basis = 'seen'
+    onFilter(next)
+  }
+  return (
+    <button type="button" role="switch" aria-checked={on} aria-labelledby={`${id}-l`} aria-describedby={`${id}-n`} title={note} className="eb-setrow-btn eb-frepeat" data-testid="repeat-sightings" onClick={toggle}>
+      <span id={`${id}-l`} className="eb-setrow-label">{t.filters.basis.label}</span>
+      <span id={`${id}-n`} className="eb-sr">{note}</span>
+      <span className="eb-track" aria-hidden="true"><span className="eb-knob" /></span>
+    </button>
+  )
+}

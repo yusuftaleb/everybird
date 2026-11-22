@@ -3,12 +3,22 @@ import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { LAYOUTS } from '../src/lib/layout/constants'
 import {
-  collageBoxes, collageHole, COUNT_LABEL_CHARS, countDisplay, countScale, countText, holeArea, holeExtent, isHole, labelBounds, labelEm, LABEL_GROW_MAX, MONO_EM, MONO_TRACK,
+  collageBoxes, collageHole, COUNT_LABEL_CHARS, countDisplay, GOAL_LABEL_CHARS, goalLabelCells, labelCells, countScale, countText, holeArea, holeExtent, isHole, labelBounds, labelEm, LABEL_GROW_MAX, MONO_EM, MONO_TRACK,
   NO_HOLE, collagePad, numberEm, PAD_FULL_AT, PAD_LONG, PAD_SHORT, rectGap, touchesHole, type Hole, type Rect,
 } from '../src/lib/layout/count-box'
 import { en } from '../src/i18n/messages/en'
 import { es } from '../src/i18n/messages/es'
 import { nl } from '../src/i18n/messages/nl'
+import { pl } from '../src/i18n/messages/pl'
+import { fr } from '../src/i18n/messages/fr'
+import { de } from '../src/i18n/messages/de'
+import { it as italian } from '../src/i18n/messages/it'
+import { sv } from '../src/i18n/messages/sv'
+import { da } from '../src/i18n/messages/da'
+import { ru } from '../src/i18n/messages/ru'
+import { ja } from '../src/i18n/messages/ja'
+import { zhHans } from '../src/i18n/messages/zh-Hans'
+import { zhHant } from '../src/i18n/messages/zh-Hant'
 import { pt } from '../src/i18n/messages/pt'
 import { decodeMask, maskCell, type Mask } from '../src/lib/layout/mask'
 import { packBest, packFrame, type PackBird, type PackResult } from '../src/lib/layout/pack'
@@ -76,19 +86,24 @@ describe('count text metrics', () => {
   it('draws five digits a little smaller', () => {
     expect([7, 197, 1089, 11019].map((n) => countScale(countText(n)))).toEqual([1, 1, 1, 0.85])
   })
-  it('measures progress strings with "/" and spaces', () => {
-    const slashW = numberEm('120 / 300')
-    expect(slashW).toBeGreaterThan(numberEm('120300'))
-    expect(slashW).toBeLessThan(numberEm('12000300'))
-    const k = countLayout('story', 120, 952, 300)
-    expect(k.number).toBe('120 / 300')
-    expect(k.hole.num[2] - k.hole.num[0]).toBeCloseTo(slashW * k.size, 6)
+  it('a goal keeps the number at its no-goal size and widens only the label box ("/ 300 SPECIES")', () => {
+    for (const countSize of ['small', 'medium', 'large'] as const) {
+      const plain = countLayout('story', 120, 952, undefined, countSize)
+      const k = countLayout('story', 120, 952, 300, countSize)
+      expect(k.number).toBe('120')
+      expect([k.size, k.labelSize, k.gap]).toEqual([plain.size, plain.labelSize, plain.gap])
+      expect(k.hole.num).toEqual(plain.hole.num)
+      expect(k.cells).toBe(goalLabelCells(300))
+      expect(k.hole.label[2] - k.hole.label[0]).toBeCloseTo(labelEm(goalLabelCells(300)) * k.labelSize, 6)
+      expect(k.hole.label[2] - k.hole.label[0]).toBeGreaterThan(plain.hole.label[2] - plain.hole.label[0])
+    }
+    expect(countLayout('story', 120, 952, 300, 'hide').hole).toEqual(countLayout('story', 120, 952, undefined, 'hide').hole)
   })
 })
 
 // The geometry (the hole, countScale) is the en-US text and an 8-character label in every language; what is drawn is
 // the language's number and label. Drawn text must never be wider than the geometry's.
-const LANGS = { en, es, pt, nl }
+const LANGS = { en, es, pt, nl, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant }
 describe('the count in every language (one hole for all)', () => {
   it('every language draws within the geometry', () => {
     for (const [lang, m] of Object.entries(LANGS)) {
@@ -102,14 +117,38 @@ describe('the count in every language (one hole for all)', () => {
     expect(countDisplay(11019, pt.ui.num)).toBe('11.019')
     expect(countDisplay(1089, en.ui.num)).toBe(countText(1089))
   })
+  it('the goal label box holds every language\'s "of N species", every plural form', () => {
+    for (const [lang, m] of Object.entries(LANGS)) {
+      for (const form of Object.values(m.ui.share.bigYear.ofTarget)) {
+        const words = form.replace('{n}', '').toUpperCase()
+        expect(form, lang).toContain('{n}')
+        expect(labelCells(words), `${lang} ${form}`).toBeLessThanOrEqual(GOAL_LABEL_CHARS)
+      }
+    }
+  })
   it('the label box holds the longest label', () => {
     // "ESPÉCIES" (pt) and "ESPECIES" (es) are 8 characters, the most of any language.
     expect(labelEm()).toBeGreaterThanOrEqual('ESPÉCIES'.length * (MONO_EM + MONO_TRACK))
     for (const [lang, m] of Object.entries(LANGS)) {
-      const label = m.ui.count.label.toUpperCase()
-      expect([...label].length, lang).toBeLessThanOrEqual(COUNT_LABEL_CHARS)
-      expect(labelEm(), lang).toBeGreaterThanOrEqual([...label].length * (MONO_EM + MONO_TRACK))
+      // The label and every form of the word drawn for a number (H7: "GATUNKÓW", 8).
+      for (const word of [m.ui.count.label, ...Object.values(m.ui.count.word)]) {
+        const label = word.toUpperCase()
+        expect(labelCells(label), lang).toBeLessThanOrEqual(COUNT_LABEL_CHARS)
+        expect(labelEm(), lang).toBeGreaterThanOrEqual(labelCells(label) * (MONO_EM + MONO_TRACK))
+      }
     }
+  })
+})
+
+describe('labelCells', () => {
+  it('counts a kana or Han character as two Geist Mono cells, any other as one', () => {
+    expect(labelCells('SPECIES')).toBe(7)
+    expect(labelCells('ВИДЫ')).toBe(4)
+    expect(labelCells('種')).toBe(2)
+    expect(labelCells('鸟种')).toBe(4)
+    expect(labelCells('スピーシーズ')).toBe(12)
+    // Two cells with tracking hold a full-width character's 1em.
+    expect(2 * (MONO_EM + MONO_TRACK)).toBeGreaterThanOrEqual(1)
   })
 })
 

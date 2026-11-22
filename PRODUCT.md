@@ -27,7 +27,7 @@ The interface supports English, Spanish, Brazilian Portuguese and Dutch. Smart s
 Light by default with a toggle; one accent; the "match /lifelist" principle; Yusuf credited on About and in the footer.
 
 ## Evidence on Hand
-Spec `docs/superpowers/specs/2026-11-05-everybird-design.md`, plan `docs/superpowers/plans/2026-11-05-everybird.md`, `docs/validation.md`, DESIGN.md.
+Spec `docs/superpowers/specs/2026-11-05-everybird-design.md`, the original plan (in the git history), `docs/validation.md`, DESIGN.md.
 
 ## Product Principles
 Birds lead, interface recedes. Plain words. Private by default. Honest about what was and was not counted.

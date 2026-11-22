@@ -1,5 +1,56 @@
 /* Everybird design tokens. Light is the default, whatever the system says; dark only when <html> carries
    data-theme=dark (the visitor's choice, applied before paint by app/[lang]/layout.tsx; src/lib/theme.ts). */
+
+/* Metric-matched stand-ins for Satoshi and Cabinet Grotesk while Fontshare's files load (font-display: swap): Arial
+   scaled to each face's average width and given its line metrics, so the text keeps its size and lines when the real
+   font swaps in. size-adjust = the face's average advance over Arial's (or Arial Bold's) for English text (lowercase
+   letters and the space weighted by letter frequency, as next/font and capsize do); each override = the face's hhea
+   value / unitsPerEm / size-adjust (hhea, OS/2 typo and win agree in all four files). Measured with fonttools from the
+   woff2 files Fontshare's CSS served on 2026-11-21 against macOS's Arial; rerun if Fontshare updates the fonts. One face
+   per real weight (Satoshi 400, 500, 700; Cabinet 700), so weight matching picks the same weight as the real family.
+   unicode-range is the real face's cmap: a character the real font lacks still falls through to Noto or system-ui, as
+   before. Where Arial isn't installed (Android, most Linux) local() fails and the stack goes on to system-ui. */
+@font-face {
+  font-family: "Satoshi Fallback";
+  src: local("Arial"), local("ArialMT");
+  font-weight: 400;
+  size-adjust: 99.26%;
+  ascent-override: 101.75%;
+  descent-override: 24.18%;
+  line-gap-override: 10.07%;
+  unicode-range: U+20-7E, U+A1-A9, U+AB-AC, U+AE-B9, U+BB-123, U+126-12B, U+12E-131, U+134-137, U+139-148, U+14A-14D, U+150-16B, U+16E-17E, U+192, U+1FA-1FF, U+218-21B, U+237, U+2C6-2C7, U+2D8-2DD, U+300-304, U+306-308, U+30A-30C, U+312, U+326-327, U+335, U+337-338, U+3A9, U+3C0, U+1E80-1E85, U+1EF2-1EF3, U+2013-2014, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2030, U+2032, U+2039-203A, U+2042, U+2044, U+2070, U+2074-2079, U+2080-2089, U+20AC, U+2116-2117, U+2122, U+212E, U+215B-215E, U+2190-2199, U+2202, U+2205-2206, U+220F, U+2211-2212, U+221A, U+221E, U+222B, U+2248, U+2260, U+2264-2265, U+25A0-25A1, U+25B2-25B3, U+25CA-25CB, U+25CF, U+262E, U+2713, U+F8FF, U+FB00-FB04;
+}
+@font-face {
+  font-family: "Satoshi Fallback";
+  src: local("Arial"), local("ArialMT");
+  font-weight: 500;
+  size-adjust: 102.09%;
+  ascent-override: 98.93%;
+  descent-override: 23.51%;
+  line-gap-override: 9.80%;
+  unicode-range: U+20-7E, U+A1-A9, U+AB-AC, U+AE-B9, U+BB-123, U+126-12B, U+12E-131, U+134-137, U+139-148, U+14A-14D, U+150-16B, U+16E-17E, U+192, U+1FA-1FF, U+218-21B, U+237, U+2C6-2C7, U+2D8-2DD, U+300-304, U+306-308, U+30A-30C, U+312, U+326-327, U+335, U+337-338, U+3A9, U+3C0, U+1E80-1E85, U+1EF2-1EF3, U+2013-2014, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2030, U+2032, U+2039-203A, U+2042, U+2044, U+2070, U+2074-2079, U+2080-2089, U+20AC, U+2116-2117, U+2122, U+212E, U+215B-215E, U+2190-2199, U+2202, U+2205-2206, U+220F, U+2211-2212, U+221A, U+221E, U+222B, U+2248, U+2260, U+2264-2265, U+25A0-25A1, U+25B2-25B3, U+25CA-25CB, U+25CF, U+262E, U+2713, U+F8FF, U+FB00-FB04;
+}
+@font-face {
+  font-family: "Satoshi Fallback";
+  src: local("Arial Bold"), local("Arial-BoldMT");
+  font-weight: 700;
+  size-adjust: 97.35%;
+  ascent-override: 103.75%;
+  descent-override: 24.65%;
+  line-gap-override: 10.27%;
+  unicode-range: U+20-7E, U+A1-A9, U+AB-AC, U+AE-B9, U+BB-123, U+126-12B, U+12E-131, U+134-137, U+139-148, U+14A-14D, U+150-16B, U+16E-17E, U+192, U+1FA-1FF, U+218-21B, U+237, U+2C6-2C7, U+2D8-2DD, U+300-304, U+306-308, U+30A-30C, U+312, U+326-327, U+335, U+337-338, U+3A9, U+3C0, U+1E80-1E85, U+1EF2-1EF3, U+2013-2014, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2030, U+2032, U+2039-203A, U+2042, U+2044, U+2070, U+2074-2079, U+2080-2089, U+20AC, U+2116-2117, U+2122, U+212E, U+215B-215E, U+2190-2199, U+2202, U+2205-2206, U+220F, U+2211-2212, U+221A, U+221E, U+222B, U+2248, U+2260, U+2264-2265, U+25A0-25A1, U+25B2-25B3, U+25CA-25CB, U+25CF, U+262E, U+2713, U+F8FF, U+FB00-FB04;
+}
+@font-face {
+  font-family: "Cabinet Grotesk Fallback";
+  src: local("Arial Bold"), local("Arial-BoldMT");
+  font-weight: 700;
+  size-adjust: 91.52%;
+  ascent-override: 95.06%;
+  descent-override: 30.59%;
+  line-gap-override: 9.83%;
+  unicode-range: U+20-7E, U+A0-A3, U+A5-B4, U+B6-137, U+139-148, U+14A-17E, U+192, U+1FC-1FF, U+218-21B, U+237, U+2C6-2C7, U+2D8-2DD, U+300-304, U+306-308, U+30A-30C, U+312, U+326-328, U+335, U+337-338, U+394, U+3A9, U+3C0, U+1E80-1E85, U+1EBC-1EBD, U+1EF2-1EF3, U+1EF8-1EF9, U+2013-2014, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2030, U+2039-203A, U+2044, U+20AC, U+20B9, U+2122, U+2126, U+212E, U+2202, U+2206, U+220F, U+2211-2212, U+221A, U+221E, U+222B, U+2248, U+2260, U+2264-2265, U+25CA, U+FB00-FB04;
+}
+
 :root {
   color-scheme: light;
   --ink: #1e1e24;
@@ -9,31 +60,46 @@
   --line: #857f74;
   --hairline: #dedad2;
   --surface: #ebe8e1;
-  --font-display: "Cabinet Grotesk", "Satoshi", system-ui, sans-serif;
-  --font-body: "Satoshi", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* --font-noto: the page language's Noto family when its letters aren't Latin (the :lang rules below). */
+  --font-display: "Cabinet Grotesk", "Cabinet Grotesk Fallback", "Satoshi", "Satoshi Fallback", var(--font-noto, system-ui), system-ui, sans-serif;
+  --font-body: "Satoshi", "Satoshi Fallback", var(--font-noto, system-ui), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), "Geist Mono", var(--font-noto, ui-monospace), ui-monospace, "SF Mono", Menlo, monospace;
   /* The UI ease (DESIGN.md, Motion): chips, switches, sheets, the top bar's slide. */
   --ease-ui: cubic-bezier(.16, 1, .3, 1);
+  /* A small segmented control's segment on touch (the share dialog's option rows, the Display panel): drawn this tall,
+     its press 44px through an invisible ::after. */
+  --seg-touch: 32px;
   /* The top bar's height (app.css .eb-topbar: 60px + its hairline; 64px + 1 from 720px). Anchor jumps and
      scrollIntoView keep their target below it (globals.css scroll-padding-top). */
   --topbar-h: 61px;
   /* The page's z-index ladder (DESIGN.md, Layers). In-page layers (the stage's birds and tooltip, the controls bar and
      its popovers, sticky bars inside a section) stay under 40. */
+  --z-totop: 35; /* the "Back to top" button: over the page, under the top bar and everything that opens */
   --z-topbar: 40;
+  --z-tour: 45; /* the landing sample's guided tour note */
   --z-dialog-scrim: 49; /* the share dialog's scrim, the bird card's sheet scrim */
   --z-dialog: 50; /* the bird card (popover or sheet) */
+  --z-confirm: 56; /* ConfirmDialog: over the Add birds dialog, under the toasts */
   --z-toast: 60; /* "Removed … · Undo" */
   --z-sheet-scrim: 950; /* the phones' bottom sheets: Places, Time, PickerSheet */
   --z-sheet: 951;
   --z-welcome: 955; /* the first-visit welcome */
 }
+
+/* Satoshi and Cabinet Grotesk have Latin letters only: Russian, Japanese and Chinese pages draw their own letters in
+   Noto, after the Latin fonts, which app/[lang]/layout.tsx links on that language's pages only. One family per
+   language, so a Japanese page never shows Chinese letter forms. Geist Mono has Cyrillic, so Russian mono labels keep it. */
+:root:lang(ru) { --font-noto: "Noto Sans"; }
+:root:lang(ja) { --font-noto: "Noto Sans JP"; }
+:root:lang(zh-Hans) { --font-noto: "Noto Sans SC"; }
+:root:lang(zh-Hant) { --font-noto: "Noto Sans TC"; }
 @media (min-width: 720px) { :root { --topbar-h: 65px; } }
-/* The bar's nav on a second row (app.css, the same media queries and selectors; preview variant lang via
-   <html data-topbar>, none reads as a): 4 + 44 + 40 + 4px and the hairline. */
-@media (max-width: 429px) { :root:not([data-topbar="b"], [data-topbar="c"]) { --topbar-h: 93px; } }
-@media (max-width: 383px) { :root[data-topbar="b"]:is(:lang(es), :lang(nl)) { --topbar-h: 93px; } }
-@media (max-width: 365px) { :root[data-topbar="b"] { --topbar-h: 93px; } }
-@media (max-width: 309px) { :root[data-topbar="c"] { --topbar-h: 93px; } }
+/* The bar's nav on a second row (app.css, the same media query): 4 + 44 + 40 + 4px and the hairline. From 320px the bar
+   is one row (the icon tabs; under 381px beside the origami bird): 61px. */
+@media (max-width: 319px) { :root { --topbar-h: 93px; } }
+/* Under 320px the nav's row wraps to two lines (app.css): 4 + 44 + 2 × 40 + 4px and the hairline. Chinese keeps one line.
+   The :not() also lifts it over the split rule above. */
+@media (max-width: 319px) { :root:not(:lang(zh-Hans), :lang(zh-Hant)) { --topbar-h: 133px; } }
 
 :root[data-theme=light] {
   color-scheme: light;

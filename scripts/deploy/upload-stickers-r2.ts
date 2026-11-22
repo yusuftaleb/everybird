@@ -5,9 +5,10 @@
 //
 //   npx tsx scripts/deploy/upload-stickers-r2.ts [--dry-run] [--force] [--concurrency 16] [--data]
 //
-// --data uploads the app's data files instead (src/lib/data-files.ts: species, taxonomy, regions, the masks bundle,
+// --data uploads the app's data files instead (src/lib/data-files.ts: species, taxonomy, regions, the masks file,
 // the sample, the sample pack, the iNaturalist synonyms) from public/data to data/<content-hashed name>, with
-// Content-Type application/json and the same year-long immutable cache; the app fetches them from
+// Content-Type application/json (application/octet-stream for masks.v3.bin, compressed inside) and the same
+// year-long immutable cache; the app fetches them from
 // NEXT_PUBLIC_DATA_BASE (https://stickers.yusuftaleb.com/data, src/lib/data-url.ts). A hashed key already in the
 // bucket is never uploaded again (its name is its content). Run it before deploying a change to public/data.
 //
@@ -25,6 +26,7 @@ import { fileURLToPath } from 'node:url'
 export const CACHE_CONTROL = 'public, max-age=31536000, immutable'
 export const CONTENT_TYPE = 'image/webp'
 export const JSON_TYPE = 'application/json'
+export const BIN_TYPE = 'application/octet-stream'
 const REGION = 'auto' // R2's region for SigV4
 const EMPTY_SHA = createHash('sha256').update('').digest('hex')
 
@@ -89,15 +91,15 @@ export function listLocal(root: string): LocalFile[] {
 export function listData(dataDir: string, files: Record<string, string>): LocalFile[] {
   return Object.entries(files).map(([name, hashed]) => {
     const path = join(dataDir, name)
-    return { key: `data/${hashed}`, path, size: statSync(path).size, type: JSON_TYPE }
+    return { key: `data/${hashed}`, path, size: statSync(path).size, type: name.endsWith('.bin') ? BIN_TYPE : JSON_TYPE }
   }).sort((a, b) => (a.key < b.key ? -1 : 1))
 }
 
 /**
  * A key written once, never replaced: a versioned sticker, `v1/<size>/<code>.<sv>.webp` (src/lib/sticker-url.ts),
- * or a content-hashed data file, `data/<name>.<10 hex>.json`.
+ * or a content-hashed data file, `data/<name>.<10 hex>.json` (or `.bin`).
  */
-export const isVersionedKey = (key: string) => /^v1\/\d+\/[a-z0-9]+\.[0-9a-z]+\.webp$/.test(key) || /^data\/[a-zA-Z0-9._-]+\.[0-9a-f]{10}\.json$/.test(key)
+export const isVersionedKey = (key: string) => /^v1\/\d+\/[a-z0-9]+\.[0-9a-z]+\.webp$/.test(key) || /^data\/[a-zA-Z0-9._-]+\.[0-9a-f]{10}\.(json|bin)$/.test(key)
 
 /**
  * The files to upload: all with `force`, else those missing from the bucket or there at another size. A versioned

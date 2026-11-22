@@ -37,6 +37,36 @@ describe('pickNameLocale', () => {
     expect(pickNameLocale('pt', ['pt'], 'MX')).toBe('pt_BR')
     expect(pickNameLocale('pt', ['pt'], 'NL')).toBe('pt_BR')
   })
+  it('French: France (and Belgium, Switzerland, a bare fr) get fr_FR, Canada gets eBird\'s North American fr', () => {
+    expect(pickNameLocale('fr', ['fr-FR'])).toBe('fr_FR')
+    expect(pickNameLocale('fr', ['fr-CA'])).toBe('fr')
+    expect(pickNameLocale('fr', ['fr-BE'])).toBe('fr_FR')
+    expect(pickNameLocale('fr', ['fr-CH'])).toBe('fr_FR')
+    expect(pickNameLocale('fr', ['fr'])).toBe('fr_FR')
+    expect(pickNameLocale('fr', ['fr'], 'CA')).toBe('fr')
+    expect(pickNameLocale('fr', ['fr'], 'BR')).toBe('fr_FR')
+  })
+  it('German has one set for Germany, Austria and Switzerland', () => {
+    expect(pickNameLocale('de', ['de-CH'])).toBe('de')
+    expect(pickNameLocale('de', ['de-AT'], 'FR')).toBe('de')
+    expect(pickNameLocale('de', ['de'])).toBe('de')
+    // Switzerland's one set is German's: a French reader there gets the French base.
+    expect(pickNameLocale('fr', ['fr-CH'], 'CH')).toBe('fr_FR')
+  })
+  it('Italian, Swedish and Danish have one set each', () => {
+    expect(pickNameLocale('it', ['it-CH'], 'CH')).toBe('it')
+    expect(pickNameLocale('it', ['it'])).toBe('it')
+    expect(pickNameLocale('sv', ['sv-FI'], 'FI')).toBe('sv')
+    expect(pickNameLocale('da', ['da'], 'GL')).toBe('da')
+    expect(pickNameLocale('zh-Hant', ['zh-HK'], 'HK')).toBe('zh')
+    expect(pickNameLocale('zh-Hant', ['zh-CN'], 'CN')).toBe('zh')
+    expect(pickNameLocale('zh-Hans', ['zh-CN'], 'CN')).toBe('zh_SIM')
+    // A Traditional browser tag or list never gives a Simplified reader Traditional names.
+    expect(pickNameLocale('zh-Hans', ['zh-TW'], 'TW')).toBe('zh_SIM')
+    expect(pickNameLocale('ja', ['ja-JP'], 'JP')).toBe('ja')
+    expect(pickNameLocale('ru', ['ru-RU'], 'RU')).toBe('ru')
+    expect(pickNameLocale('ru', ['ru-KZ'])).toBe('ru')
+  })
   it('reads the first browser tag in the UI language', () => {
     expect(pickNameLocale('es', ['en-US', 'es-MX', 'es-ES'])).toBe('es_MX')
   })

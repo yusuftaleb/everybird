@@ -14,7 +14,7 @@ import { withI18n } from './i18n-render'
 
 const sp = (code: string, com: string, sci: string, ord: string, fam: string, famCom: string, to: number, g: number): SpeciesRow =>
   ({ code, com, sci, ord, fam, famCom, to, g, gSrc: 'avonet', st: true, ar: 1, q: true })
-const group = (id: string, en: string, lo: number, hi: number): BirdGroup => ({ id, name: { en, es: en, pt: en, nl: en }, lo, hi })
+const group = (id: string, en: string, lo: number, hi: number): BirdGroup => ({ id, name: { en, es: en, pt: en, nl: en, pl: en, fr: en, de: en, sv: en, da: en, ru: en, 'zh-Hans': en, 'zh-Hant': en }, lo, hi })
 const groupMap = new Map([group('waterfowl', 'Waterfowl', 1, 20), group('owls', 'Owls', 50, 60)].map((g) => [g.id, g]))
 const rows = [
   sp('snogoo', 'Snow Goose', 'Anser caerulescens', 'Anseriformes', 'Anatidae', 'Ducks, Geese, and Waterfowl', 1, 2700),
@@ -112,15 +112,15 @@ describe('the seen-dates note', () => {
   it('shows for a dates query on your own list without per-place months, and not with them or on a shared view', async () => {
     const { unmount } = renderSearch({ hasMonths: false })
     await type('canada 2026')
-    expect(screen.getByText('Your list only has first-seen dates; import MyEBirdData.csv for every sighting')).toBeInTheDocument()
+    expect(screen.getByText('Your list only has the dates you first recorded each bird. Add MyEBirdData to count every sighting.')).toBeInTheDocument()
     unmount()
     const withMonths = renderSearch({ hasMonths: true })
     await type('canada 2026')
-    expect(screen.queryByText(/first-seen dates/)).toBeNull()
+    expect(screen.queryByText(/first recorded each bird/)).toBeNull()
     withMonths.unmount()
     renderSearch({ hasMonths: false, whose: 'this' })
     await type('canada 2026')
-    expect(screen.queryByText(/first-seen dates/)).toBeNull()
+    expect(screen.queryByText(/first recorded each bird/)).toBeNull()
   })
 })
 

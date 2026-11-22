@@ -11,6 +11,7 @@ import { useI18n } from '@/i18n/I18nProvider'
 import { HTML_LANG } from '@/i18n/langs'
 import type { Ui } from '@/i18n/messages/en'
 import { isContinentId } from '@/lib/places/continents'
+import { REGION_ALIASES, type RegionPresetId } from '@/lib/places/presets'
 import { ContinentGlobe } from './ContinentGlobe'
 import { clearPlaces, countryRows, filterKey, filterPlaceKeys, placeCounts, placeRows, regionRows, type Filter, type PlaceCounts, type PlaceOption } from '@/lib/list/filters'
 import type { ListEntry } from '@/lib/list/model'
@@ -31,7 +32,14 @@ export type PlacesNote = 'add' | 'reimport'
 export const SEARCH_FROM = 8
 
 /** What a design of the panel gets. */
-export type PlacesBodyProps = { state: AppState; species: SpeciesIndex; regions: Regions; onFilter: (f: Filter) => void }
+export type PlacesBodyProps = {
+  state: AppState
+  species: SpeciesIndex
+  regions: Regions
+  onFilter: (f: Filter) => void
+  /** The section title's id: Clear is named "Clear Places" by it (aria-labelledby). */
+  titleId?: string
+}
 
 /**
  * The level of the places under `parent`: continents with none (countries when `flat`: the one-continent list skips the
@@ -69,11 +77,11 @@ export function placeCountsFor(state: AppState, species: SpeciesIndex): PlaceCou
 }
 
 /**
- * What a drilled level with no places says: the other filters (taxonomy, time, status) left it none, or, with none set, the
+ * What a drilled level with no places says: the other filters (taxonomy, the search's bird group, time, status) left it none, or, with none set, the
  * list no longer has a bird seen there (a source was removed or replaced since the panel drilled in).
  */
 export function emptyHere(f: Filter, t: Ui): string {
-  return f.order || f.family || f.year || f.from || f.to || f.statuses?.length ? t.places.emptyFiltered : t.places.emptyNow
+  return f.order || f.family || f.genus || f.group || f.year || f.from || f.to || f.statuses?.length ? t.places.emptyFiltered : t.places.emptyNow
 }
 
 /**
@@ -134,13 +142,15 @@ export function useRegionRows(counts: PlaceCounts, filter: Filter, regions: Regi
   }, [opts, filter.regions, regions, cn, rn])
 }
 
-/** The rows whose names hold every word of `q` as a word prefix, accent- and case-insensitive ("new z": New Zealand). */
-export function matchRows<T extends { label: string }>(rows: T[], q: string): T[] {
+/** The rows whose names hold every word of `q` as a word prefix, accent- and case-insensitive ("new z": New Zealand);
+ *  a region row (`r:<id>`) also answers to its `REGION_ALIASES` ("latam", "mena"). */
+export function matchRows<T extends { label: string; value?: string }>(rows: T[], q: string): T[] {
   const key = searchKey(q)
   if (!key) return rows
   const terms = key.split(' ')
   return rows.filter((r) => {
-    const ws = searchKey(r.label).split(' ')
+    const aliases = r.value?.startsWith('r:') ? (REGION_ALIASES[r.value.slice(2) as RegionPresetId] ?? []) : []
+    const ws = searchKey([r.label, ...aliases].join(' ')).split(' ')
     return terms.every((t) => ws.some((w) => w.startsWith(t)))
   })
 }

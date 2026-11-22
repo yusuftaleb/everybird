@@ -7,7 +7,7 @@
 import { PosterEncoder } from './poster-encoder'
 
 export type PrintWorkerRequest =
-  | { type: 'begin'; width: number; height: number }
+  | { type: 'begin'; width: number; height: number; alpha?: boolean }
   | { type: 'strip'; rgba: ArrayBuffer; rows: number }
   | { type: 'end' }
   | { type: 'file'; kind: 'png' | 'pdf'; page: [number, number] }
@@ -28,7 +28,7 @@ scope.onmessage = ({ data }) => {
   queue = queue.then(async () => {
     if (data.type === 'begin') {
       if (encoder?.open) throw new Error('a poster is already open: end it, or terminate the worker')
-      encoder = new PosterEncoder(data.width, data.height)
+      encoder = new PosterEncoder(data.width, data.height, { alpha: data.alpha })
       return
     }
     if (!encoder) throw new Error('begin the poster before sending strips or requesting files')

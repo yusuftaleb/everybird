@@ -7,31 +7,66 @@ import { HTML_LANG, isLang, LANG_NAMES, LANGS, langFromTag, primarySubtag } from
 import { en } from '@/i18n/messages/en'
 import { es } from '@/i18n/messages/es'
 import { nl } from '@/i18n/messages/nl'
+import { pl } from '@/i18n/messages/pl'
+import { fr } from '@/i18n/messages/fr'
+import { de } from '@/i18n/messages/de'
+import { it as italian } from '@/i18n/messages/it'
+import { sv } from '@/i18n/messages/sv'
+import { da } from '@/i18n/messages/da'
+import { ru } from '@/i18n/messages/ru'
+import { ja } from '@/i18n/messages/ja'
+import { zhHans } from '@/i18n/messages/zh-Hans'
+import { zhHant } from '@/i18n/messages/zh-Hant'
 import { pt } from '@/i18n/messages/pt'
+import { labelCells } from '@/lib/layout/count-box'
 import { ORDERS } from '@/lib/species/orders'
 import { withI18n } from './i18n-render'
 
 /** Values that may read the same as English: names, formats, and words the languages share. */
 const ALLOW_SAME = [
-  'eBird', 'iNaturalist', 'Scythebill', 'Scythebill CSV', 'CSV', 'JSON', 'Everybird', 'GitHub', 'Collage',
+  'eBird', 'iNaturalist', 'Scythebill', 'Scythebill CSV', 'iGoTerra', 'CSV', 'JSON', 'Everybird', 'GitHub', 'Collage', 'Illustration',
   // Words the languages share: pt "Story" (a common format label in Brazil), nl "Filters", "Families", "{n} families"; order labels (es Kiwis, es/pt Turacos, pt
   // Flamingos, pt Seriemas, nl Hoatzin, nl Trogons); nl "{n} continent" (the same word); nl's full month needs no "de" ("maart 2020").
   'Filters', '{n} continent', 'Filters · {n} · {species}', 'Filters · {species}', 'Families', '{n} families', 'Story', 'Post', 'Kiwis', 'Turacos', 'Flamingos', 'Seriemas', 'Hoatzin', 'Trogons', '{month} {year}',
   // The orientation switch and the desktop format: es and pt keep "Vertical" and "Horizontal", and pt and nl "Desktop".
   'Vertical', 'Horizontal', 'Desktop',
+  // The Oval arrangement: pt and de spell it as English does. The Count row's short sizes: S, M and L in most languages.
+  'Oval', 'S', 'M', 'L',
   // Templates with no words: the summary line's joins (ui.import.summary) and suggestion arrow; nl "Spreadsheet".
-  '{head}: {parts}.', '{head}, {all}.', '{name} → {suggestion}', 'Spreadsheet',
+  '{head}: {parts}.', '{head}, {all}.', '{name} → {suggestion}', 'Spreadsheet', '{label}: {n}', '{label}: {n}.', '{n}%',
+  // Compare's extra link fields: "Link" is the word in da, de, it, nl, pl and pt; its diagram's name: nl, sv and da "Diagram".
+  'Link {n}', 'Diagram',
   // About's credits: es and nl keep "Stickers" and "API" as they are; nl "Credits" and "Code".
   'Stickers · CC BY 4.0', 'API', 'Credits', 'Code · MIT',
   // Red List: es "Vulnerable" and nl "Status" are the same word as English.
   'Vulnerable', 'Status',
   // Continents: es Asia, pt Oceania and nl Antarctica are the English spelling.
   'Asia', 'Oceania', 'Antarctica', 'Melanesia', 'Micronesia',
-  // US poster size label: nl uses "in" as English does; nl also uses "poster"/"posters".
-  '{w} × {h} in', '{n} poster', '{n} posters',
+  // nl "Continent" is the Dutch word too; nl also uses "poster"/"posters".
+  'Continent', '{n} poster', '{n} posters',
+  // pl "{n} region" is the Polish word too.
+  '{n} region',
+  // The controls bar's Taxa button: nl, de, it, sv and da use the same word.
+  'Taxa',
+  // fr: the same spelling in French.
+  '{n} continents', 'Continents', 'Europe', 'Tinamous', 'Orientation',
+  // The share dialog's parts: fr "Image", nl and de "Poster"; fr "{n} image(s)" in Export in batches' count.
+  'Image', 'Poster', '{n} image', '{n} images',
+  // de: months spelled as in English, and "(optional)".
+  'Jan', 'Feb', 'Apr', 'Aug', 'Sep', 'Nov', 'April', 'August', 'September', 'November', '(optional)', 'Region (optional)',
+  // ja and zh group numbers with "," and use "." for decimals, as English does.
+  ',', '.',
+  // ru: the share format's name and ratio, a template with no words.
+  '{name}, {ratio}',
+  // Every language but fr, ja and zh: the share preview's name with its title and count (AU15), templates with no words.
+  '{preview}: {title}, {count}', '{preview}: {count}',
+  // it: the continent's name in Italian.
+  'Africa',
+  // The Tree's Layout menu: es, da and de write "Radial" as English does, es "Rectangular" too.
+  'Radial', 'Rectangular',
 ]
 
-const OTHERS = { es, pt, nl } as const
+const OTHERS = { es, pt, nl, pl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant } as const
 
 /** Every leaf as [path, value]: strings, array items and Plural forms each count as one. */
 function leaves(node: unknown, path = ''): [string, string][] {
@@ -41,18 +76,21 @@ function leaves(node: unknown, path = ''): [string, string][] {
   throw new Error(`${path}: not a string, array or object`)
 }
 
+/** A Plural's `few` and `many` (Polish) stand for English's `other`. */
+const asEnglish = (k: string) => k.replace(/\.(few|many)$/, '.other')
+
 describe('the dictionaries', () => {
   const enLeaves = new Map(leaves(en))
 
   it('every language has every key of English, and nothing else', () => {
     const keys = [...enLeaves.keys()].sort()
-    for (const [lang, m] of Object.entries(OTHERS)) expect(leaves(m).map(([k]) => k).sort(), lang).toEqual(keys)
+    for (const [lang, m] of Object.entries(OTHERS)) expect([...new Set(leaves(m).map(([k]) => asEnglish(k)))].sort(), lang).toEqual(keys)
   })
 
   it('every template keeps English placeholders', () => {
     for (const [lang, m] of Object.entries(OTHERS)) {
       for (const [k, v] of leaves(m)) {
-        const want = placeholders(enLeaves.get(k)!)
+        const want = placeholders(enLeaves.get(asEnglish(k))!)
         const have = new Set(placeholders(v))
         for (const p of want) expect(have.has(p), `${lang} ${k} lacks ${p}`).toBe(true)
       }
@@ -71,7 +109,7 @@ describe('the dictionaries', () => {
   it('only allow-listed values are identical to English', () => {
     for (const [lang, m] of Object.entries(OTHERS)) {
       for (const [k, v] of leaves(m)) {
-        const e = enLeaves.get(k)!
+        const e = enLeaves.get(asEnglish(k))!
         if (v === e) expect(ALLOW_SAME, `${lang} ${k} is still English: "${v}"`).toContain(v)
       }
     }
@@ -84,25 +122,39 @@ describe('the dictionaries', () => {
 
   it('the count label fits the hole in every language', () => {
     // COUNT_LABEL_CHARS (Task 6) is 8: "ESPECIES" and "ESPÉCIES".
-    for (const m of [en, es, pt, nl]) expect(m.ui.count.label.length).toBeLessThanOrEqual(8)
-    expect([en, es, pt, nl].map((m) => m.ui.count.label)).toEqual(['species', 'especies', 'espécies', 'soorten'])
+    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans, zhHant]) expect(labelCells(m.ui.count.label)).toBeLessThanOrEqual(8)
+    expect([en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans, zhHant].map((m) => m.ui.count.label)).toEqual(['species', 'especies', 'espécies', 'soorten', 'gatunki', 'espèces', 'Arten', 'specie', 'arter', 'arter', 'виды', '種', '鸟种', '鳥種'])
+    // H7: the word drawn under a number is that number's form, each as short.
+    for (const m of [en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans, zhHant]) for (const w of Object.values(m.ui.count.word)) expect(labelCells(w)).toBeLessThanOrEqual(8)
+    expect([de, es, ru, pl].map((m) => m.ui.count.word.one)).toEqual(['Art', 'especie', 'вид', 'gatunek'])
   })
 
   it('the tables: separators, 12 months', () => {
-    expect([en, es, pt, nl].map((m) => m.ui.num.group + m.ui.num.decimal)).toEqual([',.', '.,', '.,', '.,'])
+    // Polish groups with "." like es, pt and nl, not its usual space: count-box.ts sizes the count's hole for "," and ".".
+    expect([en, es, pt, nl, pl, fr, de, italian, sv, da, ru, ja, zhHans, zhHant].map((m) => m.ui.num.group + m.ui.num.decimal)).toEqual([',.', '.,', '.,', '.,', '.,', '.,', '.,', '.,', '.,', '.,', '.,', ',.', ',.', ',.'])
     expect(es.ui.date.months.join(' ')).toBe('ene feb mar abr may jun jul ago sept oct nov dic')
     expect(pt.ui.date.months.join(' ')).toBe('jan fev mar abr mai jun jul ago set out nov dez')
     expect(nl.ui.date.months.join(' ')).toBe('jan feb mrt apr mei jun jul aug sep okt nov dec')
+    expect(pl.ui.date.months.join(' ')).toBe('sty lut mar kwi maj cze lip sie wrz paź lis gru')
+    expect(fr.ui.date.months.join(' ')).toBe('janv févr mars avr mai juin juil août sept oct nov déc')
+    expect(de.ui.date.months.join(' ')).toBe('Jan Feb Mär Apr Mai Juni Juli Aug Sep Okt Nov Dez')
+    expect(italian.ui.date.months.join(' ')).toBe('gen feb mar apr mag giu lug ago set ott nov dic')
+    expect(sv.ui.date.months.join(' ')).toBe('jan feb mars apr maj juni juli aug sep okt nov dec')
+    expect(da.ui.date.months.join(' ')).toBe('jan feb mar apr maj jun jul aug sep okt nov dec')
+    expect(ru.ui.date.months.join(' ')).toBe('янв фев мар апр май июн июл авг сен окт ноя дек')
+    expect(ja.ui.date.months.join(' ')).toBe('1月 2月 3月 4月 5月 6月 7月 8月 9月 10月 11月 12月')
+    expect(zhHans.ui.date.months.join(' ')).toBe('1月 2月 3月 4月 5月 6月 7月 8月 9月 10月 11月 12月')
+    expect(zhHant.ui.date.months.join(' ')).toBe('1月 2月 3月 4月 5月 6月 7月 8月 9月 10月 11月 12月')
   })
 })
 
 describe('langs', () => {
   it('lists the languages with their html lang and own names', () => {
-    expect(LANGS).toEqual(['en', 'es', 'pt', 'nl'])
-    expect(LANGS.map((l) => HTML_LANG[l])).toEqual(['en', 'es', 'pt-BR', 'nl'])
-    expect(LANGS.map((l) => LANG_NAMES[l])).toEqual(['English', 'Español', 'Português', 'Nederlands'])
+    expect(LANGS).toEqual(['en', 'es', 'pt', 'nl', 'pl', 'fr', 'de', 'it', 'sv', 'da', 'ru', 'ja', 'zh-Hans', 'zh-Hant'])
+    expect(LANGS.map((l) => HTML_LANG[l])).toEqual(['en', 'es', 'pt-BR', 'nl', 'pl', 'fr', 'de', 'it', 'sv', 'da', 'ru', 'ja', 'zh-Hans', 'zh-Hant'])
+    expect(LANGS.map((l) => LANG_NAMES[l])).toEqual(['English', 'Español', 'Português', 'Nederlands', 'Polski', 'Français', 'Deutsch', 'Italiano', 'Svenska', 'Dansk', 'Русский', '日本語', '简体中文', '繁體中文'])
     expect(isLang('es')).toBe(true)
-    expect(isLang('de')).toBe(false)
+    expect(isLang('tr')).toBe(false)
     expect(isLang('ES')).toBe(false)
   })
   it('langFromTag reads the primary subtag', () => {
@@ -110,9 +162,19 @@ describe('langs', () => {
     expect(langFromTag('pt-PT')).toBe('pt')
     expect(langFromTag('pt_BR')).toBe('pt')
     expect(langFromTag('nl-BE')).toBe('nl')
+    expect(langFromTag('pl-PL')).toBe('pl')
+    expect(langFromTag('fr-CA')).toBe('fr')
+    expect(langFromTag('de-AT')).toBe('de')
+    expect(langFromTag('it-IT')).toBe('it')
+    expect(langFromTag('sv-SE')).toBe('sv')
+    expect(langFromTag('da-DK')).toBe('da')
+    expect(langFromTag('ru-RU')).toBe('ru')
+    expect(langFromTag('ja-JP')).toBe('ja')
+    expect(langFromTag('zh-CN')).toBe('zh-Hans')
+    expect(langFromTag('zh-TW')).toBe('zh-Hant')
     expect(langFromTag('NL')).toBe('nl')
     expect(langFromTag('en-GB')).toBe('en')
-    expect(langFromTag('de-DE')).toBe('en')
+    expect(langFromTag('tr-TR')).toBe('en')
     expect(langFromTag('')).toBe('en')
   })
   it('primarySubtag is a lower-case 2–3 letter code or undefined', () => {

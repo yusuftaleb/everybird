@@ -1,11 +1,24 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
+import { openAdd } from "./add-birds";
 import { pressAreas } from "./press-areas";
 import { SAMPLE_COUNT } from "./sample";
+import { fmt, plural, tagPlurals } from "../src/i18n/core";
+import { localDay } from "../src/lib/file-name";
 import { HTML_LANG, LANGS } from "../src/i18n/langs";
 import { es } from "../src/i18n/messages/es";
 import { nl } from "../src/i18n/messages/nl";
+import { pl } from "../src/i18n/messages/pl";
+import { fr } from "../src/i18n/messages/fr";
+import { de } from "../src/i18n/messages/de";
+import { it } from "../src/i18n/messages/it";
+import { sv } from "../src/i18n/messages/sv";
+import { da } from "../src/i18n/messages/da";
+import { ru } from "../src/i18n/messages/ru";
+import { ja } from "../src/i18n/messages/ja";
+import { zhHans } from "../src/i18n/messages/zh-Hans";
+import { zhHant } from "../src/i18n/messages/zh-Hant";
 import { pt } from "../src/i18n/messages/pt";
 
 // Every flow end to end, in every engine: each way in (eBird life list, MyEBirdData, iNaturalist with a mocked API, tick
@@ -86,6 +99,7 @@ async function seed(page: Page) {
 
 const shownBirds = (page: Page) => page.getByTestId("collage-stage").locator("[data-code]:not([data-off])");
 const stats = (page: Page) => page.getByTestId("collage-stats");
+// Settings' summary line ("Your list"; the Add birds dialog's own is "add-summary").
 const seeCollage = (page: Page) => page.getByTestId("see-collage");
 const speciesIn = async (page: Page) => Number(/Your collage has ([\d,]+) species/.exec((await seeCollage(page).textContent()) ?? "")![1].replace(/,/g, ""));
 
@@ -97,13 +111,14 @@ async function settled(page: Page) {
   await page.waitForFunction(() => document.getAnimations().filter((a) => a.playState === "running").length === 0, null, { timeout: 10_000 });
 }
 
-/** iNaturalist's API, answered from the synthetic fixtures (one user "testbirder" with six observations). */
+/** iNaturalist's API, answered from the synthetic fixtures (one user "testbirder" with six observations): the user lookup
+ *  and the places on v1, the observations on v2 (src/lib/import/inat.ts). */
 async function mockInat(page: Page) {
-  await page.route("https://api.inaturalist.org/v1/**", (route) => {
+  await page.route("https://api.inaturalist.org/**", (route) => {
     const url = new URL(route.request().url());
     const json = (body: string) => route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body });
     if (url.pathname.startsWith("/v1/users/autocomplete")) return json(inat("users"));
-    if (url.pathname.startsWith("/v1/observations")) return json(url.searchParams.get("id_above") === "0" ? inat("observations") : '{"total_results":6,"results":[]}');
+    if (url.pathname.startsWith("/v2/observations")) return json(url.searchParams.get("id_above") === "0" ? inat("observations") : '{"total_results":6,"results":[]}');
     if (url.pathname.startsWith("/v1/places/")) return json(inat("places"));
     return route.fulfill({ status: 404, body: "{}" });
   });
@@ -118,6 +133,7 @@ for (const width of WIDTHS) {
       const errors: string[] = [];
       page.on("pageerror", (e) => errors.push(e.message));
       await page.goto("/settings");
+      await openAdd(page, "file");
       await expect(page.getByTestId("ebird-drop")).toBeVisible();
       await page.getByTestId("ebird-input").setInputFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
       await expect(seeCollage(page)).toContainText("Your collage has 4 species");
@@ -140,6 +156,7 @@ for (const width of WIDTHS) {
       test.setTimeout(60_000);
       await mockInat(page);
       await page.goto("/settings");
+      await openAdd(page, "file");
       // The username field shows once Add is pressed, focused.
       await page.getByRole("button", { name: "Add iNaturalist" }).click();
       await expect(page.getByPlaceholder("iNaturalist username")).toBeFocused();
@@ -149,78 +166,98 @@ for (const width of WIDTHS) {
       const fromInat = await speciesIn(page);
       expect(fromInat).toBeGreaterThan(0);
 
-      await page.getByRole("button", { name: "Tick birds off a list" }).click();
-      const list = page.getByRole("listbox", { name: "Species to tick" });
-      await expect(list).toBeVisible();
-      await page.getByLabel("Search birds").fill("mallard");
+      // Add by hand (Settings' Add by hand dialog, no switch to Import a file): a tap adds the bird at once.
+      // Up to Your list's heading row, as a birder scrolls back to it: the top bar, hidden while the page scrolled down,
+      // shows again (headroom).
+      await page.evaluate(() => scrollTo(0, 0));
+      await expect(page.getByTestId("topbar")).not.toHaveAttribute("data-hidden");
+      const dialog = await openAdd(page, "hand");
+      // The search empty, the orders as a list that opens in place; typed, its matches in their place.
+      await expect(dialog.getByRole("list", { name: "Species to tick" })).toBeVisible();
+      const list = dialog.getByRole("listbox", { name: "Species to tick" });
+      await dialog.getByLabel("Search birds").fill("mallard");
       const mallard = list.getByRole("option", { name: /^Mallard, Anas platyrhynchos/ });
       await mallard.click();
       await expect(mallard).toHaveAttribute("aria-selected", "true");
-      await page.getByRole("button", { name: "Add 1 to my list" }).click();
+      await expect(dialog.getByTestId("undo-toast")).toContainText("Added Mallard.");
       await expect.poll(() => speciesIn(page)).toBe(fromInat + 1);
-      await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
+      // The dialog is modal: Esc closes it, and it neither showed nor hid the top bar.
+      await page.keyboard.press("Escape");
+      await expect(dialog).toHaveCount(0);
+      await expect(page.getByTestId("topbar")).not.toHaveAttribute("data-hidden");
+      await page.getByRole("banner").getByRole("link", { name: "My birds" }).click();
       await expect(stats(page)).toHaveText(new RegExp(`^${fromInat + 1} species`));
     });
 
     test("filters: taxonomy, Places with two countries, a Time range; True size and the list view", async ({ page }) => {
       test.setTimeout(60_000);
       await seed(page);
-      // Taxonomy: the first order (chips from 600px, the "Choose an order" sheet below).
-      if (width < 600) {
-        await page.getByTestId("picker-order").click();
-        await page.getByRole("dialog", { name: "Order" }).locator(".eb-chip").first().click();
-      } else {
-        await page.getByTestId("level-order").locator(".eb-chip").first().click();
-      }
+      // Taxonomy: the first order, in the Taxa panel (a popover from 600px, the sheet below: its chips in both; round 6).
+      // The panel stays open after a pick; Esc closes it, and the page keeps the breadcrumb.
+      await page.getByTestId("taxa-button").click();
+      await page.getByTestId("taxa-panel").getByTestId("level-order").locator(".eb-chip").first().click();
       await expect(stats(page)).toContainText(`of ${TOTAL} species`);
+      // No count badge (round 6): the button is marked active and its name says what is chosen.
+      await expect(page.getByTestId("taxa-button")).toHaveAttribute("data-active", "");
+      await expect(page.getByTestId("taxa-button")).toHaveAttribute("aria-label", /^Taxa: \S/);
+      await page.keyboard.press("Escape");
+      await expect(page.getByTestId("taxa-panel")).toHaveCount(0);
       const inOrder = Number(/^([\d,]+) of/.exec((await stats(page).textContent())!)![1]);
       await expect(shownBirds(page)).toHaveCount(inOrder);
-      await page.getByRole("button", { name: "All birds" }).click();
+      await page.getByTestId("filter-bar").getByRole("button", { name: "All birds" }).click();
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
 
-      // Places: two countries (species seen in either).
-      const places = page.getByTestId("filter-tab-places");
-      await places.click();
+      // Places (in the one Filters panel): two countries (species seen in either), each drilled to from its continent.
+      const filters = page.getByTestId("filters-button");
+      await filters.click();
       const panel = page.getByTestId("filter-panel-places");
+      await panel.getByTestId("drill-n:AF").click();
       await panel.getByText("Egypt", { exact: true }).click();
+      await panel.getByTestId("places-path").getByRole("button", { name: "All continents" }).click();
+      // Back at the top, focus is on the drill button of the row it came from (wait for it: the level re-renders).
+      await expect(panel.getByTestId("drill-n:AF")).toBeFocused();
+      await panel.getByTestId("drill-n:NA").click();
       await panel.getByText("Costa Rica", { exact: true }).click();
       await expect(stats(page)).toContainText(`11 of ${TOTAL} species`);
-      await expect(places).toContainText("Places · 2");
+      await expect(filters).toHaveAttribute("data-active", "");
+      await expect(filters).toHaveAttribute("aria-label", /^Filters, 1 in use: /);
       await page.keyboard.press("Escape");
-      await expect(places).toBeFocused();
-      await places.click();
+      await expect(filters).toBeFocused();
+      await filters.click();
       await panel.getByTestId("places-clear").click();
       await page.keyboard.press("Escape");
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
 
-      // Time: a range from the keyboard (a year on), then Clear; then one country (Egypt's six lifers).
-      const time = page.getByTestId("filter-tab-time");
-      await time.click();
+      // Time (the same panel): a range from the keyboard (a year on), then Clear; then one country (Egypt's six lifers).
+      await filters.click();
       const lo = page.getByRole("slider", { name: "Start month" });
       await lo.focus();
       await page.keyboard.press("PageUp");
       await expect(lo).toHaveAttribute("aria-valuetext", "January 2020");
       await expect(stats(page)).toContainText(`of ${TOTAL} species`);
-      await expect(time).toContainText(/Time · /);
+      await expect(filters).toHaveAttribute("data-active", "");
+      await expect(filters).toHaveAttribute("aria-label", /^Filters, 1 in use: /);
       await page.getByTestId("time-clear").click();
       await expect(lo).toHaveAttribute("aria-valuetext", "January 2019");
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
       await expect(page.getByTestId("time-clear")).toHaveCount(0);
-      await page.keyboard.press("Escape");
-      await places.click();
+      await panel.getByTestId("drill-n:AF").click();
       await panel.getByText("Egypt", { exact: true }).click();
       await page.keyboard.press("Escape");
       await expect(stats(page)).toContainText(`6 of ${TOTAL} species`);
       await expect(shownBirds(page)).toHaveCount(6);
 
-      // True size: the switch flips and every bird stays on the stage.
-      const trueSize = page.getByRole("switch", { name: /sticker sizes/ });
+      // True size (the Collage's Display panel, round 6): the switch flips and every bird stays on the stage.
+      await page.getByTestId("display-button").click();
+      const trueSize = page.getByTestId("display-panel").getByRole("switch", { name: /^True size/ });
       await trueSize.click();
       await expect(trueSize).toHaveAttribute("aria-checked", "true");
+      await page.keyboard.press("Escape");
       await expect(shownBirds(page)).toHaveCount(6);
-      // The list view: one row per bird shown.
+      // The list view: one row per bird shown, the bar's Sort menu (and no Display button).
       await page.getByRole("button", { name: "List", exact: true }).click();
-      await expect(page.getByRole("button", { name: /^Sorted by body mass/ })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Sort: Newest first" })).toBeVisible();
+      await expect(page.getByTestId("display-button")).toHaveCount(0);
       await expect(page.locator(".eb-lrow")).toHaveCount(6);
       await page.getByRole("button", { name: "Collage", exact: true }).click();
       await expect(shownBirds(page)).toHaveCount(6);
@@ -239,7 +276,7 @@ for (const width of WIDTHS) {
       await expect(heard).toHaveAttribute("aria-pressed", "true");
       await heard.click();
       await expect(heard).toHaveAttribute("aria-pressed", "false");
-      await card.getByRole("button", { name: "Remove from my list" }).click();
+      await card.getByRole("button", { name: "Remove", exact: true }).click();
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL - 1} species`));
       await page.getByRole("button", { name: "Undo" }).click();
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
@@ -264,21 +301,20 @@ for (const width of WIDTHS) {
       await page.getByRole("button", { name: "Share", exact: true }).click();
       const dialog = page.getByRole("dialog", { name: "Share your collage" });
       const preview = dialog.getByTestId("share-preview");
-      for (const [format, w, h] of [["Story", 1080, 1920], ["Post", 1080, 1350], ["Square", 1080, 1080]] as const) {
+      // The PNG is twice the design (IMAGE_SCALE): 2160 × 3840 for a 1080 × 1920 story. The preview is a canvas at its
+      // box's size (speed audit finding 8), so the size is read from the downloaded file.
+      for (const [format, w, h] of [["Story", 2160, 3840], ["Post", 2160, 2700], ["Square", 2160, 2160]] as const) {
         await dialog.getByRole("button", { name: new RegExp(`^${format}`) }).click();
         await expect(preview.getByRole("img", { name: `Preview of the ${format.toLowerCase()} image` })).toBeVisible({ timeout: 30_000 });
         await expect(preview).toHaveAttribute("aria-busy", "false", { timeout: 30_000 });
-        const size = await page.evaluate(async () => {
-          const img = document.querySelector<HTMLImageElement>('[data-testid="share-preview"] img')!;
-          const blob = await (await fetch(img.src)).blob();
-          const bmp = await createImageBitmap(blob);
-          return { w: bmp.width, h: bmp.height, type: blob.type };
-        });
-        expect(size).toEqual({ w, h, type: "image/png" });
         const [dl] = await Promise.all([page.waitForEvent("download"), dialog.getByRole("button", { name: "Download image" }).click()]);
-        expect(dl.suggestedFilename()).toBe(`everybird-${format.toLowerCase()}.png`);
+        expect(dl.suggestedFilename()).toBe(`everybird-${format.toLowerCase()}-${localDay()}.png`);
+        const png = readFileSync((await dl.path())!);
+        // The PNG signature, then the IHDR chunk's width and height (big-endian, at bytes 16 and 20).
+        expect(png.subarray(1, 4).toString("latin1")).toBe("PNG");
+        expect({ w: png.readUInt32BE(16), h: png.readUInt32BE(20) }).toEqual({ w, h });
       }
-      await dialog.getByLabel("Collage title").fill("Ada's big year");
+      await dialog.getByLabel("Card title").fill("Ada's big year");
       await dialog.getByRole("button", { name: "Copy link" }).click();
       await expect(dialog.getByTestId("share-note")).toHaveText(/^Link copied/);
       const url = browserName === "chromium"
@@ -297,33 +333,42 @@ for (const width of WIDTHS) {
 
     test("your data: name the collage, download a backup, forget the list, restore it (the title with it)", async ({ page }) => {
       await seed(page);
-      await page.goto("/settings");
-      await page.getByLabel("Name your collage", { exact: true }).fill("Kalin's lifers");
-      await expect.poll(() => page.evaluate(() => new Promise<string | undefined>((done) => {
+      // The card's title is set in the share dialog, and saved with the list.
+      await page.goto("/");
+      await page.getByRole("button", { name: "Share", exact: true }).click();
+      await page.getByRole("dialog", { name: "Share your collage" }).getByLabel("Card title").fill("Kalin's lifers");
+      await page.keyboard.press("Escape");
+      const storedName = () => page.evaluate(() => new Promise<string | undefined>((done) => {
         const r = indexedDB.open("everybird");
         r.onsuccess = () => { const g = r.result.transaction("kv").objectStore("kv").get("everybird:v1"); g.onsuccess = () => { r.result.close(); done(g.result?.name); }; };
-      }))).toBe("Kalin's lifers");
+      }));
+      await expect.poll(storedName).toBe("Kalin's lifers");
+      await page.goto("/settings");
+      await expect.poll(storedName).toBe("Kalin's lifers");
       const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download JSON backup" }).click()]);
-      expect(dl.suggestedFilename()).toMatch(/^everybird-backup-\d{4}-\d{2}-\d{2}\.json$/);
+      expect(dl.suggestedFilename()).toBe(`everybird-backup-${localDay()}.json`);
       const backup = readFileSync((await dl.path())!);
       expect(JSON.parse(backup.toString()).records).toBeTruthy();
       expect(JSON.parse(backup.toString()).name).toBe("Kalin's lifers");
       const [csv] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download CSV" }).click()]);
-      expect(csv.suggestedFilename()).toMatch(/^everybird-\d{4}-\d{2}-\d{2}\.csv$/);
+      expect(csv.suggestedFilename()).toBe(`everybird-kalins-lifers-life-list-${localDay()}.csv`);
 
       await page.getByRole("button", { name: "Forget my list" }).click();
       await page.getByRole("button", { name: "Yes, forget it" }).click();
       // The list is gone: the downloads leave with it.
       await expect(page.getByRole("button", { name: "Download CSV" })).toHaveCount(0);
-      await page.getByRole("banner").getByRole("link", { name: "Collage" }).click();
+      await page.getByRole("banner").getByRole("link", { name: "My birds" }).click();
       await expect(page.getByRole("heading", { level: 1, name: "A lifetime of birds." })).toBeVisible();
 
       await page.goto("/settings");
       await page.locator('input[type="file"][accept*="json"]').first().setInputFiles({ name: "backup.json", mimeType: "application/json", buffer: backup });
       await expect(page).toHaveURL(/\/$/);
-      await expect(page.getByRole("heading", { level: 1, name: "Kalin's lifers" })).toBeVisible();
+      // The collage page is always "My birds"; the restored title names the share card again.
+      await expect(page.getByRole("heading", { level: 1, name: "My birds" })).toBeVisible();
       await expect(stats(page)).toHaveText(new RegExp(`^${TOTAL} species`));
       await expect(shownBirds(page)).toHaveCount(TOTAL);
+      await page.getByRole("button", { name: "Share", exact: true }).click();
+      await expect(page.getByRole("dialog", { name: "Share your collage" }).getByLabel("Card title")).toHaveValue("Kalin's lifers");
     });
     test("landing, About, the collage (Places, Time, list, card, share) and Settings: no sideways scroll, every control a 44px press", async ({ page }) => {
       test.setTimeout(60_000);
@@ -339,11 +384,9 @@ for (const width of WIDTHS) {
       await check("about");
       await seed(page);
       await check("collage");
-      await page.getByTestId("filter-tab-places").click();
-      await check("places");
-      await page.keyboard.press("Escape");
-      await page.getByTestId("filter-tab-time").click();
-      await check("time");
+      await page.getByTestId("filters-button").click();
+      await expect(page.getByTestId("filters-panel")).toBeVisible();
+      await check("filters (Places and Time)");
       await page.keyboard.press("Escape");
       await page.getByRole("button", { name: "List", exact: true }).click();
       await check("list");
@@ -358,10 +401,13 @@ for (const width of WIDTHS) {
       await expect(page.getByRole("dialog", { name: "Share your collage" })).toBeVisible();
       await check("share dialog");
       await page.goto("/settings");
-      await expect(page.getByTestId("ebird-drop")).toBeVisible();
-      await page.getByRole("button", { name: "Tick birds off a list" }).click();
-      await expect(page.getByRole("listbox", { name: "Species to tick" })).toBeVisible();
       await check("settings");
+      await openAdd(page, "file");
+      await expect(page.getByTestId("ebird-drop")).toBeVisible();
+      await check("add birds: import a file");
+      const hand = await openAdd(page, "hand");
+      await expect(hand.getByRole("list", { name: "Species to tick" })).toBeVisible();
+      await check("add birds: by hand");
     });
   });
 }
@@ -378,22 +424,26 @@ test.describe("on a touch screen (pointer: coarse)", () => {
   test("every control on Settings and the collage takes a 44px press, the small source buttons included", async ({ page }) => {
     await page.goto("/settings");
     expect(await page.evaluate(() => matchMedia("(pointer: coarse)").matches), "(pointer: coarse) matches").toBe(true);
+    await openAdd(page, "file");
     await page.getByTestId("ebird-input").setInputFiles({ name: "ebird_world_life_list.csv", mimeType: "text/csv", buffer: Buffer.from(LIFELIST) });
     await expect(seeCollage(page)).toContainText("Your collage has 4 species");
     const small = page.locator(".eb-btn-sm");
     expect(await small.count(), "the source row's small buttons").toBeGreaterThan(0);
-    for (const h of await small.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height))) expect(Math.round(h)).toBeGreaterThanOrEqual(44);
-    expect((await pressAreas(page)).small, "Settings: controls under 44px").toEqual([]);
+    // Every one on screen (the hidden ones, in folded panels, take no room)
+    const heights = (await small.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height))).filter((h) => h > 0);
+    expect(heights.length, "the source row's small buttons on screen").toBeGreaterThan(0);
+    for (const h of heights) expect(Math.round(h)).toBeGreaterThanOrEqual(44);
+    expect((await pressAreas(page)).small, "Add birds: controls under 44px").toEqual([]);
     await seeCollage(page).getByRole("link", { name: "See my collage" }).click();
     await expect(shownBirds(page)).toHaveCount(4);
     expect((await pressAreas(page)).small, "collage: controls under 44px").toEqual([]);
   });
 });
 
-const MESSAGES = { es, pt, nl } as const;
+const MESSAGES = { es, pt, nl, pl, fr, de, it, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant } as const;
 
-// A short pass per language (Spanish, Portuguese, Dutch): the sample collage draws and Settings offers each source in
-// the language's words. For manual runs.
+// A short pass per language (Spanish, Portuguese, Dutch, Polish): the sample collage draws and Settings' Add birds offers
+// each source and Add by hand in the language's words. For manual runs.
 for (const lang of LANGS.filter((l) => l !== "en")) {
   test.describe(`a short pass in ${lang}`, () => {
     test.use({ viewport: { width: 1280, height: 900 } });
@@ -403,10 +453,17 @@ for (const lang of LANGS.filter((l) => l !== "en")) {
       await page.goto("/");
       await expect(page.locator("html")).toHaveAttribute("lang", HTML_LANG[lang]);
       await expect(shownBirds(page).first()).toBeVisible();
-      await expect(page.getByTestId("collage-stage")).toContainText(ui.count.label.toUpperCase());
+      // The count's word for the sample's count in this language (H7: "548 gatunków", "548 видов").
+      tagPlurals(lang, ui);
+      await expect(page.getByTestId("collage-stage")).toContainText(plural(ui.count.word, SAMPLE_COUNT));
       await page.goto("/settings");
-      await expect(page.getByRole("button", { name: ui.import.add, exact: true }).first()).toBeVisible();
-      await expect(page.getByRole("button", { name: ui.tick.button, exact: true })).toBeVisible();
+      const sources = await openAdd(page, "file", ui);
+      // Each source row's button reads "Add", named "Add <the row's title>"
+      const add = sources.getByRole("button", { name: fmt(ui.import.addLabel, { title: ui.import.ebird.listTitle }), exact: true });
+      await expect(add).toHaveText(ui.import.add);
+      // Add by hand: the button at the end of Your list's heading row, opening its dialog titled in the language.
+      await sources.getByRole("button", { name: ui.add.hand, exact: true }).click();
+      await expect(page.getByRole("dialog", { name: ui.add.hand })).toBeVisible();
     });
   });
 }

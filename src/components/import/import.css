@@ -1,7 +1,13 @@
-/* Settings > Your list: one bordered group, a quiet row per source (two lines left: the title, with the file or
-   username, over a muted status; one button and, once connected, a ⋯ menu right), split by hairlines. Adding opens
-   the source's panel under its row. The eBird rows take a dropped file. */
+/* Settings > Your list and the Add birds dialog: one bordered group, the eight sources a grid of cells split by
+   hairlines (one column on phones, two from 600px, four on Settings from 1024px), in the order eBird life list,
+   MyEBirdData, iNaturalist, Spreadsheet or list, observation.org life list, observation.org observations, Scythebill,
+   iGoTerra. A cell is a source's two lines (the title, with the file or username, over a muted status) and its button
+   and, once connected, its ⋯ menu. Adding opens the source's panel under the whole grid, as wide as it, in a box of
+   its own with the grid's border; the open source's Add button shows pressed. The file groups take a dropped file. */
 .eb-block-head { display: flex; flex-direction: column; gap: 4px; }
+/* Your list's heading row on Settings: the heading, and "Add by hand" (the Add birds dialog) at its right end. */
+.eb-block-headrow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.eb-block-headrow > .eb-btn { flex: none; }
 /* Your list's one line on what each source brings (source-counts.ts), and after an import the way to the collage. */
 .eb-summary { margin: 0; color: var(--ink); font-size: 15px; line-height: 1.45; font-variant-numeric: tabular-nums; max-width: 72ch; }
 .eb-summary-link {
@@ -10,30 +16,73 @@
 }
 .eb-summary-link svg { width: 14px; height: 14px; flex: none; }
 .eb-summary-link::after { content: ''; position: absolute; inset: -12px -8px; } /* a 44px press */
+/* The groups (way-*: a Remove's focus target), the file groups' drop targets (.eb-filedrop) and each source (.eb-src)
+   keep their elements and add no box: the cells (.eb-src-main) are the grid's items, and whatever else a group holds
+   ("why?", the Remove question, a note, the live status) spans the grid under its cell's row. Dense placement lets
+   the cells after one of those fill the rest of its row first (DOM and keyboard order unchanged). The Add panels sit
+   in rows of their own far below (from 90, one per group, empty rows taking no room), so the grid's box, drawn
+   behind the cells by ::before, ends above them: its grid area is everything before row 90 (with no panel open, line
+   90 doesn't exist and it takes the whole list). In the DOM a panel still follows its button. */
 .eb-srclist {
-  display: flex; flex-direction: column; min-width: 0; background: var(--paper); border: 1px solid var(--hairline);
+  position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-flow: row dense; min-width: 0;
+}
+.eb-srclist::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; grid-row: 1 / 90; grid-column: 1 / -1; pointer-events: none;
+  background: var(--paper); border: 1px solid var(--hairline);
   border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
 }
-.eb-srcgroup { min-width: 0; scroll-margin-top: 16px; }
-.eb-srcgroup + .eb-srcgroup { border-top: 1px solid var(--hairline); }
+@media (min-width: 600px) { .eb-srclist { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Four only in Settings' column (.eb-import, Your list's section): from 1024px a cell holds about 200px inside, room
+   for the longest Replace or Refresh (i18n-fit.test.ts caps them at 11 characters, about 110px) and its ⋯ with some
+   to spare. The Add birds dialog (at most 760px wide) keeps two. */
+@media (min-width: 1024px) { .eb-import > .eb-srclist { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.eb-srclist :is(.eb-srcgroup, .eb-filedrop, .eb-src) { display: contents; }
+.eb-srclist :is(.eb-srcgroup, .eb-filedrop, .eb-src) > * { grid-column: 1 / -1; }
+.eb-srclist .eb-src-main { grid-column: auto; }
 .eb-srcgroup:focus { outline: none; }
-.eb-srcgroup:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 12px; }
-.eb-src { position: relative; }
-.eb-src + .eb-src { border-top: 1px solid var(--hairline); }
-.eb-src-main { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; padding: 12px 16px; min-height: 68px; box-sizing: border-box; }
+.eb-srcgroup:focus-visible .eb-src-main { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 12px; }
+.eb-src-main {
+  position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px;
+  padding: 12px 16px; min-height: 68px; box-sizing: border-box;
+  transition: background-color .15s cubic-bezier(.25, .8, .25, 1), box-shadow .15s cubic-bezier(.25, .8, .25, 1);
+}
+/* In two or four columns a cell stacks: the text, then its buttons at the cell's bottom right, level along a row. */
+@media (min-width: 600px) {
+  .eb-src-main { flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; }
+  .eb-src-main > .eb-src-text { flex: none; }
+  .eb-src-main > .eb-src-acts { margin-top: auto; align-self: flex-end; }
+}
+/* The hairlines: ::before the line above a cell (all but the first row), ::after the line on its left (all but the
+   first column). The cells, in order: #way-ebird's two (1, 2), #way-inat (3), #way-sheet (4), #way-obsorg's two (5, 6),
+   #way-scythebill (7), #way-igoterra (8). */
+.eb-src-main::before, .eb-src-main::after { position: absolute; background: var(--hairline); pointer-events: none; }
+.eb-src-main::before { content: ''; inset: 0 0 auto; height: 1px; }
+.eb-src-main::after { inset: 0 auto 0 0; width: 1px; }
+#way-ebird .eb-src:first-of-type > .eb-src-main::before { content: none; }
+@media (min-width: 600px) {
+  #way-ebird .eb-src-main::before { content: none; }
+  :is(#way-ebird .eb-src:nth-of-type(2), #way-sheet .eb-src, #way-obsorg .eb-src:nth-of-type(2), #way-igoterra .eb-src) > .eb-src-main::after { content: ''; }
+}
+@media (min-width: 1024px) {
+  .eb-import > .eb-srclist :is(#way-inat .eb-src, #way-sheet .eb-src) > .eb-src-main::before { content: none; }
+  .eb-import > .eb-srclist :is(#way-inat .eb-src, #way-scythebill .eb-src) > .eb-src-main::after { content: ''; }
+}
 /* The text keeps room for about 14 characters beside its buttons; with less (a large text size, a narrow phone) the
    buttons wrap under it rather than squeezing it to a letter a line (the title breaks anywhere for file names). */
 .eb-src-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 14ch; }
 .eb-src-title { margin: 0; font-family: inherit; font-size: 16px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
 .eb-src-name { font-weight: 500; }
 .eb-src-meta { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.eb-src-meta .eb-nowrap { white-space: nowrap; }
+/* Each part on one line where it fits; a part wider than its cell (a narrow grid cell) wraps inside it. */
+.eb-src-meta .eb-nowrap { display: inline-block; max-width: 100%; }
 .eb-whybtn {
   position: relative; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; cursor: pointer;
   text-decoration: underline; text-decoration-color: currentColor; text-decoration-thickness: from-font; text-underline-offset: 3px;
 }
 .eb-whybtn::after { content: ''; position: absolute; inset: -12px -8px; } /* a 44px press */
 .eb-src-acts { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; } /* wrapped under the text, still at the right */
+/* The source whose Add panel is open: its button pressed (the pressed tab's Accent text, the open ⋯'s Line border). */
+.eb-src-acts > .eb-btn[aria-expanded="true"] { color: var(--accent); border-color: var(--line); }
 
 /* The ⋯ menu (SourceMenu.tsx): a square quiet button, its menu a popover under it at the row's right edge. */
 .eb-menuwrap { position: relative; }
@@ -43,11 +92,22 @@
 @media (pointer: coarse) { .eb-menubtn { width: 44px; } }
 /* Its popover and rows, .eb-menu and .eb-menuitem: app.css, shared with the top bar's language menu. */
 
-/* Under a row: the Add panel (guidance, the drop zone or the username field, the how-to), the skipped entries, the
-   Remove question, the live status. */
-.eb-src-panel { display: flex; flex-direction: column; gap: 10px; margin: -4px 16px 14px; padding: 14px 16px; background: var(--surface); max-width: 640px;
-  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2); }
+/* Under the whole grid, as wide as it, in the grid's border: the Add panel (guidance, the drop zone or the username
+   field, the how-to). In a row of its own per group (above), so a second panel kept open by a read in progress stacks
+   under the first. */
+.eb-src-panel { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding: 14px 16px; background: var(--paper); border: 1px solid var(--hairline);
+  border-radius: calc(16px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2); }
+.eb-srclist .eb-src-panel { grid-row: 90; }
+.eb-srclist #way-inat .eb-src-panel { grid-row: 91; }
+.eb-srclist #way-sheet .eb-src-panel { grid-row: 92; }
+.eb-srclist #way-obsorg .eb-src-panel { grid-row: 93; }
+.eb-srclist #way-scythebill .eb-src-panel { grid-row: 94; }
+.eb-srclist #way-igoterra .eb-src-panel { grid-row: 95; }
+/* The skipped entries, the Remove question, the live status: under the cell's row. */
 .eb-src-panel[hidden] { display: none; }
+/* In two or four columns a panel opens under the whole grid, far from its button: it rises in (backwards, so no
+   transform stays on it to hold the fixed layers inside). */
+.eb-src-panel:not([hidden]) { animation: eb-tick-rise .2s var(--ease-ui) backwards; }
 .eb-src-panel > .eb-note { color: var(--ink); max-width: 62ch; }
 .eb-dropzone {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 14px; background: var(--paper);
@@ -62,20 +122,39 @@
 .eb-src-help { display: flex; flex-direction: column; gap: 6px; max-width: 62ch; }
 .eb-src-help[hidden] { display: none; }
 .eb-src-help p { margin: 0; }
-.eb-src-why { display: flex; flex-direction: column; gap: 6px; margin: -4px 16px 14px; padding: 12px 14px; max-width: 640px; background: var(--surface);
-  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2); }
-.eb-src-why[hidden] { display: none; }
-.eb-src-why .eb-note { margin: 0; }
-.eb-src-why ul { margin: 0; padding-left: 18px; }
-.eb-src-why a { color: var(--accent); font-weight: 600; }
-.eb-src-confirm { margin: 0 16px 14px; }
+/* "why?"'s popover (SourceRow): the cards' floating look (the bird card's Paper, Hairline and shadow, the menu's 12px
+   squircle) in small. While open it is in the top layer, fixed 6px under the link with its left edge on the link's
+   (over it when there is no room below; shifted left where it would leave the window: menu-layer.ts), never pushing
+   the grid nor clipped by the Add birds dialog; its top and left here are only the fallback's start. Long name lists
+   scroll. */
+.eb-whypop {
+  position: absolute; top: 100%; left: 12px; z-index: 5; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 6px; width: max-content; max-width: min(320px, calc(100vw - 32px));
+  max-height: 260px; overflow-y: auto; overscroll-behavior: contain; padding: 10px 12px;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
+  border-radius: calc(12px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
+  font-size: 14px; line-height: 1.45; text-align: left; white-space: normal; overflow-wrap: break-word; cursor: auto;
+}
+.eb-whypop[hidden] { display: none; }
+/* It eases in as the ⋯ menu beside it does (from below when it opens upward, data-up: menu-layer.ts). */
+.eb-whypop:not([hidden]) { animation: eb-menu-in .16s var(--ease-ui); }
+.eb-whypop[data-up]:not([hidden]) { animation-name: eb-menu-up; }
+.eb-whypop[popover] { margin: 0; } /* in the top layer: no auto margin (menu-layer.ts) */
+.eb-whypop .eb-note { margin: 0; }
+.eb-whypop ul { margin: 0; padding-left: 18px; }
+.eb-whypop a { color: var(--accent); font-weight: 600; }
 .eb-src-form { display: block; }
 .eb-src-formrow { max-width: 560px; }
 .eb-src-formrow > .eb-input { flex: 1 1 180px; min-width: 0; }
 .eb-src-formrow > .eb-btn { flex: none; }
+/* "Keep {user}" holds a login of up to 40 characters: it wraps rather than leaving a 320px window. */
+.eb-src-formrow > .eb-inat-keep { flex: 0 1 auto; max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: start; }
 .eb-sheet-pastebox { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .eb-sheet-paste { width: 100%; height: auto; min-height: 92px; padding: 10px 12px; resize: vertical; font-family: inherit; }
 .eb-sheet-review { display: flex; flex-direction: column; gap: 8px; }
+.eb-sheet-review:focus { outline: none; }
+.eb-sheet-review:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 8px; }
 .eb-sheet-summary { margin: 0; font-size: 15px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
 .eb-sheet-unmatched { margin: 0; padding-left: 18px; max-height: 160px; overflow: auto; }
 .eb-src-status { padding: 0 16px 12px; }
@@ -86,16 +165,15 @@
 .eb-lifer-note a { color: var(--accent); font-weight: 600; text-decoration-thickness: from-font; text-underline-offset: 3px; }
 .eb-btn-sm { min-height: 40px; padding: 0 14px; font-size: 14px; }
 @media (pointer: coarse) { .eb-btn-sm { min-height: 44px; } }
-.eb-filedrop { border-radius: 12px; transition: background-color .15s cubic-bezier(.25, .8, .25, 1), box-shadow .15s cubic-bezier(.25, .8, .25, 1); }
-.eb-filedrop[data-over] { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--accent); }
-.eb-filedrop[data-over] .eb-src-panel { background: var(--paper); }
+/* A dragged file rings each cell of its file group. */
+.eb-filedrop[data-over] .eb-src-main { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--accent); border-radius: 12px; }
 @media (pointer: coarse) { .eb-drop-hint { display: none; } }
 @media (max-width: 479px) {
   .eb-src-main { padding: 12px 14px; }
   .eb-src-status { padding-left: 14px; padding-right: 14px; } /* the notes under the rows keep the rows' title edge */
-  .eb-src-panel, .eb-src-why { margin-left: 14px; margin-right: 14px; padding: 12px; }
+  .eb-src-panel { padding: 12px 14px; }
   .eb-dropzone > .eb-btn { flex: 1 1 100%; }
-  .eb-src-formrow > .eb-input { flex-basis: 100%; }
+  .eb-row.eb-src-formrow > .eb-input { flex-basis: 100%; } /* outweighs .eb-row > .eb-input (below): the field its own line, its placeholder whole */
   .eb-src-formrow > .eb-btn { flex: 1 1 auto; }
 }
 
@@ -108,17 +186,11 @@
 .eb-matchbox-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 280px; }
 .eb-match[hidden] { display: none; }
 
-/* Tick by hand's disclosure: the list grows from nothing (rows 0fr -> 1fr). It clips only while it moves, so the
-   sticky "Add N" bar sticks to the screen once open. */
+/* A disclosure button's chevron turns as its panel opens. */
 .eb-disclose-btn svg { transition: rotate .25s cubic-bezier(.25, .8, .25, 1); }
 .eb-disclose-btn[aria-expanded="true"] svg { rotate: 180deg; }
-.eb-disclose { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .32s cubic-bezier(.25, .8, .25, 1); }
-.eb-disclose[data-open] { grid-template-rows: 1fr; }
-.eb-disclose[hidden] { display: none; }
-.eb-disclose-inner { min-height: 0; }
-.eb-disclose[data-phase] .eb-disclose-inner { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
-  .eb-disclose, .eb-disclose-btn svg, .eb-src-how svg, .eb-filedrop, .eb-dropzone { transition: none; }
+  .eb-disclose-btn svg, .eb-src-how svg, .eb-src-main, .eb-dropzone { transition: none; }
 }
 
 .eb-label {
@@ -139,7 +211,6 @@
 .eb-hit-com { font-weight: 500; }
 .eb-hit-sci { color: var(--muted); font-size: 14px; }
 .eb-tick { display: flex; flex-direction: column; gap: 8px; }
-.eb-tick-bird { margin: 0 0 4px; }
 
 .eb-privacy { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); max-width: 62ch; }
 .eb-privacy svg { width: 16px; height: 16px; flex: none; }
@@ -154,21 +225,35 @@
 .eb-match-com { font-weight: 500; }
 .eb-match-sci { color: var(--muted); font-size: 14px; }
 .eb-match-acts { display: flex; flex-wrap: wrap; gap: 6px; }
-.eb-tickbar-drop { color: var(--accent); font-weight: 500; }
 
-/* Tick by hand inside its row: the list under a hairline, its sticky bar the group's width. */
-.eb-srcgroup .eb-tick { padding: 12px 16px 0; border: 0; border-top: 1px solid var(--hairline); border-radius: 0; }
-.eb-srcgroup .eb-tickbar { margin: 0 -16px; }
 
 /* Fields (.eb-input, .eb-select, .eb-input-wrap): styles/globals.css, shared with the Places panel's search. */
 
-/* Tick by hand, page-wide: search and group pickers, the windowed list, and the bar that adds the ticked birds. */
-.eb-tick { display: flex; flex-direction: column; gap: 10px; padding: 18px 16px 0; border: 1px solid var(--hairline); border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2); }
-.eb-tick-tools { display: grid; grid-template-columns: 1fr; gap: 8px; }
-@media (min-width: 720px) { .eb-tick-tools { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); } }
+/* Add by hand (the Add birds dialog and Settings): the search, the list that opens in place (or the search's windowed
+   matches), and under it the "When and where" bar (the old "Add N" bar's design: Paper, a Hairline above, sticky at the screen's bottom while the
+   list is in view), always shown. */
+.eb-tick { display: flex; flex-direction: column; gap: 10px; }
+.eb-tickbar {
+  position: sticky; bottom: 0; z-index: 2; display: flex; flex-direction: column; gap: 8px; padding: 12px 0 14px;
+  background: var(--paper); border-top: 1px solid var(--hairline);
+}
+.eb-tickbar-n { margin: 0; font-weight: 600; }
+.eb-tickbar .eb-error { margin: 0; }
+.eb-tick-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+/* A field under its visible label (the mono label, .eb-label). */
+.eb-tickfield { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.eb-tickfield > .eb-select, .eb-tickfield > .eb-input { width: 100%; }
+/* On phones, while a toast shows (16px from the bottom, about 54px tall), the bar keeps its fields above it. */
+@media (max-width: 600px) {
+  body:has(.eb-toast) .eb-tickbar { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  body:has(.eb-toast) .eb-add .eb-tickbar { padding-bottom: 62px; }
+}
+@media (min-width: 720px) { .eb-tick-fields { grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr) minmax(0, 1fr) minmax(0, 1fr); } }
+.eb-tick-tools { display: flex; }
+.eb-tick-q { flex: 1 1 auto; min-width: 0; }
 .eb-tick-count { margin: 0; }
 .eb-ticklist {
-  position: relative; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline);
+  position: relative; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--hairline); /* below it, the bar's Hairline: one line, not two */
   contain: strict; outline: none;
 }
 .eb-ticklist:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
@@ -176,32 +261,125 @@
   position: absolute; left: 0; right: 0; height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 8px;
   border-bottom: 1px solid var(--hairline); cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
-.eb-tickrow[data-active] { background: var(--surface); }
-.eb-tickrow[data-on] .eb-tickname { color: var(--muted); }
-.eb-tickrow[data-on][aria-selected="false"] .eb-tickon { color: var(--accent); }
+/* No row darker than another: a fill only under the pointer and on the keyboard's active row while its list has the
+   keyboard's focus. */
+.eb-ticklist:focus-visible .eb-tickrow[data-active] { background: var(--surface); }
 .eb-tickbox {
   display: grid; place-items: center; width: 22px; height: 22px; flex: none; border: 1.5px solid var(--line); border-radius: 6px; color: var(--paper);
+  /* The tick is the row's only acknowledgement: its fill eases in (colour only, so kept under reduced motion). */
+  transition: background-color .12s var(--ease-ui), border-color .12s var(--ease-ui);
 }
 .eb-tickrow[aria-selected="true"] .eb-tickbox { background: var(--accent); border-color: var(--accent); }
-.eb-tickrow[data-on][aria-selected="true"] .eb-tickbox { background: var(--line); border-color: var(--line); }
 .eb-tickbox svg { width: 14px; height: 14px; }
 .eb-tickthumb { display: grid; place-items: center; width: 48px; height: 36px; flex: none; }
 .eb-tickthumb > span { display: block; }
 .eb-tickthumb img, .eb-tickthumb .eb-sil { display: block; width: 100%; height: 100%; object-fit: contain; }
 .eb-tickname { display: flex; flex-direction: column; min-width: 0; font-size: 15px; font-weight: 500; line-height: 1.25; }
 .eb-tickname > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.eb-tickname i { font-size: 13px; color: var(--muted); }
+.eb-ticksub { font-size: 13px; color: var(--muted); }
 .eb-tickon { margin-left: auto; white-space: nowrap; }
+/* Under 480px the filled box and the row's name already say it: the label gives the bird's name its room. */
+@media (max-width: 479px) { .eb-tickon { display: none; } }
 @media (hover: hover) and (pointer: fine) { .eb-tickrow:hover { background: var(--surface); } }
-.eb-tickbar {
-  position: sticky; bottom: 0; z-index: 2; display: flex; flex-direction: column; gap: 8px; margin: 0 -16px; padding: 12px 16px 14px;
-  background: var(--paper); border-top: 1px solid var(--hairline);
-  border-radius: 0 0 calc(20px * var(--one-if-corner-shape-supported, .566)) calc(20px * var(--one-if-corner-shape-supported, .566));
+/* The list that opens in place (TickList's GroupNode, the Places list's pattern): each order, family and genus a
+   compact disclosure row (one line of text tall, 44px on touch), the site's chevron pointing right, turned down while
+   open, its common name (Ink) with its scientific name after it in the species rows' small Muted italic (.eb-ticksub), and its species
+   count (mono Muted, as the old picker's menu had it); no sticker (only species rows carry one). What is under it opens
+   indented one step (rising in as the Places list's levels did). A long name wraps under itself. */
+.eb-ticktree { --eb-tick-indent: 16px; }
+.eb-ticktree ul { list-style: none; margin: 0; padding: 0; }
+.eb-ticktree-sub { animation: eb-tick-rise .24s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)) both; }
+@keyframes eb-tick-rise { from { opacity: 0; transform: translateY(-4px); } }
+@keyframes eb-tick-fade { from { opacity: 0; } }
+.eb-tickgroup {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 40px; padding: 8px; border: 0; border-bottom: 1px solid var(--hairline);
+  background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
-.eb-tickbar-n { margin: 0; font-weight: 600; }
-.eb-tickbar-fields { display: grid; grid-template-columns: 1fr; gap: 8px; }
-@media (min-width: 720px) { .eb-tickbar-fields { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) auto; } }
-@media (max-width: 719px) {
-  .eb-tickbar-fields { grid-template-columns: 1fr 1fr; }
-  .eb-tickbar-fields > input, .eb-tickbar-fields > .eb-btn { grid-column: 1 / -1; }
+.eb-tickgroup:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; background: var(--surface); }
+.eb-tickchev { display: grid; place-items: center; width: 22px; flex: none; color: var(--muted); }
+.eb-tickchev svg { width: 18px; height: 18px; transform: rotate(-90deg); transition: transform .2s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)); }
+.eb-tickgroup[aria-expanded="true"] .eb-tickchev svg { transform: none; }
+.eb-tickgroup-name { min-width: 0; overflow-wrap: break-word; font-size: 15px; font-weight: 500; line-height: 1.25; }
+.eb-tickgroup-name > [lang] { font-style: italic; }
+@media (pointer: coarse) { .eb-tickgroup { min-height: 44px; } }
+.eb-tickgroup-n { flex: none; margin-left: auto; }
+/* An open genus's species: the same rows, in a listbox as tall as they are, scrolling with the list. */
+.eb-ticklist.eb-ticklist-inline { border-top: 0; overflow: visible; contain: none; }
+@media (hover: hover) and (pointer: fine) {
+  .eb-tickgroup:hover { background: var(--surface); }
+  .eb-tickgroup:hover .eb-tickchev { color: var(--ink); }
 }
+@media (prefers-reduced-motion: reduce) {
+  .eb-ticktree-sub { animation-name: eb-tick-fade; }
+  .eb-tickchev svg { transition: none; }
+}
+
+/* "Add birds" (AddBirdsDialog): the share dialog's modal (scrim, Paper, Hairline, the one floating shadow), centred;
+   where the dock's panels are sheets, their bottom sheet (below). */
+.eb-add-scrim { position: fixed; inset: 0; z-index: var(--z-dialog-scrim); background: rgb(0 0 0 / .28); display: grid; place-items: center; padding: 16px; }
+.eb-add {
+  width: min(760px, 100%); max-height: calc(100dvh - 32px); overflow: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 16px; padding: 18px 20px 22px;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--hairline);
+  border-radius: calc(20px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+  box-shadow: 0 12px 32px rgb(0 0 0 / .08), 0 2px 6px rgb(0 0 0 / .04);
+  animation: eb-add-in .24s cubic-bezier(.25, .8, .25, 1) backwards; /* not forwards: a transform kept in effect would hold the Undo toast and fixed menus to the dialog (menu-layer.ts) */
+}
+.eb-add:focus { outline: none; }
+@keyframes eb-add-in { from { opacity: 0; transform: translateY(12px); } }
+/* Where the dock's panels are sheets (useIsSheet({ short: true }): 600px wide or 500px tall and under), the same bottom
+   sheet (filters.css .eb-sheet: 8px clear of the edges, its corners, its rise), as tall as the window allows, at the
+   dialog's layer (under the toasts, which carry Undo and an import's progress) and above the on-screen keyboard (--kb,
+   useKeyboardInset). */
+.eb-add-scrim[data-sheet] { z-index: var(--z-dialog-scrim); display: block; padding: 0; }
+.eb-add.eb-sheet {
+  width: auto; padding: 12px 16px 16px;
+  bottom: calc(8px + env(safe-area-inset-bottom) + var(--kb, 0px));
+  max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--kb, 0px));
+  animation: eb-sheet-up .32s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)) backwards;
+}
+/* A source's form in place of the list (ImportPanel's `drill`): its group alone, without its cells, under the path
+   back ("All sources / iNaturalist"); the line above the list makes room for it too. */
+.eb-add:has(.eb-srclist[data-drill]) :is(.eb-summary, .eb-add-note) { display: none; }
+.eb-srclist[data-drill]::before { content: none; }
+.eb-srclist[data-drill] .eb-srcgroup:not(:has(.eb-src-panel:not([hidden]))) { display: none; }
+.eb-srclist[data-drill] :is(.eb-src-main, .eb-src-status:not(.eb-error, [role="status"])) { display: none; }
+.eb-srclist[data-drill] .eb-src-panel { margin-top: 0; }
+.eb-srclist[data-drill] .eb-src-status { grid-row: 96; } /* an error under the form, not above it */
+.eb-add-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.eb-add-title { min-width: 0; margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 24px; line-height: 1.15; }
+.eb-add-close {
+  display: inline-flex; width: 44px; height: 44px; align-items: center; justify-content: center; flex: none;
+  background: none; border: 0; color: var(--ink); cursor: pointer;
+  border-radius: calc(10px * var(--one-if-corner-shape-supported, .566)); corner-shape: superellipse(2);
+}
+.eb-add-close svg { width: 18px; height: 18px; }
+@media (hover: hover) and (pointer: fine) { .eb-add-close:hover { background: var(--surface); } }
+.eb-add-ways { align-self: flex-start; max-width: 100%; }
+/* Add by hand fits the dialog (and the phone's sheet): everything else keeps its height and only the species list
+   gives way, down to two rows, scrolling inside (its windowing follows its drawn height). */
+.eb-add > .eb-tick { min-height: 0; }
+.eb-add .eb-ticklist:not(.eb-ticklist-inline) { flex: 0 1 auto; min-height: 112px; }
+.eb-add .eb-tickbar { padding-bottom: 0; }
+.eb-add .eb-srclist { flex: none; }
+/* Import a file fits a 1440 × 830 window with any Add panel open (and scrolls as little as it can on phones): the
+   cells compact (the name, its status and the button on one line where they fit, else the status wraps under the
+   name; tighter padding; still two columns from 600px), and the panel as compact as its content. About 730px tall
+   with the spreadsheet's panel, the tallest, open (the window gives the dialog 798). */
+.eb-add { gap: 12px; }
+.eb-add .eb-src-main { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; min-height: 0; padding: 8px 12px; }
+.eb-add .eb-src-main > .eb-src-text { flex: 1 1 14ch; flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 8px; row-gap: 0; }
+.eb-add .eb-src-main > .eb-src-acts { margin: 0 0 0 auto; align-self: center; }
+.eb-add .eb-src-panel { margin-top: 8px; padding: 12px 14px; gap: 8px; }
+.eb-add .eb-dropzone { padding: 10px 12px; }
+.eb-add .eb-sheet-paste { height: 76px; min-height: 64px; }
+.eb-add .eb-src-status { padding-left: 12px; padding-right: 12px; }
+.eb-add button:focus-visible, .eb-add input:focus-visible, .eb-add select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Inside the list's strict containment an outer ring is clipped: the groups and an open genus keep theirs inside. */
+.eb-add .eb-tickgroup:focus-visible, .eb-add .eb-ticklist-inline:focus-visible { outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) {
+  .eb-add, .eb-add.eb-sheet { animation: none; }
+  .eb-src-panel:not([hidden]) { animation-name: eb-tick-fade; }
+  .eb-whypop:not([hidden]), .eb-whypop[data-up]:not([hidden]) { animation: none; }
+}
+

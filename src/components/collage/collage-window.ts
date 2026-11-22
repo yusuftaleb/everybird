@@ -24,14 +24,14 @@ export const SHOW_MARGIN = 0.75
 export const KEEP_MARGIN = 1
 /** Birds shown per frame to start with (a hide counts half); then adapted between FRAME_MIN and FRAME_MAX. */
 export const FRAME_BUDGET = 80
-export const FRAME_MIN = 30
-export const FRAME_MAX = 120
+const FRAME_MIN = 30
+const FRAME_MAX = 120
 /** Hidden birds that keep their sticker (the most recently hidden: a scroll back shows them at once)... */
-export const HELD_MAX = 1000
+const HELD_MAX = 1000
 /** ...beyond that, the oldest let go of it, at most this many per frame (letting go of an image is not free). */
-export const DROP_BUDGET = 100
+const DROP_BUDGET = 100
 
-export type BandIndex = {
+type BandIndex = {
   codes: string[]
   top: Float64Array
   bottom: Float64Array
@@ -84,7 +84,7 @@ export function setFar(el: Element, far: boolean): void {
 
 export type View ={ top: number; bottom: number; screen: number }
 
-export type WindowOpts = {
+type WindowOpts = {
   els: Map<string, HTMLElement>
   /** The viewport in stage units, or null when the stage isn't laid out. */
   view: () => View | null

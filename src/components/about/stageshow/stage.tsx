@@ -44,6 +44,9 @@ export interface StageProps<S> {
    */
   cursor?: { at: Target | { wide: Target; compact: Target }; kind?: CursorKind; style?: CursorStyle; still?: boolean; ripple?: boolean; idle?: number | false }
   play?: Play
+  /** Everybird: the viewer paused the scene (a Pause button beside it, WCAG 2.2.2). It shows its still, as under
+   * reduced motion; unpaused, a fresh scene starts. */
+  paused?: boolean
   /**
    * A second, smaller design for narrow containers. Below `below` px of
    * container width the stage uses this size, the render's `layout` argument
@@ -97,6 +100,7 @@ export function Stage<S extends object>({
   cursor,
   hover,
   play: playProp = 'loop',
+  paused = false,
   compact,
   keys: keysAt = 'bottom',
   palette = 'accent',
@@ -132,7 +136,7 @@ export function Stage<S extends object>({
   const rootRef = useRef<HTMLDivElement>(null)
   const cursorRef = useRef<HTMLDivElement>(null)
   const reduced = useReducedMotion()
-  const still = !script || reduced
+  const still = !script || reduced || paused
 
   const [state, setState] = useState<S>(() => (still && poster ? poster : initial))
   const stateRef = useRef(state)
@@ -583,8 +587,11 @@ export function Stage<S extends object>({
         style={{
           width: designW,
           height: designH,
-          marginLeft: inset || undefined,
-          transform: `scale(${scale})`,
+          // zoom, not transform: scale(): the design is laid out at its drawn size, so text, borders and stickers render
+          // sharp past 1x (a scaled layer is rasterized at design size, will-change layers inside it too, and blown up).
+          // Lengths on the zoomed element are zoomed too, so the inset is given in design px.
+          marginLeft: inset ? inset / scale : undefined,
+          zoom: scale,
           ...tokens,
           ...(accent ? { ['--ss-accent' as string]: accent, ['--ss-accent-2' as string]: accent, ['--ss-accent-soft' as string]: `color-mix(in srgb, ${accent} 14%, transparent)` } : null),
         }}

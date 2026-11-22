@@ -3,15 +3,14 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import {
-  ARTIFACT_URL, BODY_MAX, PR_URL, UpstreamInconsistency, baseMarker, codesFromMatches, diffRecords, diffRows,
+  ARTIFACT_URL, BODY_MAX, UpstreamInconsistency, codesFromMatches, diffRecords, diffRows,
   diffStickers, implausible, lockJson, makeLock, nextShipped, nextVersions, parseLsTree, recordDigest, recordDigests,
-  renderBlockedBody, renderIssueBody, renderPrBody, restrictToShipped, selectBatch, shouldOpenPr, summarise, type HuashuLock,
+  renderBlockedBody, renderPrBody, restrictToShipped, selectBatch, shouldOpenPr, summarise, type HuashuLock,
   type StickerChange,
 } from '../scripts/sync/huashu-lib'
 import { applyStickerVersions, buildSpecies, matchHuashu, taxonomyFromPublic } from '../scripts/build-data/build-species'
 import { readMaskTables, stickerCount, updateStickers, writeMaskTables, type MaskTables } from '../scripts/build-data/build-stickers'
 import { SMALL, LARGE, PRINT } from '../src/lib/sticker-url'
-import { websiteCodes } from '../scripts/build-data/build-website-codes'
 import { assertRawPinned, assertShippedSource, gitBlobSha } from '../scripts/build-data/huashu-pin'
 import { checkoutHuashu } from '../scripts/build-data/fetch-sources'
 import { execFileSync } from 'node:child_process'
@@ -172,7 +171,7 @@ describe('the huashu diff', () => {
     const records = diffRecords(prevLock.records, nextLock.records)
     expect(records.changed).toEqual(['Avis_alba', 'Avis_nigra'])
     const summary = summarise({ from: 'a'.repeat(40), to: 'b'.repeat(40), stickers: [], rows: changes,
-      records, names: new Map(rows.map((r) => [r.code, r.com])), website: new Set(), files: ['public/data/species.v1.json'] })
+      records, names: new Map(rows.map((r) => [r.code, r.com])), files: ['public/data/species.v1.json'] })
     expect(renderPrBody(summary)).toContain('status LC → NT')
     expect(renderPrBody(summary)).toContain('status none → EN')
   })
@@ -304,13 +303,12 @@ describe('PR and issue bodies', () => {
     rows: [{ code: 'whibir1', fields: ['mass 20 g (avonet) → 25 g (avonet)'] }, { code: 'grebir1', fields: ['quality bar met → not met'] }],
     records: { changed: ['Avis_alba'], added: [], removed: [] },
     names: new Map([['whibir1', 'White Bird'], ['redbir1', 'Red Bird'], ['blabir1', 'Black | Bird'], ['grebir1', 'Green Bird']]),
-    website: new Set(['whibir1', 'blabir1']),
     files: ['public/data/species.v1.json'],
   })
 
   it('orders entries changed, new, removed, data, and folds row changes into the sticker line', () => {
-    expect(summary.entries.map((e) => [e.code, e.kind, e.website])).toEqual([
-      ['whibir1', 'changed', true], ['redbir1', 'new', false], ['blabir1', 'removed', true], ['grebir1', 'data', false],
+    expect(summary.entries.map((e) => [e.code, e.kind])).toEqual([
+      ['whibir1', 'changed'], ['redbir1', 'new'], ['blabir1', 'removed'], ['grebir1', 'data'],
     ])
     expect(summary.entries[0].detail).toBe('redrawn; mass 20 g (avonet) → 25 g (avonet)')
   })
@@ -321,9 +319,9 @@ describe('PR and issue bodies', () => {
     expect(body).toContain('- Stickers: 1 changed, 1 new, 1 removed')
     expect(body).toContain(`[summary.json and the before/after sheets](${ARTIFACT_URL}) (old and new 128 px sticker side by side, 3 rows on 1 page)`)
     expect(body).not.toContain('Left for the next sync')
-    expect(body).toContain('| White Bird (website) | `whibir1` | changed | redrawn; mass 20 g (avonet) → 25 g (avonet) |')
-    expect(body).toContain('| Black \\| Bird (website) | `blabir1` | removed | outline from now on |')
-    expect(body).toContain("On the website's /lifelist: `whibir1`, `blabir1`")
+    expect(body).toContain('| White Bird | `whibir1` | changed | redrawn; mass 20 g (avonet) → 25 g (avonet) |')
+    expect(body).toContain('| Black \\| Bird | `blabir1` | removed | outline from now on |')
+    expect(body).not.toContain('website')
     expect(renderPrBody(summary)).not.toContain('side by side')
     expect(renderPrBody(summary, { tableMax: 2 })).toContain('| … and 2 more (summary.json has them all) |')
     expect(renderPrBody({ ...summary, deferred: 5283, cap: 600 })).toContain('- Left for the next sync: 5283 more rebuilt stickers (this run ships at most 600')
@@ -338,7 +336,7 @@ describe('PR and issue bodies', () => {
     expect(bad).toContain(`**does not match** huashu's sources (AviList v2027（BirdLife v11）: 10; AviList v2026（BirdLife v10）: 2): update AVILIST in src/lib/species/iucn.ts`)
     expect(bad).toContain('This alone opens a sync PR; merging it records the new upstream commit')
     const s2 = summarise({ from: 'a'.repeat(40), to: 'b'.repeat(40), stickers: [], rows: [], records: { changed: [], added: [], removed: [] },
-      names: new Map(), website: new Set(), files: [], iucnCredit: { sources: [], ok: false } })
+      names: new Map(), files: [], iucnCredit: { sources: [], ok: false } })
     expect(s2.iucnCredit).toEqual({ sources: [], ok: false })
   })
 
@@ -365,29 +363,6 @@ describe('PR and issue bodies', () => {
     expect(body).toContain('([run](https://run))')
     expect(body).toContain('allow_big_change')
   })
-
-  it('the website issue lists only the website species, and is null without any', () => {
-    const body = renderIssueBody(summary)!
-    expect(body.startsWith(baseMarker('a'.repeat(40)))).toBe(true)
-    expect(body).toContain(PR_URL)
-    expect(body).toContain('| White Bird | `whibir1` | changed |')
-    expect(body).toContain('| Black \\| Bird | `blabir1` | removed |')
-    expect(body).not.toContain('redbir1')
-    expect(renderIssueBody({ ...summary, entries: summary.entries.filter((e) => !e.website) })).toBeNull()
-  })
-})
-
-describe('website codes', () => {
-  it('keeps only eBird codes, deduplicated and sorted', () => {
-    expect(websiteCodes({ species: [{ code: 'zeta1', date: '2020-01', town: 'X' } as never, { code: 'alpha1' }, { code: 'alpha1' }, { code: 'Bad Code' }, {}] }))
-      .toEqual(['alpha1', 'zeta1'])
-  })
-
-  it('the committed file is sorted codes only', () => {
-    const codes = JSON.parse(readFileSync(resolve(__dirname, '../data/website-lifelist-codes.json'), 'utf8')) as unknown[]
-    expect(codes.every((c) => typeof c === 'string' && /^[a-z0-9]+$/.test(c))).toBe(true)
-    expect([...codes].sort()).toEqual(codes)
-  })
 })
 
 describe('the committed lock', () => {
@@ -404,20 +379,20 @@ describe('capped syncs', () => {
   const ch = (code: string, kind: StickerChange['kind']): StickerChange => (kind === 'removed' ? { code, kind } : { code, kind, to: `stickers/${code}.webp`, blob: code.padEnd(40, '0') })
   const changes = [ch('d', 'changed'), ch('a', 'new'), ch('c', 'removed'), ch('b', 'changed'), ch('w', 'changed')]
 
-  it('ships every removal and the first N rebuilds, website species first, then by code', () => {
-    const { ship, deferred } = selectBatch(changes, 2, new Set(['w']))
-    expect(ship.map((c) => c.code)).toEqual(['a', 'c', 'w'])
-    expect(deferred.map((c) => c.code)).toEqual(['b', 'd'])
-    expect(selectBatch(changes, 0, new Set()).deferred).toEqual([])
-    expect(selectBatch(changes, 2, new Set(['w']))).toEqual(selectBatch([...changes].reverse(), 2, new Set(['w']))) // deterministic
+  it('ships every removal and the first N rebuilds, by code', () => {
+    const { ship, deferred } = selectBatch(changes, 2)
+    expect(ship.map((c) => c.code)).toEqual(['a', 'b', 'c'])
+    expect(deferred.map((c) => c.code)).toEqual(['d', 'w'])
+    expect(selectBatch(changes, 0).deferred).toEqual([])
+    expect(selectBatch(changes, 2)).toEqual(selectBatch([...changes].reverse(), 2)) // deterministic
   })
 
   it('the lock records only what shipped; the next diff picks up the rest', () => {
-    const shipped = nextShipped({ b: 'old', c: 'old', d: 'old', w: 'old' }, selectBatch(changes, 2, new Set(['w'])).ship)
-    expect(shipped).toEqual({ a: 'a'.padEnd(40, '0'), b: 'old', d: 'old', w: 'w'.padEnd(40, '0') })
+    const shipped = nextShipped({ b: 'old', c: 'old', d: 'old', w: 'old' }, selectBatch(changes, 2).ship)
+    expect(shipped).toEqual({ a: 'a'.padEnd(40, '0'), b: 'b'.padEnd(40, '0'), d: 'old', w: 'old' })
     const next = { codes: { a: 'stickers/a.webp', b: 'stickers/b.webp', d: 'stickers/d.webp', w: 'stickers/w.webp' }, files: {} as Record<string, string> }
     for (const [c, f] of Object.entries(next.codes)) next.files[f] = c.padEnd(40, '0')
-    expect(diffStickers({ shipped, codes: next.codes }, next).map((c) => c.code)).toEqual(['b', 'd'])
+    expect(diffStickers({ shipped, codes: next.codes }, next).map((c) => c.code)).toEqual(['d', 'w'])
   })
 
   it('a sticker added upstream but not shipped yet stays the outline', () => {
@@ -492,14 +467,14 @@ describe('local builds stay on the lock', () => {
 })
 
 describe('the sample pack the sync regenerates', () => {
-  it('still carries the base names (loc), read from the committed names files, with no new input', async () => {
-    const { makeSamplePack } = await import('../scripts/build-data/build-sample-pack')
+  it("still writes the sample's base names files, read from the committed names files, with no new input", async () => {
+    const { makeSamplePack, sampleNameFiles } = await import('../scripts/build-data/build-sample-pack')
     const dir = resolve(__dirname, '../public/data')
     const read = <T,>(f: string) => JSON.parse(readFileSync(join(dir, f), 'utf8')) as T
     const rows = read<SpeciesFile>('species.v1.json').species // the sync passes its rebuilt rows the same way
-    const pack = await makeSamplePack(read('sample.v1.json'), rows, read('regions.v1.json'), async () => ({}), dir)
-    expect(Object.keys(pack.loc).sort()).toEqual(['es', 'nl', 'pt_BR'])
-    expect(Object.keys(pack.loc.es.names).length).toBeGreaterThan(100)
-    expect(pack.loc).toEqual(read<{ loc: unknown }>('sample-pack.v1.json').loc)
+    const pack = await makeSamplePack(read('sample.v1.json'), rows, read('regions.v1.json'), async () => ({}))
+    const files = sampleNameFiles(pack.species, dir)
+    expect(files.map(([rel]) => rel.replace(/^public\/data\/sample-names\.|\.v1\.json$/g, '')).sort()).toEqual(['da', 'de', 'es', 'fr_FR', 'it', 'ja', 'nl', 'pl', 'pt_BR', 'ru', 'sv', 'zh', 'zh_SIM'])
+    for (const [rel, text] of files) expect(text, rel).toBe(readFileSync(resolve(__dirname, '..', rel), 'utf8'))
   })
 })

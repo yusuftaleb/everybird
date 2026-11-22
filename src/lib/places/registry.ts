@@ -18,7 +18,7 @@ export type PlaceRegistry = { v: 1; catalogues: Record<string, PlaceCatalogue> }
 type PlaceTables = Pick<Regions, 'countries' | 'sub1' | 'registry'>
 
 /** Place data from an importer. Coordinates are resolved on-device before constructing a reference. */
-export type ImportPlace = {
+type ImportPlace = {
   namespace: string
   id: string
   edition?: string
@@ -165,7 +165,7 @@ export function projectRecord<T extends SourceRecord | Unmatched>(record: T, tab
   }
 }
 
-export type CatalogueUpdateReport = {
+type CatalogueUpdateReport = {
   added: string[]
   retired: string[]
   reused: string[]

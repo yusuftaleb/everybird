@@ -2,7 +2,7 @@
 import { useI18n } from '@/i18n/I18nProvider'
 import type { Everybird } from './EverybirdProvider'
 
-export function MemoryNotice() {
+function MemoryNotice() {
   const { t } = useI18n()
   return (
     <p className="eb-notice" role="status">
