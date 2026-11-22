@@ -667,7 +667,12 @@ main[tabindex="-1"]:focus { outline: none; }
 .eb-setrow-note { font-size: 14px; line-height: 1.45; color: var(--muted); }
 .eb-setrow-btn[aria-checked="true"] .eb-track { background: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .eb-setrow-btn[aria-checked="true"] .eb-knob { transform: translateX(14px); background: var(--paper); }
-@media (hover: hover) and (pointer: fine) { .eb-setrow-btn:not(:disabled):hover { background: var(--surface); } }
+/* A switch row is a toggle, not a button (Yusuf, 2026-11-21): no row highlight on hover; the switch itself answers, as
+   the share dialog's switches do (share.css .eb-share-switch). */
+@media (hover: hover) and (pointer: fine) {
+  .eb-setrow-btn:not(:disabled)[aria-checked="false"]:hover .eb-track { box-shadow: inset 0 0 0 1px var(--muted); }
+  .eb-setrow-btn:not(:disabled)[aria-checked="true"]:hover .eb-track { opacity: .88; }
+}
 @media (prefers-reduced-motion: reduce) { .eb-setrow-btn { transition: none; } }
 
 /* The first visit's welcome (Welcome.tsx): a small card over the landing's sample, a bottom sheet on phones (600px and
