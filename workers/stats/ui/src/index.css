@@ -1,0 +1,255 @@
+/* The console's tokens (workers/stats/ui, spec 2026-11-17 "Tokens"). Light is the default; the `dark` class on <html> switches
+   to the dark set. shadcn's variable names are kept so its components read these values directly. */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@font-face {
+  font-family: "Geist Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Geist Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../node_modules/@fontsource-variable/geist/files/geist-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Geist Mono Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../node_modules/@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Neutral frame, ink actions, one signal orange for data and selection only (never orange text on white). */
+:root {
+  --background: #ffffff;
+  --foreground: #262626;
+  --card: #ffffff;
+  --card-foreground: #262626;
+  --popover: #ffffff;
+  --popover-foreground: #262626;
+  --primary: #262626;
+  --primary-foreground: #ffffff;
+  --secondary: #fafaf9;
+  --secondary-foreground: #262626;
+  --muted: #fafaf9;
+  --muted-foreground: #676767;
+  --tertiary: #727272;
+  --accent: #f5f5f4;
+  --accent-foreground: #262626;
+  --destructive: #c4320a;
+  --destructive-foreground: #ffffff;
+  --border: #ebebeb;
+  --hairline: #f0f0f0;
+  --input: #e5e5e5;
+  --signal: #ff5e1f;
+  --ring: #ff5e1f;
+  --chart-1: #ff5e1f;
+  --chart-2: #a3a3a3;
+  --chart-3: #16794c;
+  --chart-4: #c4320a;
+  --chart-5: #727272;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #262626;
+  --sidebar-accent: #f5f5f4;
+  --sidebar-accent-foreground: #262626;
+  --sidebar-border: #ebebeb;
+  --sidebar-ring: #ff5e1f;
+  --positive: #16794c;
+  --negative: #c4320a;
+  --warning-bg: #fff7e6;
+  --warning-fg: #8a5a00;
+  color-scheme: light;
+}
+
+.dark {
+  --background: #111111;
+  --foreground: #ededed;
+  --card: #171717;
+  --card-foreground: #ededed;
+  --popover: #171717;
+  --popover-foreground: #ededed;
+  --primary: #ededed;
+  --primary-foreground: #171717;
+  --secondary: #1c1c1c;
+  --secondary-foreground: #ededed;
+  --muted: #1c1c1c;
+  --muted-foreground: #a1a1a1;
+  --tertiary: #8a8a8a;
+  --accent: #222222;
+  --accent-foreground: #ededed;
+  --destructive: #ff7a59;
+  --destructive-foreground: #1a0d07;
+  --border: #262626;
+  --hairline: #222222;
+  --input: #2a2a2a;
+  --signal: #ff6a33;
+  --ring: #ff6a33;
+  --chart-1: #ff6a33;
+  --chart-2: #5c5c5c;
+  --chart-3: #4cc38a;
+  --chart-4: #ff7a59;
+  --chart-5: #8a8a8a;
+  --sidebar: #171717;
+  --sidebar-foreground: #ededed;
+  --sidebar-accent: #222222;
+  --sidebar-accent-foreground: #ededed;
+  --sidebar-border: #262626;
+  --sidebar-ring: #ff6a33;
+  --positive: #4cc38a;
+  --negative: #ff7a59;
+  --warning-bg: #2b2210;
+  --warning-fg: #f2c063;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-fg: var(--warning-fg);
+  --color-signal: var(--signal);
+  --color-hairline: var(--hairline);
+  --color-tertiary: var(--tertiary);
+  /* Panels 12px, nested and inputs 8px, small 6px; pills use rounded-full. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 12px;
+  --shadow-popover: 0 8px 24px -8px rgb(16 24 40 / 0.18);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  html {
+        -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv11";
+    min-height: 100dvh;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--signal) 22%, transparent);
+    color: var(--foreground);
+  }
+  html {
+    caret-color: var(--signal);
+    accent-color: var(--signal);
+  }
+  /* Touch: every control takes a 44px press. */
+  @media (pointer: coarse) {
+    button,
+    [role="button"],
+    [role="tab"],
+    [role="switch"],
+    [role="radio"],
+    [role="checkbox"],
+    [role="option"],
+    [role="menuitem"],
+    [role="combobox"],
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+      min-height: 44px;
+    }
+    [role="switch"] {
+      min-width: 44px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Focus: one 2px signal ring with a 2px offset, above shadcn's own ring (unlayered, so it wins over utilities). */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  --tw-ring-shadow: 0 0 #0000;
+}
+/* The search field at the top of a command list (country picker, ⌘K) is the popup's only field and focused on open:
+   the caret is its focus signal, so no ring (the ring drew a box over the popup's top edge). */
+[cmdk-input]:focus-visible {
+  outline: none;
+}
+
+/* The thin progress bar at the top of the main column while a selection refreshes. */
+.progress-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: 2px;
+  margin: 0 -24px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--signal) 15%, transparent);
+}
+.progress-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  background: var(--signal);
+  animation: progress 1.1s ease-in-out infinite;
+}
+@keyframes progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(340%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress-bar::after { animation: none; width: 100%; opacity: 0.6; }
+}

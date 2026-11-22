@@ -5,6 +5,9 @@ import { ALLOWED as APP_ALLOWED } from '@/lib/analytics'
 import { ALLOWED, CUTOVER, DAILY_CAP, SEEN_SQL, eventRow, keepRow, pacificDay, seenBinds, statsDay, type EventRow } from '../workers/stats/src/event'
 import worker from '../workers/stats/src/index'
 
+// The built dashboard page when there is one (it's git-ignored: it embeds fonts), else a stand-in: tests/stats-page.ts.
+vi.mock('../workers/stats/src/page', async () => (await import('./stats-page')).pageModule())
+
 const ctx = { day: '2026-11-15', country: 'MX', device: 'iphone', vid: 'abc123' }
 const at = (s: string) => new Date(s)
 

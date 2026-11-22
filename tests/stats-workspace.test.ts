@@ -3,8 +3,7 @@ import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 import { type Row } from '../workers/stats/src/dashboard'
 import { DIMENSIONS, MEASURES, WORKSPACE_META, parseWorkspace, shapeWorkspace, workspaceStatements } from '../workers/stats/src/workspace'
-import { WORKSPACE_JS } from '../workers/stats/src/workspace-client'
-import { PURE_JS } from '../workers/stats/src/pure'
+import { workspaceChartRows, workspaceCsv, workspaceDefault, workspaceHash, workspaceObservation, workspaceQuery, workspaceRequestGate, workspaceSort, workspaceState, type WorkspaceState } from '../workers/stats/ui/src/lib/workspace'
 
 type Db = { exec(sql: string): void; prepare(sql: string): { run(...a: unknown[]): unknown; all(...a: unknown[]): Row[] } }
 const sqlite = (() => { try { return createRequire(import.meta.url)('node:sqlite') as { DatabaseSync: new (p: string) => Db } } catch { return null } })()
@@ -174,14 +173,10 @@ describe.skipIf(!sqlite)('workspace SQL and numbers', () => {
   })
 })
 
-type State={view:string;preset:string;from:string;to:string;country:string;device:string;compare:boolean;trend:string;measure:string;dimension:string;display:string;filters:Record<string,string>;sort:string;descending:boolean}
+type State=WorkspaceState
 type Data=ReturnType<typeof shapeWorkspace>
-const lib=new Function(PURE_JS+WORKSPACE_JS+';return {workspaceDefault,workspaceState,workspaceHash,workspaceQuery,workspaceSort,workspaceChartRows,workspaceCsv,workspaceObservation,workspaceRequestGate};')() as {
-  workspaceRequestGate():{begin():number;current(ticket:number):boolean};
-  workspaceDefault():State;workspaceState(hash:string,meta:typeof WORKSPACE_META):State;workspaceHash(s:State):string;workspaceQuery(s:State,today:string):string
-  workspaceSort(rows:{key:string;value:number}[],sort:string,desc:boolean,dimension:string):{key:string;value:number}[]
-  workspaceChartRows(r:Data['explore']):{key:string;value:number}[];workspaceCsv(d:Data,s:State):string;workspaceObservation(d:Data,m:string,compare:boolean):string
-}
+// The console's state/query/export module (workers/stats/ui/src/lib/workspace.ts), imported directly.
+const lib={workspaceDefault,workspaceState,workspaceHash,workspaceQuery,workspaceSort,workspaceChartRows,workspaceCsv,workspaceObservation,workspaceRequestGate}
 describe('workspace state, displays and export contract',()=>{
   it('discards delayed responses after a newer request, a return to cached data, or navigation away',async()=>{
     const gate=lib.workspaceRequestGate(),old=gate.begin();
@@ -192,7 +187,7 @@ describe('workspace state, displays and export contract',()=>{
     gate.begin();expect(gate.current(newer)).toBe(false);
   });
   it('defaults to completed days and restores all fields, including empty unknown-category filters',()=>{
-    const s={...lib.workspaceDefault(),view:'explore',preset:'custom',from:'2026-11-20',to:'2026-11-21',measure:'visits',dimension:'language',country:'MX',device:'iphone',filters:{language:''},sort:'value',descending:true,compare:false}
+    const s:State={...lib.workspaceDefault(),view:'explore',preset:'custom',from:'2026-11-20',to:'2026-11-21',measure:'visits',dimension:'language',country:'MX',device:'iphone',filters:{language:''},sort:'value',descending:true,compare:false}
     expect(lib.workspaceState(lib.workspaceHash(s),WORKSPACE_META)).toEqual(s)
     const q=new URLSearchParams(lib.workspaceQuery(lib.workspaceDefault(),today));expect(q.get('from')).toBe('2026-11-10');expect(q.get('to')).toBe('2026-11-23')
     expect(lib.workspaceState('#r=7&c=mx&m=collages',WORKSPACE_META)).toMatchObject({preset:'7',country:'MX',trend:'collages'})
