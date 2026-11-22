@@ -304,7 +304,7 @@ describe('provisional collage', () => {
 // fingerprints of synthetic lists (no data files: those have their own hashes in the id) catch a change: when one
 // fails, add the new fingerprint under PACK_VERSION + 1 and bump PACK_VERSION in layout-client.ts.
 const FINGERPRINTS: Record<number, string> = {
-  1: '224715191.919',
+  1: '222981303.919', // re-recorded with fix/r6-batch-pack's filtered shapes before any layout was stored
 }
 describe('pack version', () => {
   it('the packer still gives the layouts PACK_VERSION was recorded for', async () => {
