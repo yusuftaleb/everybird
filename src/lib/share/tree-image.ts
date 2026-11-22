@@ -36,7 +36,9 @@ import { levelView, ROW_H, taxonCover, tipOn, type LevelView, type TreeRow } fro
 import { ageTicks, bySplits, circlePath, drawTree, formatAge, oldestLineage, type Drawing } from '@/lib/tree/tree'
 import { IMAGE_SCALE, SMALL_ROW, loadStickers, type ImageFormat } from './image'
 import type { PrintSize } from './print'
-import { chosenTotals, clipText, renderViewImage, type Area, type ViewImageOpts } from './view-image'
+import { chosenTotals, clipText, renderViewImage, viewTotals, type Area, type ViewImageOpts } from './view-image'
+// The totals' type and place are shared with the Map image (view-image.ts); still exported from here for the tests.
+export { TOTALS_TYPE, totalsPlace } from './view-image'
 
 /** The Rectangular poster's names: the largest size (round 6: as large as the room allows, up to this). */
 const NAME_MAX = 48
@@ -128,14 +130,6 @@ function clearTicks<T extends { v: number; x0: number; x1: number; y0: number; y
   for (const it of order) if (kept.every((k) => clear(it, k))) kept.push(it)
   return kept.sort((a, b) => a.v - b.v)
 }
-/** The room between the totals and the drawing under them (round 6, item 9: 20, was 32). */
-const TOTALS_BELOW = 20
-/**
- * The totals' type, as the promo's tree poster (round 6): each number (Cabinet 700, Ink) over its rank (Geist Mono 500,
- * Muted, tracked .06em), right-aligned, `gap` between them; `between` the blocks, and between the title and the group.
- */
-export const TOTALS_TYPE = { num: 44, label: 15, gap: 8, between: 48, track: 0.06 } as const
-
 type Tip = Exclude<TreeRow, { kind: 'head' }>
 type TotalRank = 'species' | 'genera' | 'families' | 'orders'
 /** The four totals, in this order. */
@@ -143,16 +137,6 @@ export const TOTALS: readonly TotalRank[] = ['species', 'genera', 'families', 'o
 /** Each total's word, by its count ("1 family", "5 families"; Russian's few and many forms too). */
 const RANK_WORD: Record<TotalRank, (t: Ui) => Plural> = {
   species: (t) => t.collage.stats.species, genera: (t) => t.collage.tree.genera, families: (t) => t.collage.stats.families, orders: (t) => t.collage.stats.orders,
-}
-
-/**
- * Where the totals go (round 6, as the promo's tree poster): one right-aligned group at the content's top right. On the
- * title's band when the title (`titleW` wide at its size; undefined for none) and the group (`groupW` at TOTALS_TYPE)
- * fit the `width` side by side with TOTALS_TYPE.between between them; else under the title, or at the top with no
- * title. `k` shrinks the group only where it is wider than the width on its own.
- */
-export function totalsPlace(groupW: number, titleW: number | undefined, width: number): { band: boolean; k: number } {
-  return { band: titleW !== undefined && titleW + TOTALS_TYPE.between + groupW <= width, k: Math.min(1, width / Math.max(1e-6, groupW)) }
 }
 
 /** The share of the area's width the Rectangular image's drawing takes at most (round 6: half, as on screen), and at
@@ -239,58 +223,10 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
   return renderViewImage({ ...o, countSize: 'hide', latestAs, tight: true }, (ctx, card, full) => {
     const C = card.colors
     const font = card.fonts
-    // The totals (round 6, as the promo's tree poster: counts only, "65" over "FAMILIES"): one right-aligned group at the
-    // top right, each number over its rank, right-aligned. Beside the card's title on its band (the title at the left,
-    // the numbers' caps level with its caps) when both fit; else under the title, or at the top without one.
-    const T = TOTALS_TYPE
-    const widthOf = (x: { n: string; label: string }, k: number) => {
-      ctx.font = font.count(T.num * k)
-      const nw = ctx.measureText(x.n).width
-      ctx.font = font.mono(T.label * k)
-      ctx.letterSpacing = `${T.track * T.label * k}px`
-      const lw = ctx.measureText(x.label).width
-      ctx.letterSpacing = '0px'
-      return Math.max(nw, lw)
-    }
-    const groupW = (k: number) => totals.reduce((sum, x, i) => sum + widthOf(x, k) + (i ? T.between * k : 0), 0)
-    const title = card.name && card.L.name ? card.name : undefined
-    ctx.font = font.name(card.L.name?.size ?? 60)
-    const titleW = title ? ctx.measureText(title).width : undefined
-    const place = totalsPlace(groupW(1), titleW, full.w)
-    const tk = place.k
-    const numCap = T.num * tk * 0.72, labelCap = T.label * tk * 0.72
-    const groupH = totals.length ? numCap + T.gap * tk + labelCap : 0
-    // The title's caps' top (paintCard draws it from its em box's top; its baseline that far below, 0.8 of the size
-    // where the canvas can't say).
-    let groupTop = full.y
-    if (place.band && title && card.L.name) {
-      ctx.font = font.name(card.L.name.size)
-      ctx.textBaseline = 'top'
-      const drop = Math.abs(ctx.measureText('H').alphabeticBaseline ?? 0)
-      groupTop = card.L.name.y + (Number.isFinite(drop) && drop > 0 ? drop : 0.8 * card.L.name.size) - 0.72 * card.L.name.size
-    }
-    const drawTotals = () => {
-      ctx.textBaseline = 'alphabetic'
-      ctx.textAlign = 'right'
-      let x = full.x + full.w
-      for (let i = totals.length - 1; i >= 0; i--) {
-        const tot = totals[i]
-        ctx.font = font.count(T.num * tk)
-        ctx.fillStyle = C.ink
-        ctx.fillText(tot.n, x, groupTop + numCap)
-        ctx.font = font.mono(T.label * tk)
-        ctx.letterSpacing = `${T.track * T.label * tk}px`
-        ctx.fillStyle = C.muted
-        ctx.fillText(tot.label, x, groupTop + numCap + T.gap * tk + labelCap)
-        ctx.letterSpacing = '0px'
-        x -= widthOf(tot, tk) + T.between * tk
-      }
-      ctx.textAlign = 'left'
-    }
+    const group = viewTotals(ctx, card, full, totals)
     // The room under the totals, down to the gap above the footer's row: the drawing (with its axis and key) is fitted
     // in it and centred there on its real bounds (round 6: the Story's Radial no longer sits high with a gap under it).
-    // On the title's band the totals take none of it unless they reach below the card's head.
-    const head = !totals.length ? 0 : Math.max(0, groupTop + groupH + TOTALS_BELOW - full.y)
+    const head = group.head
     const room: Area = { x: full.x, y: full.y + head, w: full.w, h: full.h - head }
 
     // The axis wherever the time scale is on (round 6, item 14: no height it needs first; Square had none).
@@ -441,7 +377,7 @@ export async function renderTreeImage(o: ViewImageOpts): Promise<Blob> {
     // drawH: the round drawing's whole height (under it included), or the rows' own (their axis and key under them).
     const drawH = fit && bounds ? bounds.up + bottomOf(fit, bounds) : view.height * k
     const blockH = fit ? drawH : drawH + under('rows')
-    drawTotals()
+    group.draw()
     const area: Area = { x: full.x, y: room.y + Math.max(0, room.h - blockH) / 2, w: full.w, h: drawH }
     o.onTreeBounds?.({ room, drawing: bounds && fit ? { x: area.x + fit.cx - bounds.left, y: area.y, w: bounds.left + bounds.right, h: drawH } : { ...area, h: blockH } })
 
