@@ -39,8 +39,9 @@ export type TreeLevel = { ord?: string; fam?: string; genus?: string }
 export const ROW_H = 44
 export const HEAD_H = 32
 /** Rectangular: the drawing's column (px) for a view `width` px wide, half of it (round 6), between 112 and 640, leaving
- *  the rows at least 200px on a narrow view. */
-export const rowsTreeW = (width: number): number => Math.round(Math.min(640, Math.max(112, Math.min(width * 0.5, width - 200))))
+ *  the rows at least 220px on a narrow view (a phone: room for "Woodpeckers" and "Hummingbirds" on one line beside the
+ *  count; 200 broke them mid-word at 390px). Only views under 440px are narrow enough for this to bind. */
+export const rowsTreeW = (width: number): number => Math.round(Math.min(640, Math.max(112, Math.min(width * 0.5, width - 220))))
 
 export { genusOf }
 

@@ -298,10 +298,12 @@ describe('the genus is a taxonomy filter', () => {
 })
 
 describe('Rectangular: half the width or more, the counts at the right edge', () => {
-  it('rowsTreeW: half of the view, between 112 and 640, the rows keeping 200px', () => {
+  it('rowsTreeW: half of the view, between 112 and 640, the rows keeping 220px', () => {
     expect(rowsTreeW(1000)).toBe(500)
     expect(rowsTreeW(1600)).toBe(640)
-    expect(rowsTreeW(320)).toBe(120)
+    expect(rowsTreeW(440)).toBe(220) // from here up, half the view
+    expect(rowsTreeW(358)).toBe(138) // a 390px phone's view
+    expect(rowsTreeW(320)).toBe(112)
     expect(rowsTreeW(200)).toBe(112)
   })
   it("rowsLabels (the share image): the counts in their own column at the card's right edge, never dropped (round 6)", () => {

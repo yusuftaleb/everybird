@@ -174,7 +174,7 @@
   .eb-src-status { padding-left: 14px; padding-right: 14px; } /* the notes under the rows keep the rows' title edge */
   .eb-src-panel { padding: 12px 14px; }
   .eb-dropzone > .eb-btn { flex: 1 1 100%; }
-  .eb-src-formrow > .eb-input { flex-basis: 100%; }
+  .eb-row.eb-src-formrow > .eb-input { flex-basis: 100%; } /* outweighs .eb-row > .eb-input (below): the field its own line, its placeholder whole */
   .eb-src-formrow > .eb-btn { flex: 1 1 auto; }
 }
 

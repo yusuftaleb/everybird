@@ -55,6 +55,8 @@ describe('the share dialog: the top row clears the options', () => {
     expect(phone).toMatch(/\.eb-share-orient \.eb-seg-btn::after \{ inset: -5px -4px; \}/)
     expect(phone).toMatch(/\.eb-share-trio \{ display: flex; flex-wrap: wrap; gap: 8px;/)
     expect(phone).toMatch(/\.eb-share-trio > \.eb-share-primary \{ flex-grow: 2; \}/)
+    // A 360px phone's 286px column: the stacked layout, not Share image beside a two-high grid.
+    expect(phone).toMatch(/@container \(max-width: 299px\) \{ \.eb-share-trio \{ display: contents; \} \}/)
   })
   it('has no layout of its own for Horizontal: every shape is the same dialog', () => {
     expect(css).not.toMatch(/data-layout/)
