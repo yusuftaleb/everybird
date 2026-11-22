@@ -587,8 +587,11 @@ export function Stage<S extends object>({
         style={{
           width: designW,
           height: designH,
-          marginLeft: inset || undefined,
-          transform: `scale(${scale})`,
+          // zoom, not transform: scale(): the design is laid out at its drawn size, so text, borders and stickers render
+          // sharp past 1x (a scaled layer is rasterized at design size, will-change layers inside it too, and blown up).
+          // Lengths on the zoomed element are zoomed too, so the inset is given in design px.
+          marginLeft: inset ? inset / scale : undefined,
+          zoom: scale,
           ...tokens,
           ...(accent ? { ['--ss-accent' as string]: accent, ['--ss-accent-2' as string]: accent, ['--ss-accent-soft' as string]: `color-mix(in srgb, ${accent} 14%, transparent)` } : null),
         }}

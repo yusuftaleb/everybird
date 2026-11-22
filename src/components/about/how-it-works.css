@@ -478,18 +478,21 @@
 
 /* ---- The static poster (HowItWorksPoster): the stage's first frame, server-rendered ---- */
 /* Both designs are in the markup; the slot's width picks one (the stage's own rule: compact under 560px). Each is
-   scaled to the slot as the Stage does with fill (min(2, width / design width)). The ratio is unitless with
-   tan(atan2(100cqw, 720px)), which every engine has (Firefox can't divide a length by a length in calc); a measured --k
-   stands in where even that is missing. */
-.ebd-poster { position: relative; width: 100%; container-type: inline-size; }
+   zoomed to the slot as the Stage does with fill (min(2, width / design width)): zoom, not scale, so it is laid out and
+   rendered at its drawn size, sharp past 1x. The ratio is a number registered on the design's box (--ebd-k, computed
+   there, so the zoomed stage gets a plain number) from tan(atan2(100cqw, 720px)), which every engine has (Firefox can't
+   divide a length by a length in calc); a measured --k stands in where even that is missing. */
+@property --ebd-k { syntax: '<number>'; inherits: true; initial-value: 1; }
+.ebd-poster { position: relative; width: 100%; container-type: inline-size; --ebd-k: var(--k, 1); }
 .ebd-poster .ss-fit { position: relative; width: 100%; }
-.ebd-poster .ss-stage { position: absolute; left: 50%; top: 0; transform-origin: 50% 0; translate: -50% 0; scale: var(--k, 1); }
+/* Centred by its margins (lengths on a zoomed box are zoomed; left and right 0 and auto margins aren't) */
+.ebd-poster .ss-stage { position: absolute; left: 0; right: 0; top: 0; margin: 0 auto; zoom: var(--ebd-k); }
 .ebd-poster [data-poster="compact"] { display: none; }
 @container (max-width: 559.98px) {
   .ebd-poster [data-poster="wide"] { display: none; }
   .ebd-poster [data-poster="compact"] { display: block; }
 }
 @supports (scale: tan(atan2(100cqw, 720px))) {
-  .ebd-poster [data-poster="wide"] .ss-stage { scale: min(2, tan(atan2(100cqw, 720px))); }
-  .ebd-poster [data-poster="compact"] .ss-stage { scale: min(2, tan(atan2(100cqw, 358px))); }
+  .ebd-poster [data-poster="wide"] { --ebd-k: min(2, tan(atan2(100cqw, 720px))); }
+  .ebd-poster [data-poster="compact"] { --ebd-k: min(2, tan(atan2(100cqw, 358px))); }
 }

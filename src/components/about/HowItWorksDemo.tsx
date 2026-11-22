@@ -6,7 +6,7 @@ import { formatInt } from '@/i18n/format'
 import { useI18n } from '@/i18n/I18nProvider'
 import { STICKER_BASE } from '@/lib/sticker-url'
 import { TOTAL } from './how-it-works-data'
-import { demoStickerUrl, poster, POSTER_EAGER, POSTER_STICKERS, Scene } from './HowItWorksScene'
+import { demoSticker, poster, POSTER_EAGER, POSTER_STICKERS, Scene } from './HowItWorksScene'
 import { LookContext, type Layout } from './stageshow/looks'
 
 // The live scene (the Stageshow kit and the script) loads on its own, after the page: the poster stands in until then.
@@ -19,13 +19,13 @@ const SIZE: Record<Layout, [number, number]> = { wide: [720, 470], compact: [358
 
 /**
  * The figure's first frame, server-rendered: the collage made, every sticker around its count (the scene's poster
- * state), in both designs; the slot's width picks one (under 560px the compact one, as the stage does) and scales it
- * to the slot, past its design size too (up to 2x, as the stage's fill). Layout and text are there with the page's HTML; each sticker fades in as it decodes. It is the whole
+ * state), in both designs; the slot's width picks one (under 560px the compact one, as the stage does) and zooms it
+ * to the slot, past its design size too (up to 2x, as the stage's fill), laid out at that size so it stays sharp. Layout and text are there with the page's HTML; each sticker fades in as it decodes. It is the whole
  * figure under reduced motion.
  */
 export function HowItWorksPoster() {
   const box = useRef<HTMLDivElement>(null)
-  // Where CSS can't make the ratio (tan(atan2(100cqw, 720px)), how-it-works.css), the scale is measured once mounted.
+  // Where CSS can't make the ratio (tan(atan2(100cqw, 720px)), how-it-works.css), the zoom is measured once mounted.
   useLayoutEffect(() => {
     const el = box.current
     if (!el || CSS.supports('scale', 'tan(atan2(100cqw, 720px))')) return
@@ -67,7 +67,10 @@ const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: redu
 export function HowItWorksDemo() {
   const { t } = useI18n()
   preconnect(STICKER_BASE)
-  for (const code of POSTER_STICKERS.slice(0, POSTER_EAGER)) preload(demoStickerUrl(code), { as: 'image' })
+  for (const code of POSTER_STICKERS.slice(0, POSTER_EAGER)) {
+    const img = demoSticker(code)
+    preload(img.src, { as: 'image', imageSrcSet: img.srcSet, imageSizes: img.sizes })
+  }
   const slot = useRef<HTMLDivElement>(null)
   const [Stage, setStage] = useState<ComponentType<{ paused?: boolean }> | null>(null)
   // The viewer's Pause (WCAG 2.2.2: a loop that runs as long as it is on screen can be stopped); Play starts it afresh.
