@@ -19,12 +19,17 @@ export const MEASURES = {
   searches: { label: 'Searches applied', unit: 'events', dimensions: [...timed, 'searchType'] },
   filters: { label: 'Filters used', unit: 'events', dimensions: [...timed, 'filterType'] },
   languageSwitches: { label: 'Interface-language switches', unit: 'events', dimensions: [...timed, 'uiLanguage'] },
+  compares: { label: 'Comparisons made', unit: 'events', dimensions: [...timed, 'listCount'] },
+  imageViews: { label: 'Images saved or shared, by view', unit: 'events', dimensions: [...timed, 'imageView'] },
+  viewsOpened: { label: 'Views opened', unit: 'deduplicated view openings', dimensions: [...timed, 'openedView'] },
+  batches: { label: 'Batch exports', unit: 'events', dimensions: [...timed, 'batchSplit'] },
 } as const
 export type Measure = keyof typeof MEASURES
 export const DIMENSIONS = {
   day: 'Day', hour: 'Receipt hour (Pacific)', country: 'Country', device: 'Device', page: 'Page', language: 'Browser language',
   source: 'Import source', event: 'Download type', format: 'Image format', fileType: 'Poster file type', shareType: 'Share type',
   linkType: 'Link type', posterSize: 'Poster size', searchType: 'Search type', filterType: 'Filter type', uiLanguage: 'Interface language',
+  listCount: 'Lists compared', imageView: 'Image of', openedView: 'View', batchSplit: 'Batch split',
 } as const
 export type Dimension = keyof typeof DIMENSIONS
 export const WORKSPACE_META = { measures: MEASURES, dimensions: DIMENSIONS, devices: DEVICES }
@@ -33,6 +38,7 @@ const expressions: Record<Dimension, string> = {
   day: 'day', hour: "CAST(strftime('%H', received_at, '-7 hours') AS INTEGER)", country: 'country', device: 'device',
   page: 'value', language: "NULLIF(lang, '')", source: 'value', event: 'name', format: 'value', fileType: 'value',
   shareType: 'value', linkType: 'value', posterSize: 'value', searchType: 'value', filterType: 'value', uiLanguage: 'value',
+  listCount: 'value', imageView: 'value', openedView: 'value', batchSplit: 'value',
 }
 const predicates: Record<Measure, string> = {
   active: '1=1', visits: "name = 'visit'", collages: "name = 'collage_made' AND value NOT IN ('sample', 'restore')",
@@ -40,7 +46,13 @@ const predicates: Record<Measure, string> = {
   downloads: "name IN ('image_downloaded', 'poster_downloaded')", images: "name = 'image_downloaded'", posterDownloads: "name = 'poster_downloaded'",
   shares: "name = 'shared'", links: "name = 'link_copied'", posters: "name = 'poster_made'", searches: "name = 'search_applied'",
   filters: "name = 'filter_used'", languageSwitches: "name = 'ui_language'",
+  compares: "name = 'compare_made'", imageViews: "name = 'image_view'", viewsOpened: "name = 'view_opened'", batches: "name = 'batch_exported'",
 }
+/** The features released on 21 Nov 2026, which Overview breaks down by value: each measure and the event it counts.
+ *  Compare's two pages are visits, broken down apart (comparePages). */
+export const FEATURES = { compares: 'compare_made', viewsOpened: 'view_opened', imageViews: 'image_view', batches: 'batch_exported', languageSwitches: 'ui_language' } as const
+export type Feature = keyof typeof FEATURES | 'comparePages'
+const COMPARE_PAGES = "name = 'visit' AND value IN ('compare', 'compare-shared')"
 const PD = "COUNT(DISTINCT day || '|' || NULLIF(vid, ''))"
 const count = (m: Measure) => m === 'active' ? PD : 'COUNT(*)'
 const iso = (t: number) => new Date(t).toISOString().slice(0, 10)
@@ -55,7 +67,7 @@ function validValue(d: Dimension, v: string): boolean {
   if (d === 'device') return DEVICES.includes(v)
   if (d === 'language') return v === '' || LANG.test(v)
   if (d === 'event') return ['image_downloaded', 'poster_downloaded'].includes(v)
-  const event: Partial<Record<Dimension, string>> = { page: 'visit', source: 'collage_made', format: 'image_downloaded', fileType: 'poster_downloaded', shareType: 'shared', linkType: 'link_copied', posterSize: 'poster_made', searchType: 'search_applied', filterType: 'filter_used', uiLanguage: 'ui_language' }
+  const event: Partial<Record<Dimension, string>> = { page: 'visit', source: 'collage_made', format: 'image_downloaded', fileType: 'poster_downloaded', shareType: 'shared', linkType: 'link_copied', posterSize: 'poster_made', searchType: 'search_applied', filterType: 'filter_used', uiLanguage: 'ui_language', listCount: 'compare_made', imageView: 'image_view', openedView: 'view_opened', batchSplit: 'batch_exported' }
   return !!event[d] && ALLOWED[event[d]!].has(v)
 }
 
@@ -98,7 +110,7 @@ function where(p: WorkspaceParams, from = p.from, to = p.to, exploration = false
 export function workspaceStatements(p: WorkspaceParams): Stmt[] {
   const days = (ms(p.to) - ms(p.from)) / 86400000 + 1
   const prevFrom = shiftDay(p.from, -days), w = where(p), wide = where(p, prevFrom), x = where(p, p.from, p.to, true)
-  const summary = (w: ReturnType<typeof where>): Stmt => ({ sql: `SELECT ${PD} AS active, COUNT(*) AS events, SUM(vid = '') AS missingIdentity, ${(['collages', 'downloads', 'shares', 'demos', 'restores', 'images', 'posters', 'posterDownloads', 'links', 'searches', 'filters', 'visits'] as Measure[]).map((m) => `SUM(CASE WHEN ${predicates[m]} THEN 1 ELSE 0 END) AS ${m}`).join(', ')}, COUNT(DISTINCT CASE WHEN ${predicates.collages} THEN day || '|' || NULLIF(vid, '') END) AS makers, COUNT(DISTINCT CASE WHEN ${predicates.downloads} THEN day || '|' || NULLIF(vid, '') END) AS downloaders, COUNT(DISTINCT CASE WHEN ${predicates.shares} THEN day || '|' || NULLIF(vid, '') END) AS sharers FROM events ${w.sql}`, binds: w.binds })
+  const summary = (w: ReturnType<typeof where>): Stmt => ({ sql: `SELECT ${PD} AS active, COUNT(*) AS events, SUM(vid = '') AS missingIdentity, ${(['collages', 'downloads', 'shares', 'demos', 'restores', 'images', 'posters', 'posterDownloads', 'links', 'searches', 'filters', 'visits', 'languageSwitches', 'compares', 'imageViews', 'viewsOpened', 'batches'] as Measure[]).map((m) => `SUM(CASE WHEN ${predicates[m]} THEN 1 ELSE 0 END) AS ${m}`).join(', ')}, COUNT(DISTINCT CASE WHEN ${predicates.collages} THEN day || '|' || NULLIF(vid, '') END) AS makers, COUNT(DISTINCT CASE WHEN ${predicates.downloads} THEN day || '|' || NULLIF(vid, '') END) AS downloaders, COUNT(DISTINCT CASE WHEN ${predicates.shares} THEN day || '|' || NULLIF(vid, '') END) AS sharers FROM events ${w.sql}`, binds: w.binds })
   return [
     summary(w),
     { sql: `SELECT day AS k, ${PD} AS active, ${(['collages', 'downloads', 'shares', 'visits', 'posters'] as Measure[]).map((m) => `SUM(CASE WHEN ${predicates[m]} THEN 1 ELSE 0 END) AS ${m}`).join(', ')} FROM events ${wide.sql} GROUP BY day`, binds: wide.binds },
@@ -109,6 +121,8 @@ export function workspaceStatements(p: WorkspaceParams): Stmt[] {
     { sql: "SELECT MIN(day) AS first, SUM(name = 'collage_made' AND value NOT IN ('sample', 'restore')) AS collages, SUM(name IN ('image_downloaded', 'poster_downloaded')) AS downloads FROM events", binds: [] },
     // These are picker options, not metric breakdowns: intentionally independent of selected country/device.
     { sql: 'SELECT DISTINCT country AS k FROM events WHERE day BETWEEN ? AND ? ORDER BY country', binds: [p.from, p.to] },
+    // The 21 Nov features by value, under the shared filters: event names are fixed here, every value is bound.
+    { sql: `SELECT name AS e, value AS k, COUNT(*) AS n FROM events ${w.sql} AND (name IN (${Object.values(FEATURES).map((e) => `'${e}'`).join(', ')}) OR (${COMPARE_PAGES})) GROUP BY name, value ORDER BY n DESC, k`, binds: w.binds },
     // Exact reach of the complement, not a sum of overlapping country/device visitor-day counts.
     ...(p.measure === 'active' && ['country', 'device'].includes(p.dimension) ? [{ sql: `SELECT ${PD} AS n FROM events ${x.sql} AND ${expressions[p.dimension]} NOT IN (SELECT ${expressions[p.dimension]} FROM events ${x.sql} GROUP BY ${expressions[p.dimension]} ORDER BY ${PD} DESC, ${expressions[p.dimension]} LIMIT 10)`, binds: [...x.binds, ...x.binds] }] : []),
   ]
@@ -116,7 +130,7 @@ export function workspaceStatements(p: WorkspaceParams): Stmt[] {
 
 const n = (v: unknown) => Number(v ?? 0)
 export function shapeWorkspace(p: WorkspaceParams, results: Row[][], today: string, now = new Date()) {
-  const [summaries = [], series = [], countries = [], devices = [], hours = [], groups = [], totals = [], lifetime = [], options = [], other = []] = results
+  const [summaries = [], series = [], countries = [], devices = [], hours = [], groups = [], totals = [], lifetime = [], options = [], features = [], other = []] = results
   const first = typeof lifetime[0]?.first === 'string' ? lifetime[0].first : null
   const from = first && first <= p.to ? (first > p.from ? first : p.from) : p.from
   const days = (ms(p.to) - ms(from)) / 86400000 + 1
@@ -126,7 +140,7 @@ export function shapeWorkspace(p: WorkspaceParams, results: Row[][], today: stri
   const point = (d: string) => { const row = seriesByDay.get(d); return { day: d, ...Object.fromEntries(metrics.map((m) => [m, n(row?.[m])])) as Record<typeof metrics[number], number> } }
   const daily = Array.from({ length: days }, (_, i) => point(shiftDay(from, i)))
   const previous = Array.from({ length: days }, (_, i) => point(shiftDay(prevFrom, i)))
-  const summary = Object.fromEntries(['active', 'events', 'missingIdentity', 'collages', 'downloads', 'shares', 'demos', 'restores', 'images', 'posters', 'posterDownloads', 'links', 'searches', 'filters', 'visits', 'makers', 'downloaders', 'sharers'].map((k) => [k, n(summaries[0]?.[k])]))
+  const summary = Object.fromEntries(['active', 'events', 'missingIdentity', 'collages', 'downloads', 'shares', 'demos', 'restores', 'images', 'posters', 'posterDownloads', 'links', 'searches', 'filters', 'visits', 'languageSwitches', 'compares', 'imageViews', 'viewsOpened', 'batches', 'makers', 'downloaders', 'sharers'].map((k) => [k, n(summaries[0]?.[k])]))
   const total = n(totals[0]?.n), unknown = groups.filter((r) => r.k === null || r.k === '').reduce((s, r) => s + n(r.n), 0)
   let rows = groups.map((r) => ({ key: r.k == null ? '' : String(r.k), value: n(r.n) }))
   if (p.dimension === 'day') { const byDay = new Map(rows.map((r) => [r.key, r.value])); rows = Array.from({ length: days }, (_, i) => { const key = shiftDay(from, i); return { key, value: byDay.get(key) ?? 0 } }) }
@@ -149,6 +163,18 @@ export function shapeWorkspace(p: WorkspaceParams, results: Row[][], today: stri
     hourly: { hours: Array.from({ length: 24 }, (_, i) => ({ key: String(i), value: n(hours.find((r) => r.k !== null && Number(r.k) === i)?.n) })), withoutTime: hours.filter((r) => r.k === null).reduce((s, r) => s + n(r.n), 0) },
     explore: { measure: p.measure, dimension: p.dimension, unit: MEASURES[p.measure].unit, filters: p.filters, rows, total, unknown, other: n(other[0]?.n), missingIdentity: n(totals[0]?.missingIdentity), overlapping: p.measure === 'active' && p.dimension !== 'day' },
     lifetime: { first, collages: n(lifetime[0]?.collages), downloads: n(lifetime[0]?.downloads) },
+    features: featureRows(features),
     countryOptions: options.map((r) => String(r.k)), warnings,
   }
+}
+
+/** Each feature's values, most first: only allow-listed values, so a stray row never reaches the page. */
+function featureRows(rows: Row[]): Record<Feature, { key: string; value: number }[]> {
+  const out = Object.fromEntries([...Object.keys(FEATURES), 'comparePages'].map((f) => [f, [] as { key: string; value: number }[]])) as Record<Feature, { key: string; value: number }[]>
+  for (const r of rows) {
+    const e = String(r.e), k = String(r.k)
+    const f = (e === 'visit' ? 'comparePages' : (Object.keys(FEATURES) as (keyof typeof FEATURES)[]).find((m) => FEATURES[m] === e)) as Feature | undefined
+    if (f && ALLOWED[e]?.has(k) && (f !== 'comparePages' || k.startsWith('compare'))) out[f].push({ key: k, value: n(r.n) })
+  }
+  return out
 }
