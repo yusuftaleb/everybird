@@ -44,6 +44,15 @@ describe('the share dialog: the top row clears the options', () => {
       for (const r of css.matchAll(m)) expect(r[2]).not.toMatch(/margin[^;]*-\d|transform|\btop:/)
     }
   })
+  it('on a phone: the orientation as icons beside the format, Share image and the quiet row on one wrapping line; a desktop as before', () => {
+    const phone = css.slice(css.indexOf('/* Phones (the stacked layout), fewer rows'))
+    expect(css).toMatch(/\.eb-orient-icon \{ display: none; \}/)
+    expect(css).toMatch(/\.eb-share-trio \{ display: contents; \}/)
+    expect(phone).toMatch(/@media \(max-width: 719\.98px\) \{[^]*\.eb-share \.eb-share-orient \.eb-orient-word \{ display: none; \}/)
+    expect(phone).toMatch(/\.eb-share \.eb-share-orient \.eb-seg-btn svg\.eb-orient-icon \{ display: block;/)
+    expect(phone).toMatch(/\.eb-share-trio \{ display: flex; flex-wrap: wrap; gap: 8px;/)
+    expect(phone).toMatch(/\.eb-share-trio > \.eb-share-primary \{ flex-grow: 2; \}/)
+  })
   it('has no layout of its own for Horizontal: every shape is the same dialog', () => {
     expect(css).not.toMatch(/data-layout/)
   })

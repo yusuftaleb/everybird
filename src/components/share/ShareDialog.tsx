@@ -186,6 +186,18 @@ const FORMATS: { id: FormatSlot; hint: Record<Orientation, string> }[] = [
   { id: 'square', hint: { vertical: '1:1', horizontal: '1:1' } },
 ]
 const ORIENTATIONS: Orientation[] = ['vertical', 'horizontal']
+/** Vertical and Horizontal as icons, a portrait and a landscape rectangle (Phosphor's 256 grid and 16-unit stroke): on
+ *  a phone they replace the words (share.css), so the orientation keeps the format's row; the word is the button's
+ *  name and the icon's title. */
+function OrientIcon({ o, title }: { o: Orientation; title: string }) {
+  const r = o === 'vertical' ? { x: 72, y: 32, width: 112, height: 192 } : { x: 32, y: 72, width: 192, height: 112 }
+  return (
+    <svg className="eb-orient-icon" viewBox="0 0 256 256" aria-hidden="true" focusable="false">
+      <title>{title}</title>
+      <rect {...r} rx="16" fill="none" stroke="currentColor" strokeWidth="16" strokeLinejoin="round" />
+    </svg>
+  )
+}
 /** The Count control's segments, left to right: Hide, S, M, L, Beside title. */
 const COUNT_SIZES: CountSize[] = ['hide', 'small', 'medium', 'large', 'title']
 /** The three sizes the Count control shows by their short forms (S, M, L), named in full. */
@@ -1407,7 +1419,10 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
               )}
               {rows.orientation && segmented({
                 className: 'eb-share-orient', label: t.share.orientation.group, value: orientation, pick: setOrientation,
-                options: ORIENTATIONS.map((o) => ({ value: o, label: t.share.orientation[o] })),
+                options: ORIENTATIONS.map((o) => ({
+                  value: o, name: t.share.orientation[o],
+                  label: <><span className="eb-orient-word">{t.share.orientation[o]}</span><OrientIcon o={o} title={t.share.orientation[o]} /></>,
+                })),
               })}
             </div>
           </div>
@@ -1582,8 +1597,11 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
                   </>
                 ) : (
                   <>
-                    {primary}
-                    <div className="eb-share-row">{quiet.map(quietButton)}</div>
+                    {/* On a phone Share image and the quiet row share one line where they fit (share.css); else as here. */}
+                    <div className="eb-share-trio">
+                      {primary}
+                      <div className="eb-share-row">{quiet.map(quietButton)}</div>
+                    </div>
                     {compare && <p id={linkNoteId} className="eb-note" data-testid="share-link-note">{linkOff ?? t.compare.consent}</p>}
                   </>
                 )}

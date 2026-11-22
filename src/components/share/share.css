@@ -21,7 +21,7 @@
   /* The actions come straight under the preview (Share image, or in the poster Make poster, on the first screen; the
      title and the option rows follow), so the cap leaves room for the chrome above it and that one button: the scrim's
      16px, the dialog's 1px border and 16px padding, the 44px head and its 12px gap, the top row (the format and the
-     orientation, wrapped to two 54px rows 8px apart on a phone: 116), the body's two 12px gaps, Share image (44), the
+     orientation, one row on most phones since the orientation's icons, else two 54px rows 8px apart: 116), the body's two 12px gaps, Share image (44), the
      8px gap and the top 18px of the quiet row as a cue to scroll: 299; say 340, the same in the poster (it has no format
      control, so its first screen has room to spare). */
   .eb-share .eb-share-body { --cap: max(240px, min(62dvh, 100dvh - 340px, 600px)); }
@@ -484,4 +484,21 @@
 @media (prefers-reduced-motion: reduce) { .eb-seg-btn { transition: none; } }
 @media (prefers-reduced-motion: reduce) {
   .eb-share-preview[data-resizing] { transition: none; }
+}
+
+/* Phones (the stacked layout), fewer rows (the phone fixes, item 7). Vertical and Horizontal are icon segments, a
+   portrait and a landscape rectangle named by their word (OrientIcon), so they keep Story / Post / Square's row (at
+   360, 390 and 430px in English; a longer language's format words may still wrap them under, as before). Share image
+   and the quiet row (Download, Copy link) share one line where all three fit, Share image taking twice the spare
+   room; where they don't, the quiet row takes the next line whole, as on a desktop. */
+.eb-orient-icon { display: none; }
+.eb-share-trio { display: contents; }
+@media (max-width: 719.98px) {
+  .eb-share .eb-share-orient .eb-orient-word { display: none; }
+  .eb-share .eb-share-toprow .eb-share-orient { flex: none; }
+  .eb-share .eb-share-toprow .eb-share-orient .eb-seg-btn { flex: none; padding: 0 7px; }
+  .eb-share .eb-share-orient .eb-seg-btn svg.eb-orient-icon { display: block; width: 20px; height: 20px; }
+  .eb-share-trio { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+  .eb-share-trio > * { flex: 1 1 auto; min-width: 0; }
+  .eb-share-trio > .eb-share-primary { flex-grow: 2; }
 }

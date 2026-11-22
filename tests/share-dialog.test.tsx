@@ -438,8 +438,15 @@ describe('share dialog', () => {
     expect(screen.queryByRole('button', { name: 'Big Year' })).toBeNull()
     expect(screen.getByRole('group', { name: 'Image format' }).querySelectorAll('button')).toHaveLength(3)
     expect(screen.getByRole('group', { name: 'Orientation' })).toBeInTheDocument()
-    // Share image first, then the quiet ones; no poster options.
+    // Vertical and Horizontal carry their word and an icon (a phone shows the icon only, share.css): named and titled by the word.
+    for (const o of ['Vertical', 'Horizontal']) {
+      const b = within(screen.getByRole('group', { name: 'Orientation' })).getByRole('button', { name: o })
+      expect(b.querySelector('.eb-orient-word')).toHaveTextContent(o)
+      expect(b.querySelector('svg.eb-orient-icon title')).toHaveTextContent(o)
+    }
+    // Share image first, then the quiet ones, in one wrapping line on a phone (.eb-share-trio); no poster options.
     const actions = screen.getByRole('button', { name: 'Share image' }).parentElement!
+    expect(actions).toHaveClass('eb-share-trio')
     expect([...actions.querySelectorAll('.eb-share-row button')].map((b) => b.getAttribute('aria-label') ?? b.textContent)).toEqual(['Download image', 'Copy link'])
     expect(screen.queryByRole('button', { name: /^Print/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /^Poster size / })).toBeNull()
