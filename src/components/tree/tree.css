@@ -53,7 +53,7 @@
   fill: var(--muted); font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: .06em;
   text-anchor: middle; dominant-baseline: central; user-select: none; -webkit-user-select: none;
 }
-.eb-tree-row { display: flex; min-height: 44px; }
+.eb-tree-row { display: flex; gap: 8px; min-height: 44px; } /* the count never touches a long wrapped name (a 1,000-bird tree on a phone) */
 /* Each row holds its own hidden words (.eb-sr is absolutely placed): they stay inside it, never below the page. */
 .eb-tree-row > .eb-tree-btn { flex: 1 1 0; width: auto; min-width: 0; }
 /* A marked row with more than two genera inside: the row's button holds to its name, so "with 5 other genera" sits right
