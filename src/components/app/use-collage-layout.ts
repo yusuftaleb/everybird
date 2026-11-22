@@ -3,6 +3,7 @@
 // current filter, mode and layout class, and prefetch of the filter's child states in idle time.
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { createLayoutClient, type LayoutClient, type StateLayout } from '@/lib/layout/layout-client'
+import { layoutStore } from '@/lib/layout/layout-store'
 import type { LayoutName } from '@/lib/layout/layout.worker'
 import type { Arrangement } from '@/lib/arrangement'
 import { applyFilter, filterKey, hasPlaces, inRange, options, withCountries, type Filter, type FilterLevel } from '@/lib/list/filters'
@@ -58,6 +59,8 @@ type Opts = {
   preview?: { from?: string; to?: string; committed?: boolean } | null
   /** The Arrangement (arrangement.ts): Fit by default, Oval (every state inside the stage's ellipse) or Free. */
   arrangement?: Arrangement
+  /** Keep finished layouts on the device (layout-store.ts): the birder's own collage only, never a shared link's. */
+  persist?: boolean
 }
 
 /**
@@ -99,10 +102,14 @@ const idle = (fn: () => void): (() => void) => {
  * The current StateLayout and its visible codes, or null until the first layout arrives (and always in
  * environments without Worker, such as jsdom, unless a seed covers the state). Entries whose species are unknown are left out.
  */
-export function useCollageLayout({ list, seen, filter, mode, species, container, seed, preview, arrangement = 'packed' }: Opts): CollageLayout | null {
+export function useCollageLayout({ list, seen, filter, mode, species, container, seed, preview, arrangement = 'packed', persist = false }: Opts): CollageLayout | null {
   const client = useRef<LayoutClient | null>(null)
   const [cls, setCls] = useState<LayoutName | null>(null)
   const [result, setResult] = useState<CollageLayout | null>(null)
+  // What `result` and `early` were packed for (the birds, layout class and arrangement): a big list's provisional
+  // collage (`early`, provisional.ts) stands in until a result for the same birds lands.
+  const [resultFor, setResultFor] = useState('')
+  const [early, setEarly] = useState<{ shown: CollageLayout; for: string } | null>(null)
   const known = useMemo(() => list.filter((e) => species.byCode.has(e.code)), [list, species])
   // Every edit builds a new list (a mark toggle too), so compare what the layout actually uses. `packSig`: the
   // codes and masses in order (what the worker packs). `filterSig`: what filters resolve on (months, lifer places down
@@ -120,13 +127,13 @@ export function useCollageLayout({ list, seen, filter, mode, species, container,
   // One client per mounted collage; its worker ends with it.
   useEffect(() => {
     if (typeof Worker === 'undefined') return
-    const c = createLayoutClient()
+    const c = createLayoutClient(undefined, persist ? { store: layoutStore() } : {})
     client.current = c
     return () => {
       c.dispose()
       if (client.current === c) client.current = null
     }
-  }, [])
+  }, [persist])
 
   // Layout class from the container width.
   useEffect(() => {
@@ -165,11 +172,20 @@ export function useCollageLayout({ list, seen, filter, mode, species, container,
     if (!c || !cls || !known.length) return
     let live = true
     let raf = 0
-    c.get(filter, cls, mode, arrangement).then(
+    const forKey = `${packSig}|${cls}|${arrangement}`
+    // The full collage only: a filter's birds would show at their full-collage places.
+    const onEarly = filterKey(filter) === ''
+      ? (l: StateLayout) => { if (live) setEarly({ shown: { layout: l, visible: new Set(l.boxes.keys()) }, for: forKey }) }
+      : undefined
+    c.get(filter, cls, mode, arrangement, onEarly).then(
       (layout) => {
         if (!live) return
         // Next frame: the tap's own update (chips, count, sheet) paints first, then the birds start to move.
-        const apply = () => { if (live) setResult({ layout, visible: new Set(layout.boxes.keys()) }) }
+        const apply = () => {
+          if (!live) return
+          setResult({ layout, visible: new Set(layout.boxes.keys()) })
+          setResultFor(forKey)
+        }
         if (typeof requestAnimationFrame === 'function') raf = requestAnimationFrame(apply)
         else apply()
       },
@@ -216,7 +232,8 @@ export function useCollageLayout({ list, seen, filter, mode, species, container,
     return new Map(known.map((e) => [e.code, candidateOrds(e, seen, open)]))
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the filter's places are `seenKey`; its range is what the drag changes
   }, [known, seen, dragging, seenKey, filter.basis])
-  const current = result ?? seeded
+  const forNow = `${packSig}|${cls}|${arrangement}`
+  const current = resultFor !== forNow && early?.for === forNow ? early.shown : result ?? seeded
   const want = filterKey(filter)
   const revealed = useMemo(
     () => (current ? stillView(current, want, preview && dates ? { dates, ...(ords ? { ords } : {}), ...preview } : null) : null),

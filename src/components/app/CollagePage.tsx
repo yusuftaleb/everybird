@@ -117,6 +117,7 @@ export function CollagePage({ onAdd }: { onAdd: () => void }) {
             cardActions={actions}
             onShareAt={onShareAt}
             showRef={showBird}
+            persist={state.persistence !== 'memory-only'}
             notice={unmatched > 0 ? (
               <p className="eb-mono eb-unmatched" data-testid="unmatched-note">
                 {plural(t.collage.unmatched, unmatched, { n: formatInt(unmatched, t.num) })} · <Link href="/settings#match">{plural(t.collage.fix, unmatched)}</Link>

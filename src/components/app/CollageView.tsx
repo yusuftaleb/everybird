@@ -80,6 +80,8 @@ type Props = {
   whose?: 'your' | 'this'
   /** Full layouts packed ahead of time, shown until the layout worker answers (the landing sample). */
   seed?: readonly StateLayout[]
+  /** Keep finished layouts on this device (the birder's own collage; layout-store.ts). */
+  persist?: boolean
   /** Told the level the Map or Tree view has open as it changes, for the page's Share button to draw the same. */
   onShareAt?: (at: ShareAt) => void
   /** Filled with a function that shows a bird as a search pick does, once the layout has it (CollagePage: the bird put back by Undo). */
@@ -141,7 +143,7 @@ function latestLine(name: string, date: string | undefined, t: Ui): ReactNode {
   return rich(fmt(t.collage.legend.latestOn, { name, date: shown }), { time: (chunk) => <time dateTime={date}>{chunk}</time> })
 }
 
-export function CollageView({ state, dispatch, species, regions, label, cardActions, hideSections, placesNote, placesUnplaced, statsPrefix, notice, filterNote, seed, onShareAt, showRef, whose = 'this' }: Props) {
+export function CollageView({ state, dispatch, species, regions, label, cardActions, hideSections, placesNote, placesUnplaced, statsPrefix, notice, filterNote, seed, persist, onShareAt, showRef, whose = 'this' }: Props) {
   const { list, filter, mode, listOrder, sci, seen } = state
   // No places to map (a shared link without them): no Map tab, and a carried-over Map view shows the collage.
   const noMap = !!hideSections?.includes('places')
@@ -188,7 +190,7 @@ export function CollageView({ state, dispatch, species, regions, label, cardActi
   const [preview, setPreview] = useState<{ from?: string; to?: string; committed?: boolean } | null>(null)
   const onPreview = useCallback((r: { from?: string; to?: string } | null) => setPreview((p) => (r ? r : p ? { ...p, committed: true } : null)), [])
   const arrangement = useArrangement()
-  const lay = useCollageLayout({ list, seen, filter, mode, species, container: box, seed, preview, arrangement })
+  const lay = useCollageLayout({ list, seen, filter, mode, species, container: box, seed, preview, arrangement, persist })
   const layKey = lay ? lay.layout.key.split('|').slice(2).join('|') : undefined
   useEffect(() => {
     if (!preview?.committed || layKey !== filterKey(filter)) return

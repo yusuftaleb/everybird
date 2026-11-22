@@ -1,4 +1,5 @@
 import { createStore, del, get, set, type UseStore } from 'idb-keyval'
+import { clearLayouts } from '../layout/layout-store'
 import type { BigYear } from './big-year'
 import { DEFAULT_RULES } from './model'
 import { SLOTS, slotSource } from './model'
@@ -213,7 +214,8 @@ export async function load(): Promise<Saved | null> {
 export async function forget(): Promise<'forgotten' | 'failed'> {
   memory = null
   try {
-    await del(STORAGE_KEY, getStore())
+    // The stored collages (layout-store.ts) go with the list they were packed from.
+    await Promise.all([del(STORAGE_KEY, getStore()), clearLayouts()])
     return 'forgotten'
   } catch {
     memoryOnly = true
