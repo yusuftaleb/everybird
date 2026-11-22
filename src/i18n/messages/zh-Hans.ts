@@ -783,7 +783,7 @@ export const zhHans: Messages = {
         refreshLabel: '从iNaturalist刷新{user}',
         cancel: '取消',
         change: '更改用户名',
-        guide: '你公开的、已鉴定到种的野生鸟类观察记录。iNaturalist会看到用户名；你的清单留在这里。',
+        guide: '公开的、已鉴定到种的野生鸟类观察记录。你的清单留在这里。',
         guideReplaces: '获取只会替换来自iNaturalist的鸟。你的编辑会保留。',
         username: 'iNaturalist用户名',
         fetch: '获取我的鸟',

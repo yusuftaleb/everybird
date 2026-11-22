@@ -795,7 +795,7 @@ export const nl: Messages = {
         refreshLabel: '{user} vernieuwen vanuit iNaturalist',
         cancel: 'Annuleren',
         change: 'Gebruikersnaam wijzigen',
-        guide: 'Je openbare waarnemingen van wilde vogels, tot op de soort gedetermineerd. iNaturalist ziet de gebruikersnaam; je lijst blijft hier.',
+        guide: 'Openbare waarnemingen van wilde vogels, tot op de soort gedetermineerd. Je lijst blijft hier.',
         guideReplaces: 'Ophalen vervangt alleen je iNaturalist-vogels. Je aanpassingen blijven.',
         username: 'iNaturalist-gebruikersnaam',
         fetch: 'Mijn vogels ophalen',

@@ -783,7 +783,7 @@ export const ja: Messages = {
         refreshLabel: '{user}をiNaturalistから更新',
         cancel: 'キャンセル',
         change: 'ユーザー名を変更',
-        guide: '種まで同定された、公開の野生の鳥の観察記録です。iNaturalistにはユーザー名が伝わりますが、リストはここに残ります。',
+        guide: '種まで同定された、公開の野生の鳥の観察記録です。リストはここに残ります。',
         guideReplaces: '取得で置き換わるのはiNaturalistの鳥だけです。あなたの編集は残ります。',
         username: 'iNaturalistのユーザー名',
         fetch: '鳥を取得',

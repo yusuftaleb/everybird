@@ -983,7 +983,7 @@ export const EN_UI = {
       refreshLabel: 'Refresh {user} from iNaturalist',
       cancel: 'Cancel',
       change: 'Change username',
-      guide: 'Your public, wild bird observations identified to species. iNaturalist sees the username; your list stays here.',
+      guide: 'Public, wild bird observations identified to species. Your list stays here.',
       guideReplaces: 'Fetching replaces only your iNaturalist birds. Your edits stay.',
       /** The field's label and placeholder. */
       username: 'iNaturalist username',

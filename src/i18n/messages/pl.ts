@@ -787,7 +787,7 @@ export const pl: Messages = {
         refreshLabel: 'Odśwież {user} z iNaturalist',
         cancel: 'Anuluj',
         change: 'Zmień nazwę użytkownika',
-        guide: 'Twoje publiczne obserwacje dzikich ptaków oznaczone do gatunku. iNaturalist widzi nazwę użytkownika; twoja lista zostaje tutaj.',
+        guide: 'Publiczne obserwacje dzikich ptaków oznaczone do gatunku. Twoja lista zostaje tutaj.',
         guideReplaces: 'Pobranie zastępuje tylko ptaki z iNaturalist. Twoje zmiany pozostaną.',
         username: 'Nazwa użytkownika iNaturalist',
         fetch: 'Pobierz moje ptaki',

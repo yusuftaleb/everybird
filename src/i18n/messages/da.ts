@@ -785,7 +785,7 @@ export const da: Messages = {
         refreshLabel: 'Opdatér {user} fra iNaturalist',
         cancel: 'Annullér',
         change: 'Skift brugernavn',
-        guide: 'Dine offentlige observationer af vilde fugle, bestemt til art. iNaturalist ser brugernavnet; din liste bliver her.',
+        guide: 'Offentlige observationer af vilde fugle, bestemt til art. Din liste bliver her.',
         guideReplaces: 'Hentningen erstatter kun dine iNaturalist-fugle. Dine ændringer bevares.',
         username: 'Brugernavn på iNaturalist',
         fetch: 'Hent mine fugle',

@@ -786,7 +786,7 @@ export const de: Messages = {
         refreshLabel: '{user} aus iNaturalist aktualisieren',
         cancel: 'Abbrechen',
         change: 'Benutzernamen ändern',
-        guide: 'Deine öffentlichen Beobachtungen wilder Vögel, bis zur Art bestimmt. iNaturalist sieht den Benutzernamen; deine Liste bleibt hier.',
+        guide: 'Öffentliche Beobachtungen wilder Vögel, bis zur Art bestimmt. Deine Liste bleibt hier.',
         guideReplaces: 'Das Abrufen ersetzt nur deine iNaturalist-Vögel. Deine Änderungen bleiben.',
         username: 'iNaturalist-Benutzername',
         fetch: 'Meine Vögel abrufen',

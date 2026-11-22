@@ -795,7 +795,7 @@ export const fr: Messages = {
         refreshLabel: 'Actualiser {user} depuis iNaturalist',
         cancel: 'Annuler',
         change: 'Changer de nom d’utilisateur',
-        guide: 'Tes observations publiques d’oiseaux sauvages identifiés à l’espèce. iNaturalist voit le nom d’utilisateur\u00a0; ta liste reste ici.',
+        guide: 'Observations publiques d’oiseaux sauvages identifiés à l’espèce. Ta liste reste ici.',
         guideReplaces: 'La récupération ne remplace que tes oiseaux iNaturalist. Tes modifications sont conservées.',
         username: 'Nom d’utilisateur iNaturalist',
         fetch: 'Récupérer mes oiseaux',

@@ -19,6 +19,8 @@ import { ja } from '@/i18n/messages/ja'
 import { zhHans } from '@/i18n/messages/zh-Hans'
 import { zhHant } from '@/i18n/messages/zh-Hant'
 import { COUNT_LABEL_CHARS, labelCells, WIDE_CHAR } from '@/lib/layout/count-box'
+import { readFileSync } from 'node:fs'
+import glyphs from './fixtures/glyph-advances.json'
 
 // pl is left out until its maintainer decides on two labels over budget: trueSize, shareImage.
 const OTHERS = { es, pt, nl, fr, de, it: italian, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant } as const
@@ -75,5 +77,30 @@ describe('tight labels', () => {
 
   it('language codes are two letters, or Chinese by script', () => {
     for (const l of LANGS) expect(l).toMatch(/^(?:[a-z]{2}|zh-Han[st])$/)
+  })
+})
+
+describe('the iNaturalist note (import.inat.guide)', () => {
+  // One line in the desktop Add birds dialog: .eb-add is 760px (1px border, 20px padding), the panel in it 1px border and
+  // 14px padding (688px), and the note's max-width 62ch caps it: 62 × Satoshi's "0" at 14px. Phones may wrap.
+  const css = readFileSync('src/components/import/import.css', 'utf8')
+  const adv = (font: keyof typeof glyphs.fonts, c: string) => (glyphs.fonts[font].advances as Record<string, number>)[c]
+  // Satoshi 500, a little wider than the note's 400; Cyrillic in Noto Sans; kana and Han one em; ’ and NBSP as ' and space.
+  const px = (s: string) => [...s.replace(/’/g, "'").replace(/\u00a0/g, ' ')].reduce((n, c) => {
+    const a = adv('satoshi-500', c) ?? adv('noto-sans-500', c) ?? (WIDE_CHAR.test(c) ? 1 : undefined)
+    if (a === undefined) throw new Error(`no advance for ${JSON.stringify(c)}`)
+    return n + a
+  }, glyphs.fonts['satoshi-500'].kernWidenEm) * 14
+
+  it('the CSS still says what this models', () => {
+    expect(css).toMatch(/\.eb-add \{\s*width: min\(760px, 100%\)/)
+    expect(css).toMatch(/\.eb-src-panel > \.eb-note \{[^}]*max-width: 62ch/)
+    expect(css).toMatch(/\.eb-add \.eb-src-panel \{[^}]*padding: 12px 14px/)
+  })
+
+  it('fits one line in every language', () => {
+    const room = Math.min(760 - 2 - 40 - 2 - 28, 62 * adv('satoshi-500', '0') * 14) - 4 // 4px for kerning and rounding
+    const over = Object.entries({ en, pl, ...OTHERS }).map(([l, m]) => [l, m.ui.import.inat.guide, px(m.ui.import.inat.guide)] as const).filter(([, , w]) => w > room)
+    expect(over).toEqual([])
   })
 })

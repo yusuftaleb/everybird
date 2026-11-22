@@ -781,7 +781,7 @@ export const it: Messages = {
         refreshLabel: 'Aggiorna {user} da iNaturalist',
         cancel: 'Annulla',
         change: 'Cambia nome utente',
-        guide: 'Le tue osservazioni pubbliche di uccelli selvatici identificati fino alla specie. iNaturalist vede il nome utente; la tua lista resta qui.',
+        guide: 'Osservazioni pubbliche di uccelli selvatici identificati fino alla specie. La tua lista resta qui.',
         guideReplaces: 'Il recupero sostituisce solo i tuoi uccelli iNaturalist. Le tue modifiche restano.',
         username: 'Nome utente iNaturalist',
         fetch: 'Recupera i miei uccelli',

@@ -783,7 +783,7 @@ export const zhHant: Messages = {
         refreshLabel: '從 iNaturalist 更新 {user}',
         cancel: '取消',
         change: '變更使用者名稱',
-        guide: '你公開、野生且鑑定到種的鳥類觀察紀錄。iNaturalist 會看到使用者名稱；你的清單留在這裡。',
+        guide: '公開、野生且鑑定到種的鳥類觀察紀錄。你的清單留在這裡。',
         guideReplaces: '取得資料只會取代你在 iNaturalist 的鳥。你的編輯會保留。',
         username: 'iNaturalist 使用者名稱',
         fetch: '取得我的鳥',

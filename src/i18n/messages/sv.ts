@@ -784,7 +784,7 @@ export const sv: Messages = {
         refreshLabel: 'Uppdatera {user} från iNaturalist',
         cancel: 'Avbryt',
         change: 'Byt användarnamn',
-        guide: 'Dina offentliga observationer av vilda fåglar, artbestämda. iNaturalist ser användarnamnet; din lista stannar här.',
+        guide: 'Offentliga observationer av vilda fåglar, artbestämda. Din lista stannar här.',
         guideReplaces: 'Hämtningen ersätter bara dina fåglar från iNaturalist. Dina ändringar finns kvar.',
         username: 'Användarnamn på iNaturalist',
         fetch: 'Hämta mina fåglar',

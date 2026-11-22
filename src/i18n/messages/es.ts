@@ -795,7 +795,7 @@ export const es: Messages = {
         refreshLabel: 'Actualizar {user} desde iNaturalist',
         cancel: 'Cancelar',
         change: 'Cambiar usuario',
-        guide: 'Tus observaciones públicas de aves silvestres identificadas hasta especie. iNaturalist ve el nombre de usuario; tu lista se queda aquí.',
+        guide: 'Observaciones públicas de aves silvestres identificadas hasta especie. Tu lista se queda aquí.',
         guideReplaces: 'Al traerlas solo se reemplazan tus aves de iNaturalist. Tus cambios se mantienen.',
         username: 'Usuario de iNaturalist',
         fetch: 'Traer mis aves',
