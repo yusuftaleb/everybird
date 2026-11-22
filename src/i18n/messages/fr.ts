@@ -666,7 +666,6 @@ export const fr: Messages = {
       replaceLabel: 'Remplacer {name}',
       more: 'Plus d’options pour {title}',
       remove: 'Retirer',
-      removeLabel: 'Retirer {what}',
       removeAsk: 'Retirer {what}\u00a0? Ses oiseaux quittent ton collage, sauf si une autre source les contient. Tes modifications sont conservées.',
       removeYes: 'Oui, retirer',
       keep: 'Garder',

@@ -666,7 +666,6 @@ export const es: Messages = {
       replaceLabel: 'Reemplazar {name}',
       more: 'Más opciones de {title}',
       remove: 'Quitar',
-      removeLabel: 'Quitar {what}',
       removeAsk: '¿Quitar {what}? Las aves de esa fuente salen de tu collage salvo que otra fuente las tenga. Tus cambios se mantienen.',
       removeYes: 'Sí, quitar',
       keep: 'Conservar',

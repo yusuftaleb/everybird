@@ -661,7 +661,6 @@ export const pl: Messages = {
       replaceLabel: 'Zastąp: {name}',
       more: 'Więcej opcji: {title}',
       remove: 'Usuń',
-      removeLabel: 'Usuń: {what}',
       removeAsk: 'Usunąć: {what}? Ptaki z tego źródła znikną z kolażu, chyba że ma je inne źródło. Twoje zmiany pozostaną.',
       removeYes: 'Tak, usuń',
       keep: 'Zachowaj',

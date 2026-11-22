@@ -79,6 +79,7 @@
   --z-tour: 45; /* the landing sample's guided tour note */
   --z-dialog-scrim: 49; /* the share dialog's scrim, the bird card's sheet scrim */
   --z-dialog: 50; /* the bird card (popover or sheet) */
+  --z-confirm: 56; /* ConfirmDialog: over the Add birds dialog, under the toasts */
   --z-toast: 60; /* "Removed … · Undo" */
   --z-sheet-scrim: 950; /* the phones' bottom sheets: Places, Time, PickerSheet */
   --z-sheet: 951;

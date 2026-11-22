@@ -658,7 +658,6 @@ export const da: Messages = {
       replaceLabel: 'Erstat {name}',
       more: 'Flere valg for {title}',
       remove: 'Fjern',
-      removeLabel: 'Fjern {what}',
       removeAsk: 'Fjern {what}? Fuglene derfra forsvinder fra din collage, medmindre en anden kilde har dem. Dine ændringer bevares.',
       removeYes: 'Ja, fjern',
       keep: 'Behold',

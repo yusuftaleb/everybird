@@ -657,7 +657,6 @@ export const zhHant: Messages = {
       replaceLabel: '取代 {name}',
       more: '{title} 的更多選項',
       remove: '移除',
-      removeLabel: '移除 {what}',
       removeAsk: '要移除 {what} 嗎？除非其他來源也有，否則它的鳥會從你的拼貼中移除。你的編輯會保留。',
       removeYes: '是，移除',
       keep: '保留',

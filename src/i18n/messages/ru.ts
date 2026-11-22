@@ -688,7 +688,6 @@ export const ru: Messages = {
       replaceLabel: 'Заменить: {name}',
       more: 'Другие действия: {title}',
       remove: 'Удалить',
-      removeLabel: 'Удалить {what}',
       removeAsk: 'Удалить {what}? Птицы из этого источника пропадут из коллажа, если их нет в другом источнике. Твои правки останутся.',
       removeYes: 'Да, удалить',
       keep: 'Оставить',

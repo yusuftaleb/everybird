@@ -657,7 +657,6 @@ export const ja: Messages = {
       replaceLabel: '{name}を置き換え',
       more: '{title}のその他の操作',
       remove: '削除',
-      removeLabel: '{what}を削除',
       removeAsk: '{what}を削除しますか。ほかのソースにない鳥はコラージュから外れます。あなたの編集は残ります。',
       removeYes: '削除する',
       keep: '残す',

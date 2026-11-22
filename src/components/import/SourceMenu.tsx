@@ -13,7 +13,8 @@ export type MenuItem = {
   keepFocus?: boolean
 }
 
-export type SourceMenuHandle = { focus: () => void }
+/** The ⋯ button itself (focus goes back to it after a confirmation). */
+export type SourceMenuHandle = HTMLButtonElement
 
 /**
  * A source row's ⋯ menu (Settings > Your list): a real menu button. Enter, Space or ArrowDown opens it on the first
@@ -28,7 +29,7 @@ export const SourceMenu = forwardRef<SourceMenuHandle, { label: string; items: M
   const btn = useRef<HTMLButtonElement>(null)
   const menu = useRef<HTMLDivElement>(null)
   const startAt = useRef(0)
-  useImperativeHandle(ref, () => ({ focus: () => btn.current?.focus({ preventScroll: true }) }), [])
+  useImperativeHandle(ref, () => btn.current!, [])
   useMenuLayer(menu, btn, { on: open })
 
   const itemEls = () => [...(menu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])]
