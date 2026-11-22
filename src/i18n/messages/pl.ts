@@ -896,6 +896,7 @@ export const pl: Messages = {
     meta: {
       title: 'Everybird · Zamień swoją listę życia ptaków w kolaż',
       description: 'Zamień swoją listę życia ptaków w darmowy kolaż naklejek. Zaimportuj dane z eBird, iNaturalist lub observation.org, a potem udostępnij obrazy albo wydrukuj plakat.',
+      imageAlt: 'Everybird: kolaż naklejek z listy życia ptaków',
       about: {
         title: 'Info',
         description: 'Czym jest Everybird, jak działa, co oznacza Prawdziwy rozmiar oraz z jakich danych, naklejek, krojów pisma i kodu powstał.',

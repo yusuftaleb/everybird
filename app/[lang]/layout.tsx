@@ -33,8 +33,8 @@ const NOTO: Partial<Record<string, string>> = { ru: "Noto+Sans", ja: "Noto+Sans+
 /** The site's metadata in the page's language (`page.meta`); pages that set their own title replace the SEO part. */
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const lang = await langParam(params);
-  const { title, description } = getMessages(lang).page.meta;
-  return { ...BASE_METADATA, title, description, ...pageSeo("/", title, description, lang) };
+  const { title, description, imageAlt } = getMessages(lang).page.meta;
+  return { ...BASE_METADATA, title, description, ...pageSeo("/", title, description, lang, imageAlt) };
 }
 
 const BASE_METADATA: Metadata = {

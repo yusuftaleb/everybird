@@ -18,9 +18,9 @@ export const dynamicParams = false
 /** About's title and description in the page's language. */
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const lang = await langParam(params)
-  const { title: page, description } = getMessages(lang).page.meta.about
-  const title = siteTitle(page)
-  return { title, description, ...pageSeo('/about', title, description, lang) }
+  const { about, imageAlt } = getMessages(lang).page.meta
+  const title = siteTitle(about.title)
+  return { title, description: about.description, ...pageSeo('/about', title, about.description, lang, imageAlt) }
 }
 
 /** The public repo (created at launch, Task 25). */

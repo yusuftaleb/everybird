@@ -898,6 +898,7 @@ export const es: Messages = {
     meta: {
       title: 'Everybird · Tu lista de aves en un collage',
       description: 'Convierte tu lista de aves en un collage de stickers gratis. Importa desde eBird, iNaturalist u observation.org. Comparte imágenes o imprime un póster.',
+      imageAlt: 'Everybird: un collage de stickers de una lista de aves',
       about: {
         title: 'Acerca de',
         description: 'Qué es Everybird, cómo funciona, qué significa Tamaño real, y los datos, stickers, fuentes y código con los que está hecho.',
