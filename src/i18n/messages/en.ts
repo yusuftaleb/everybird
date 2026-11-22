@@ -16,6 +16,8 @@ const page = {
   meta: {
     title: 'Everybird · Turn your bird life list into a collage',
     description: 'Turn your bird life list into a free sticker collage. Import from eBird, iNaturalist or observation.org, then share images or print a poster.',
+    /** The site's link preview's alt text (public/og/<lang>.jpg, src/lib/share/site-og.ts). */
+    imageAlt: 'Everybird: a sticker collage of a bird life list',
     about: {
       title: 'About',
       description: 'What Everybird is, how it works, what True size means, and the data, stickers, fonts and code it is built from.',

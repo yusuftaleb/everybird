@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   const lang = await langParam(params)
   const { ui, page } = getMessages(lang)
   const title = siteTitle(ui.compare.title)
-  return { title, ...pageSeo('/compare', title, page.meta.description, lang) }
+  return { title, ...pageSeo('/compare', title, page.meta.description, lang, page.meta.imageAlt) }
 }
 
 export default function Page() {

@@ -885,6 +885,7 @@ export const sv: Messages = {
     meta: {
       title: 'Everybird · Gör din livslista till ett fågelcollage',
       description: 'Gör din livslista till ett gratis klistermärkescollage. Importera från eBird, iNaturalist eller observation.org, och dela sedan bilder eller skriv ut en affisch.',
+      imageAlt: 'Everybird: ett klistermärkescollage av en livslista över fåglar',
       about: {
         title: 'Om',
         description: 'Vad Everybird är, hur det fungerar, vad Sann storlek betyder, och vilka data, klistermärken, typsnitt och vilken kod det bygger på.',

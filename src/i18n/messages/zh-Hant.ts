@@ -884,6 +884,7 @@ export const zhHant: Messages = {
     meta: {
       title: 'Everybird · 把你的鳥類生涯清單變成拼貼',
       description: '把你的鳥類生涯清單變成免費的貼紙拼貼。從 eBird、iNaturalist 或 observation.org 匯入，然後分享圖片或列印海報。',
+      imageAlt: 'Everybird：鳥類生涯清單的貼紙拼貼',
       about: {
         title: '關於',
         description: 'Everybird 是什麼、怎麼運作、「真實大小」的意思，以及它所使用的資料、貼紙、字型和程式碼。',

@@ -898,6 +898,7 @@ export const fr: Messages = {
     meta: {
       title: 'Everybird · Transforme ta liste d’oiseaux en collage',
       description: 'Transforme ta liste d’oiseaux en collage d’autocollants gratuit. Importe-la depuis eBird, iNaturalist ou observation.org, puis partage des images ou imprime une affiche.',
+      imageAlt: 'Everybird : un collage d’autocollants d’une liste d’oiseaux',
       about: {
         title: 'Infos',
         description: 'Ce qu’est Everybird, comment il fonctionne, ce que signifie Taille réelle, et les données, autocollants, polices et le code sur lesquels il repose.',

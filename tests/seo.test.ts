@@ -3,11 +3,15 @@ import robots from '../app/robots'
 import sitemap from '../app/sitemap'
 import { encodeShare } from '@/lib/share/link'
 import { en } from '@/i18n/messages/en'
+import { LANGS } from '@/i18n/langs'
+import { getMessages } from '@/i18n/server'
 import { pageSeo, SITE_NAME } from '@/lib/site-meta'
 
 const SITE_DESCRIPTION = en.page.meta.description
 // The root layout loads Geist Mono through next/font, which only works under Next's compiler.
 vi.mock('next/font/google', () => ({ Geist_Mono: () => ({ variable: 'font-geist-mono' }) }))
+// The home page renders the app; only its JSON-LD script element is read here.
+vi.mock('@/components/app/Home', () => ({ Home: () => null }))
 const params = (lang: string) => ({ params: Promise.resolve({ lang }) })
 
 const ORIGIN = 'https://everybird.yusuftaleb.com'
@@ -29,15 +33,16 @@ describe('sitemap.xml', () => {
 
 describe('page metadata', () => {
   it('the landing page has a canonical, Open Graph and a Twitter card with the existing title and description', () => {
-    expect(pageSeo('/', SITE_NAME, SITE_DESCRIPTION, 'en')).toEqual({
+    const image = { url: '/og/en.jpg', width: 1200, height: 630, alt: 'Everybird: a sticker collage of a bird life list' }
+    expect(pageSeo('/', SITE_NAME, SITE_DESCRIPTION, 'en', en.page.meta.imageAlt)).toEqual({
       alternates: { canonical: `${ORIGIN}/` },
       openGraph: {
         type: 'website', siteName: 'Everybird', url: `${ORIGIN}/`, title: 'Everybird',
         description: SITE_DESCRIPTION,
-        images: [{ url: '/icons/icon-512.png', width: 512, height: 512, alt: 'Everybird' }],
+        images: [image],
         locale: 'en_US',
       },
-      twitter: { card: 'summary', title: 'Everybird', description: SITE_DESCRIPTION, images: ['/icons/icon-512.png'] },
+      twitter: { card: 'summary_large_image', title: 'Everybird', description: SITE_DESCRIPTION, images: [image] },
     })
   })
 
@@ -78,6 +83,37 @@ describe('page metadata', () => {
     expect((await layout(params('en'))).openGraph).toMatchObject({ locale: 'en_US' })
   })
 
+  it('every public page\'s preview is its language\'s collage card, with its alt, as a large Twitter card', async () => {
+    const pages = [
+      (await import('../app/[lang]/layout')).generateMetadata,
+      (await import('../app/[lang]/(app)/about/page')).generateMetadata,
+      (await import('../app/[lang]/(app)/settings/page')).generateMetadata,
+      (await import('../app/[lang]/(app)/compare/page')).generateMetadata,
+    ]
+    for (const lang of LANGS) {
+      const image = { url: `/og/${lang}.jpg`, width: 1200, height: 630, alt: getMessages(lang).page.meta.imageAlt }
+      for (const meta of pages) {
+        const m = await meta(params(lang))
+        expect(m.openGraph?.images).toEqual([image])
+        expect(m.twitter).toMatchObject({ card: 'summary_large_image', images: [image] })
+      }
+    }
+    expect(new Set(LANGS.map((l) => getMessages(l).page.meta.imageAlt)).size).toBe(LANGS.length)
+  })
+
+  it('share and comparison links keep their own previews: no site card, their card types as before', async () => {
+    const s = (await import('../app/[lang]/s/[token]/page')).generateMetadata
+    const c = (await import('../app/[lang]/c/[token]/page')).generateMetadata
+    const { token } = encodeShare({ v: 1, name: 'Test Birder', birds: [{ code: 'ostric2', ym: 1500 }] })
+    for (const lang of ['en', 'ja'] as const) {
+      const sm = await s({ params: Promise.resolve({ lang, token }) })
+      const cm = await c({ params: Promise.resolve({ lang, token: 'not-a-token' }) })
+      expect(sm.twitter).toEqual({ card: 'summary_large_image', title: sm.title, description: sm.description })
+      expect(cm.twitter).toEqual({ card: 'summary', title: cm.title, description: cm.description })
+      for (const m of [sm, cm]) expect(JSON.stringify(m)).not.toContain('/og/')
+    }
+  })
+
   it('a shared view is noindex and its metadata never carries the token', async () => {
     const { generateMetadata } = await import('../app/[lang]/s/[token]/page')
     const { token } = encodeShare({ v: 1, name: 'Test Birder', birds: [{ code: 'ostric2', ym: 1500 }] })
@@ -87,6 +123,20 @@ describe('page metadata', () => {
       expect(meta.alternates).toEqual({ canonical: null })
       expect(meta.openGraph).toMatchObject({ url: null })
       expect(JSON.stringify(meta)).not.toContain(t)
+    }
+  })
+})
+
+describe('the home page\'s WebSite JSON-LD', () => {
+  it('names Everybird, with the alternate name, on the canonical origin, on every language\'s home (/ rewrites to one)', async () => {
+    const Page = (await import('../app/[lang]/(app)/page')).default
+    for (const lang of LANGS) {
+      const tree = await Page(params(lang))
+      const script = (tree.props.children as React.ReactElement<{ type: string; dangerouslySetInnerHTML: { __html: string } }>[])[0]
+      expect(script.props.type).toBe('application/ld+json')
+      expect(JSON.parse(script.props.dangerouslySetInnerHTML.__html)).toEqual({
+        '@context': 'https://schema.org', '@type': 'WebSite', name: 'Everybird', alternateName: 'Everybird app', url: `${ORIGIN}/`,
+      })
     }
   })
 })
