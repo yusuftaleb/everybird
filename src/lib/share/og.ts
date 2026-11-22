@@ -71,7 +71,7 @@ export function tryDecodeShare(token: string): SharePayload | null {
 
 const OG_FONT_COUNT = 3 // Satoshi 500, Cabinet Grotesk 700, Geist Mono 400
 /** The fonts a card in `lang` needs to be complete: a Russian card's Noto Sans 500 and 700 too (og-server's SOURCES). */
-const ogFontCount = (lang?: string): number => OG_FONT_COUNT + (lang === 'ru' ? 2 : 0)
+export const ogFontCount = (lang?: string): number => OG_FONT_COUNT + (lang === 'ru' ? 2 : 0)
 /**
  * A complete card never changes: the token is content-addressed (the link encodes the list, so a different list is a
  * different URL). Browsers keep it a day, the CDN a year (one render per token per region until evicted), and a stale
