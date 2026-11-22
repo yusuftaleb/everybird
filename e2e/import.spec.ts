@@ -39,19 +39,17 @@ test("sample collage renders on landing", async ({ page }) => {
 
 test("the landing sample is pre-packed: its stickers show without the species file or the layout worker's masks", async ({ page }) => {
   // Hold the big downloads forever: the sample must not wait for them.
-  await page.route(/\/data\/(species\.v1|masks\/.*)\.json$/, () => {});
+  // The layout worker's masks are one binary file since masks.v3.bin (src/lib/layout/mask-file.ts).
+  await page.route(/\/data\/(species\.v1\.json|masks\.v3\.bin)$/, () => {});
   await page.goto("/");
   const stage = page.getByTestId("collage-stage");
   await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(SAMPLE_COUNT, { timeout: 10_000 });
   await expect(stage.locator("img").first()).toBeVisible();
 });
 
-// The taxonomy is /lifelist's on both since 2026-11-06 (it was one sideways strip, and the bounds 0.6 and 0.5): at
-// 1280 the order chips wrap, at 390 the "Choose an order" button and the bar's 4px insets sit over the stage (0.47).
-// The demo birder (2026-11-06) has 29 orders where the old sample had 18, so at 1280 the chips wrap onto four rows
-// instead of three and the stage starts 40px lower (0.45 of the screen, was 0.50); 390 is unchanged. The bounds keep a
-// couple of percent of slack under those. Since round 3 the top bar's nav takes its own row under 620px (--topbar-h 93px,
-// was 61px): 32px more above the stage at 390 (3.8% of 844), so 0.45 there became 0.41.
+// Lower bounds with slack. Since round 6 the taxonomy chips live in the dock's Taxa panel (no chip rows or picker over
+// the stage), and from 320px the top bar is one line again (--topbar-h 61px, its icon tabs under 620px), so the stage
+// starts higher than when these bounds were set; the dock's second row at 390 takes some of that back.
 test("at 1280x800 and 390x844 the landing's birds fill a little under half of the first screen", async ({ page }) => {
   for (const [width, height, share] of [[1280, 800, 0.43], [390, 844, 0.41]] as const) {
     await page.setViewportSize({ width, height });
@@ -108,7 +106,8 @@ test("large file shows progress and stays responsive", async ({ page }) => {
 
     await page.getByTestId("ebird-input").setInputFiles(file);
     // As soon as the first row count shows, tap Add. It is scrolled to and measured now, not before the import.
-    await page.waitForFunction(() => (window as unknown as { __eb: { texts: string[] } }).__eb.texts.some((t) => / rows$/.test(t)), null, { polling: "raf" });
+    // MyEBirdData streams the file, so its line ends with how far through it is: "… 1,200 rows · 45%" (ImportToast.tsx).
+    await page.waitForFunction(() => (window as unknown as { __eb: { texts: string[] } }).__eb.texts.some((t) => / rows · \d+%$/.test(t)), null, { polling: "raf" });
     await page.evaluate(() => document.querySelector('#sources button[aria-label="Add iNaturalist"]')!.scrollIntoView({ block: "center" }));
     const box = (await sw.boundingBox())!;
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
@@ -128,7 +127,7 @@ test("large file shows progress and stays responsive", async ({ page }) => {
         `switch responded in ${probe.latency?.toFixed(1)} ms while showing "${probe.atClick}"; longest main-thread task while parsing ${probe.longest.toFixed(0)} ms`,
     );
     expect(new Set(counts).size).toBeGreaterThanOrEqual(2); // the progress text updates
-    expect(probe.atClick).toMatch(/^Reading your file… [\d,]+ rows$/); // the tap landed while the worker was parsing
+    expect(probe.atClick).toMatch(/^Reading your file… [\d,]+ rows · \d+%$/); // the tap landed while the worker was parsing
     expect(probe.latency).toBeLessThan(200); // and the panel opened within 200 ms
     expect(probe.longest).toBeLessThan(200);
     await page.getByTestId("see-collage").getByRole("link", { name: "See my collage" }).click();
@@ -149,7 +148,7 @@ test("an import keeps running while the birder moves between the pages", async (
     await openAdd(page, "file");
     await expect(page.getByTestId("ebird-drop")).toBeVisible();
     await page.getByTestId("ebird-input").setInputFiles(file);
-    // The import's toast: "Reading your file… 1,200 rows" while the file is read.
+    // The import's toast: "Reading your file… 1,200 rows · 45%" while the file is read.
     await expect(page.getByTestId("import-toast")).toContainText(/Reading your file… [\d,]+ rows/);
     // Away (client-side links: the provider above the routes, and the worker, stay) and back.
     await page.getByRole("link", { name: "Everybird", exact: true }).click();
@@ -203,7 +202,7 @@ test("hovering a bird on desktop shows its tooltip; a click still opens the card
   await expect(stage.locator("[data-code]:not([data-off])")).toHaveCount(SAMPLE_COUNT);
   await page.waitForTimeout(1500); // the first appearance has played
   const bird = stage.locator(".eb-bird").first();
-  await bird.scrollIntoViewIfNeeded(); // the wrapped order chips push the stage's top row near the fold
+  await bird.scrollIntoViewIfNeeded();
   await page.waitForTimeout(300);
   const bb = (await bird.boundingBox())!;
   const code = await bird.getAttribute("data-code");

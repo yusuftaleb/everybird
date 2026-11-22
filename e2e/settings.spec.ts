@@ -172,7 +172,8 @@ test("an eBird file is remembered on the next visit, and Remove (in its ⋯ menu
   await expect(line).toContainText(/csv3 species · Imported \d{1,2} \w{3}/);
   await line.getByRole("button", { name: "More for eBird life list" }).click();
   await page.getByRole("menuitem", { name: "Remove" }).click();
-  await page.getByRole("button", { name: "Yes, remove it" }).click();
+  // The question is one small dialog portalled to the body (ConfirmDialog), named by its question.
+  await page.getByRole("alertdialog", { name: /^Remove your eBird life list download\?/ }).getByRole("button", { name: "Yes, remove it" }).click();
   await expect(line).toHaveCount(0);
   await expect(page.getByTestId("see-collage")).toHaveCount(0);
   // Focus goes to the eBird group, or (a display: contents group can't take focus in every browser) its first button.
@@ -207,12 +208,14 @@ for (const width of [1280, 390]) {
     await expect(menu).toHaveCount(0);
     await expect(more).toBeFocused();
     await expect(more).toHaveAttribute("aria-expanded", "false");
-    // ArrowUp opens on the last item, Remove; Enter asks, "Keep it" changes nothing and focus returns to ⋯.
+    // ArrowUp opens on the last item, Remove; Enter asks in ConfirmDialog (an alertdialog portalled to the body, named by
+    // its question, focus on the action), "Keep it" changes nothing and focus returns to ⋯.
     await page.keyboard.press("ArrowUp");
     await expect(items.last()).toBeFocused();
     await page.keyboard.press("Enter");
-    const ask = page.getByRole("group", { name: "Remove your eBird life list download" });
+    const ask = page.getByRole("alertdialog", { name: /^Remove your eBird life list download\?/ });
     await expect(ask).toBeVisible();
+    expect(await ask.evaluate((el) => el.closest(".eb-confirm-scrim")?.parentElement === document.body)).toBe(true);
     await expect(ask.getByRole("button", { name: "Yes, remove it" })).toBeFocused();
     await ask.getByRole("button", { name: "Keep it" }).click();
     await expect(more).toBeFocused();
