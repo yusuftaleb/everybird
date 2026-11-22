@@ -215,8 +215,8 @@ export const EN_UI = {
      *  `oldest` the legend under the view (CollageView); the tree's credit is About's credits.tree.
      *  `withOne`/`withTwo` follow a row's name ("Macropygia with Turacoena"), <a> and <b> the names of the groups inside
      *  its branch; with more genera, `withMany` is a button opening the list `insideTitle` names ({name} the row's genus).
-     *  `insideOne`/`insideTwo`/`insideMany` the note over an opened one; `markSr`/`keyMark` the mark of a group that is
-     *  not one branch of its own, `dottedSr`/`keyDotted` the dotted line of a tip placed without genetic data. `mineNone`
+     *  `insideOne`/`insideTwo`/`insideMany` the note over an opened one; `markSr`/`keyMark` the mark of a group that
+     *  shares its branch with other groups, `dottedSr`/`keyDotted` the dotted line of a tip placed without genetic data. `mineNone`
      *  the line when the bar's Lifers only (controls.lifersOnly) leaves no row. `genera` the rank line above the tree
      *  ("29 genera"; the other ranks reuse `stats`, and with Lifers only `controls.taxaHead` and `stats.of`).
      *  `tooMany`/`tooManyMine` why a rank in the Display panel's Down to is off (too many tips to draw on screen). */
@@ -229,18 +229,18 @@ export const EN_UI = {
       onList: '{n} of {total} on the list',
       withOne: 'with <a>{a}</a>',
       withTwo: 'with <a>{a}</a> and <b>{b}</b>',
-      markSr: 'not one branch of its own in this tree',
-      keyMark: 'Not one branch of its own in this tree',
-      insideOne: '{name} is not one branch in this tree. The smallest branch with all of it also holds {a}, so both are shown.',
-      insideTwo: '{name} is not one branch in this tree. The smallest branch with all of it also holds {a} and {b}, so all are shown.',
+      markSr: 'shares its branch with other groups',
+      keyMark: 'Shares its branch with other groups',
+      insideOne: '{name} shares its branch with {a}, so both are shown.',
+      insideTwo: '{name} shares its branch with {a} and {b}, so all are shown.',
       withMany: { one: 'with {n} other genus', other: 'with {n} other genera' },
-      insideMany: { one: '{name} is not one branch in this tree. The smallest branch with all of it also holds {n} other genus, so both are shown.', other: '{name} is not one branch in this tree. The smallest branch with all of it also holds {n} other genera, so all are shown.' },
+      insideMany: { one: '{name} shares its branch with {n} other genus, so both are shown.', other: '{name} shares its branch with {n} other genera, so all are shown.' },
       insideTitle: 'Inside the {name} branch',
       onListOne: 'on the list',
       notOnList: 'not on the list',
       dottedSr: 'placed without genetic data',
       keyDotted: 'Placed without genetic data',
-      split: '{name} is not one branch in this tree, so this drawing shows its species alone.',
+      split: '{name} shares its branch with other groups, so this drawing shows its species alone.',
       oldest: 'Oldest lineage on this list: {name}, which split from its closest relatives about {age} million years ago (an estimate).',
       /** The tree's share image and poster: the oldest lineage in the latest lifer's place (the row's mono label; the
        *  poster foot's line), and the dialog's switch. */
@@ -983,7 +983,7 @@ export const EN_UI = {
       refreshLabel: 'Refresh {user} from iNaturalist',
       cancel: 'Cancel',
       change: 'Change username',
-      guide: 'Your public, wild bird observations identified to species. iNaturalist sees the username; your list stays here.',
+      guide: 'Public, wild bird observations identified to species. Your list stays here.',
       guideReplaces: 'Fetching replaces only your iNaturalist birds. Your edits stay.',
       /** The field's label and placeholder. */
       username: 'iNaturalist username',
