@@ -18,7 +18,6 @@ const file = JSON.parse(readFileSync('public/data/tree.v1.json', 'utf8'))
 const shipped = JSON.parse(readFileSync('public/data/species.v1.json', 'utf8')) as { species: SpeciesRow[] }
 const tree = parseNewick(file.newick, file.taxOnly)
 const species = buildSpeciesIndex(shipped.species)
-const deNames = JSON.parse(readFileSync('public/data/names.de.v1.json', 'utf8'))
 // A list: every third species.
 const codes = new Set(shipped.species.filter((_, i) => i % 3 === 0).map((r) => r.code))
 const entries = [...codes].map((code) => ({ code, date: '2020-01', place: { country: 'CA' } }))
