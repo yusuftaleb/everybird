@@ -1,5 +1,5 @@
 import { CaretDownIcon, ChartBarIcon, ChartLineIcon, CompassIcon, XIcon } from '@phosphor-icons/react'
-import { useRef, useState, type KeyboardEvent } from 'react'
+import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -47,6 +47,7 @@ export function Overview({ snap }: { snap: Snapshot }) {
         <HourlyCard data={data} />
         <ActionsCard data={data} />
       </div>
+      <FeaturesCard data={data} />
       <LaunchCard data={data} />
     </div>
   )
@@ -316,6 +317,69 @@ function ActionsCard({ data }: { data: WorkspaceData }) {
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+/* The features released on 21 Nov 2026: one tile each, its total and its values as top-N rows that open Explore filtered. */
+const FEATURES: { title: string; measure: 'compares' | 'viewsOpened' | 'imageViews' | 'batches' | 'languageSwitches'; dimension: DimensionKey; unit: string; note: string }[] = [
+  { title: 'Comparisons made', measure: 'compares', dimension: 'listCount', unit: 'events', note: 'By the number of lists compared.' },
+  { title: 'Views opened', measure: 'viewsOpened', dimension: 'openedView', unit: 'view openings', note: 'Once per visitor, view and day.' },
+  { title: 'Images by view', measure: 'imageViews', dimension: 'imageView', unit: 'events', note: 'What each image saved or shared shows.' },
+  { title: 'Batch exports', measure: 'batches', dimension: 'batchSplit', unit: 'events', note: 'ZIPs saved, by how the list was split.' },
+  { title: 'Interface languages', measure: 'languageSwitches', dimension: 'uiLanguage', unit: 'events', note: 'Switches to each language, not who reads it.' },
+]
+
+function FeaturesCard({ data }: { data: WorkspaceData }) {
+  const { explore } = useActions()
+  const pages = data.features.comparePages
+  return (
+    <Card className="gap-3">
+      <CardHeader>
+        <CardTitle role="heading" aria-level={2}>Features released 21 Nov</CardTitle>
+        <CardDescription className="text-xs">Events in {formatRange(data.range.from, data.range.to)}, under the filters above. Nothing was recorded for them before 21 November 2026.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
+        {FEATURES.map((f) => (
+          <FeatureTile key={f.measure} title={f.title} dimension={f.dimension} unit={f.unit} note={f.note} total={data.summary[f.measure]} rows={data.features[f.measure]}
+            onExplore={(filter) => explore(f.measure, filter === undefined ? f.dimension : 'day', filter === undefined ? {} : { [f.dimension]: filter })}
+            extra={f.measure === 'compares' ? (
+              <p className="text-xs text-muted-foreground">
+                {pages.length ? pages.map((r) => label('page', r.key) + ': ' + fmt(r.value)).join(' · ') + ' visits' : 'No visits to the Compare pages.'}{' '}
+                <button type="button" className="hover:text-primary hover:underline" onClick={() => explore('visits', 'page')}>Explore pages</button>
+              </p>
+            ) : null} />
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
+function FeatureTile({ title, dimension, unit, note, total, rows, onExplore, extra }: { title: string; dimension: DimensionKey; unit: string; note: string; total: number; rows: { key: string; value: number }[]; onExplore: (filter?: string) => void; extra: ReactNode }) {
+  const max = Math.max(1, ...rows.map((r) => r.value))
+  return (
+    <section className="flex min-w-0 flex-col gap-2" aria-label={title}>
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="text-sm font-medium"><button type="button" className="text-left hover:text-primary hover:underline" onClick={() => onExplore()} aria-label={'Explore ' + title.toLowerCase()}>{title}</button></h3>
+        <span className="text-lg font-medium tabular-nums">{fmt(total)} <span className="text-xs font-normal text-muted-foreground">{unit}</span></span>
+      </div>
+      {rows.length ? (
+        <ol className="flex flex-col gap-0.5">
+          {rows.slice(0, 7).map((r) => (
+            <li key={r.key}>
+              <button type="button" onClick={() => onExplore(r.key)} aria-label={label(dimension, r.key) + ': ' + fmt(r.value) + ' ' + unit + ', ' + share(r.value, total) + '. Explore by day.'}
+                className="relative flex h-7 w-full items-center gap-3 overflow-hidden rounded-md px-2 text-left text-sm hover:bg-muted">
+                <span aria-hidden className="absolute inset-y-0.5 left-0 rounded-sm bg-signal/14 transition-[width] duration-300 motion-reduce:transition-none" style={{ width: (r.value / max) * 100 + '%' }} />
+                <span className="relative min-w-0 flex-1 truncate">{label(dimension, r.key)}</span>
+                <span className="relative tabular-nums">{fmt(r.value)}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      ) : <p className="py-1 text-sm text-muted-foreground">None in this range.</p>}
+      {rows.length > 7 && <p className="text-xs text-muted-foreground">And {rows.length - 7} more in Explore.</p>}
+      <p className="text-xs text-muted-foreground">{note}</p>
+      {extra}
+    </section>
   )
 }
 

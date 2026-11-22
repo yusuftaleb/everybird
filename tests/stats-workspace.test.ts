@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { type Row } from '../workers/stats/src/dashboard'
 import { ALLOWED } from '../workers/stats/src/event'
 import { DIMENSIONS, FEATURES, MEASURES, WORKSPACE_META, parseWorkspace, shapeWorkspace, workspaceStatements } from '../workers/stats/src/workspace'
+import { label } from '../workers/stats/ui/src/lib/format'
 import { workspaceChartRows, workspaceCsv, workspaceDefault, workspaceHash, workspaceObservation, workspaceQuery, workspaceRequestGate, workspaceSort, workspaceState, type WorkspaceState } from '../workers/stats/ui/src/lib/workspace'
 
 type Db = { exec(sql: string): void; prepare(sql: string): { run(...a: unknown[]): unknown; all(...a: unknown[]): Row[] } }
@@ -95,6 +96,16 @@ describe('the 21 Nov measures', () => {
     expect(typeof parseWorkspace(new URLSearchParams('measure=compares&dimension=openedView'), today)).toBe('string')
     expect(typeof parseWorkspace(new URLSearchParams('measure=visits&f_listCount=2'), today)).toBe('string')
     expect(Object.values(FEATURES).every((e) => e in ALLOWED)).toBe(true)
+  })
+  it('name every released value readably on the page', () => {
+    for (const [, dimension, event, values] of RELEASED) for (const v of values) {
+      const name = label(dimension, v)
+      expect(name, dimension + '/' + v).not.toBe(v)
+      expect(name, dimension + '/' + v).toMatch(/^[A-Z0-9]|^iGoTerra$/)
+    }
+    expect(['zh-Hans', 'zh-Hant', 'pt', 'ja'].map((v) => label('uiLanguage', v))).toEqual(['Chinese (Simplified)', 'Chinese (Traditional)', 'Portuguese (Brazil)', 'Japanese'])
+    expect(['zh-Hant', 'pt', ''].map((v) => label('language', v))).toEqual(['Chinese (Traditional)', 'Portuguese', 'Unknown']) // a browser's primary subtag
+    expect([label('page', 'collage'), label('imageView', 'collage'), label('batchSplit', 'country'), label('listCount', '3')]).toEqual(['Collage page', 'Collage', 'By country', '3 lists'])
   })
   it.skipIf(!sqlite)('count each one, and break them down on Overview with bound values only', () => {
     const db = fixture(), ins = db.prepare('INSERT INTO events (day,name,value,country,device,vid,lang,received_at) VALUES (?,?,?,?,?,?,?,?)')

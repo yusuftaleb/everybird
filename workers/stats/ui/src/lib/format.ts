@@ -16,9 +16,27 @@ export function countryName(k: string): string {
 const NAMES: Record<string, string> = {
   iphone: 'iPhone', ipad: 'iPad', mac: 'Mac', windows: 'Windows', linux: 'Linux', chromeos: 'ChromeOS', 'android-phone': 'Android phone', 'android-tablet': 'Android tablet',
   'other-tablet': 'Other tablet', 'other-phone': 'Other phone', other: 'Other device', ebird: 'eBird export', 'ebird-list': 'eBird life list', inat: 'iNaturalist',
-  obsorg: 'Observation.org', manual: 'By hand', mixed: 'Mixed sources', sample: 'Demo', restore: 'Restore', image_downloaded: 'Image', poster_downloaded: 'Poster',
+  obsorg: 'Observation.org', sheet: 'Spreadsheet', scythebill: 'Scythebill', igoterra: 'iGoTerra', manual: 'By hand', mixed: 'Mixed sources', sample: 'Demo', restore: 'Restore', image_downloaded: 'Image', poster_downloaded: 'Poster',
   place: 'Place', continent: 'Continent', time: 'Time', status: 'Conservation status', group: 'Bird group', taxonomy: 'Taxonomy', smart: 'Smart search', bird: 'Bird search',
-  landing: 'Landing page', collage: 'Collage page', settings: 'Settings', about: 'About', shared: 'Shared page',
+  landing: 'Landing page', collage: 'Collage page', settings: 'Settings', about: 'About', shared: 'Shared page', compare: 'Compare page', 'compare-shared': 'Shared comparison',
+}
+/** Names that depend on the dimension: the same value means another thing in another event ("collage", "country"). */
+const BY_DIMENSION: Record<string, Record<string, string>> = {
+  imageView: { collage: 'Collage', list: 'List', map: 'Map', tree: 'Tree', comparison: 'Comparison', 'wish-list': 'Wish list' },
+  openedView: { list: 'List', map: 'Map', tree: 'Tree' },
+  batchSplit: { family: 'By family', order: 'By order', country: 'By country', continent: 'By continent', province: 'By state or province', year: 'By year', size: 'By number of birds' },
+}
+/** The interface's 14 languages (pt is Brazilian Portuguese there), then any browser language Intl can name. */
+const UI_LANGUAGES: Record<string, string> = {
+  en: 'English', es: 'Spanish', pt: 'Portuguese (Brazil)', nl: 'Dutch', pl: 'Polish', fr: 'French', de: 'German', it: 'Italian', sv: 'Swedish', da: 'Danish',
+  ru: 'Russian', ja: 'Japanese', 'zh-Hans': 'Chinese (Simplified)', 'zh-Hant': 'Chinese (Traditional)',
+}
+let languages: Intl.DisplayNames | null = null
+try { languages = new Intl.DisplayNames(['en'], { type: 'language' }) } catch { languages = null }
+/** A language's English name: the interface language ("Chinese (Traditional)"), or a browser language's primary subtag ("pt" is "Portuguese"). */
+export function languageName(code: string, ui = false): string {
+  if (ui || code.startsWith('zh-')) return UI_LANGUAGES[code] || code
+  try { return (languages && languages.of(code)) || code } catch { return code }
 }
 /** A category's display name for a dimension. */
 export function label(dimension: string, k: string): string {
@@ -27,7 +45,9 @@ export function label(dimension: string, k: string): string {
   if (dimension === 'country') return countryName(k)
   if (dimension === 'hour') return String(k).padStart(2, '0') + ':00'
   if (dimension === 'day') return formatDay(k)
-  return NAMES[k] || k
+  if (dimension === 'uiLanguage' || dimension === 'language') return languageName(k, dimension === 'uiLanguage')
+  if (dimension === 'listCount') return k + ' lists'
+  return BY_DIMENSION[dimension]?.[k] || NAMES[k] || k
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

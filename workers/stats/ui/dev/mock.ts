@@ -23,7 +23,8 @@ function seed(db: DatabaseSync, today: string) {
   const pick = <T,>(xs: [T, number][]): T => { let x = r() * xs.reduce((a, [, w]) => a + w, 0); for (const [v, w] of xs) { if ((x -= w) <= 0) return v } return xs[0][0] }
   const countries: [string, number][] = [['US', 30], ['CA', 14], ['GB', 10], ['AU', 8], ['MX', 6], ['DE', 5], ['NL', 5], ['BR', 4], ['ES', 4], ['FR', 3], ['IN', 3], ['ZA', 2], ['NZ', 2], ['JP', 1], ['CR', 1], ['XX', 1]]
   const devices: [string, number][] = [['iphone', 30], ['mac', 22], ['windows', 18], ['android-phone', 14], ['ipad', 5], ['linux', 3], ['android-tablet', 2], ['chromeos', 2], ['other-phone', 1], ['other-tablet', 1], ['other', 2]]
-  const langs: [string, number][] = [['en', 70], ['es', 10], ['pt', 6], ['nl', 6], ['de', 4], ['', 4]]
+  const langs: [string, number][] = [['en', 70], ['es', 10], ['pt', 6], ['nl', 6], ['de', 4], ['ja', 2], ['zh-Hant', 1], ['', 4]]
+  const released = shift(today, -1) // the 21 Nov features: only the last days carry them, as in production
   const ins = db.prepare('INSERT INTO events (day, name, value, country, device, vid, lang, received_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
   const launch = shift(today, -52)
   db.exec('BEGIN')
@@ -37,11 +38,17 @@ function seed(db: DatabaseSync, today: string) {
       const hour = Math.min(23, Math.max(0, Math.round(13 + (r() - 0.5) * 14 + (r() - 0.5) * 6)))
       const at = (extra = 0) => timed ? new Date(Date.parse(day + 'T00:00:00Z') + (hour + 7) * 3600000 + Math.floor(r() * 3600000) + extra).toISOString() : null
       const add = (name: string, value: string, l = '') => ins.run(day, name, value, country, device, vid, l, at())
-      add('visit', r() < 0.75 ? 'landing' : pick([['shared', 3], ['about', 1]] as [string, number][]), lang)
+      add('visit', r() < 0.75 ? 'landing' : pick([['shared', 3], ['about', 1], ...(day >= released ? [['compare', 2], ['compare-shared', 1]] : [])] as [string, number][]), lang)
       if (r() < 0.45) add('visit', 'settings', lang)
       if (r() < 0.35) {
         add('visit', 'collage', lang)
-        add('collage_made', pick([['ebird', 40], ['ebird-list', 10], ['inat', 25], ['obsorg', 5], ['manual', 10], ['mixed', 6], ['restore', 4]] as [string, number][]))
+        add('collage_made', pick([['ebird', 40], ['ebird-list', 10], ['inat', 25], ['obsorg', 5], ['sheet', 3], ['scythebill', 1], ['igoterra', 1], ['manual', 10], ['mixed', 6], ['restore', 4]] as [string, number][]))
+        if (day >= released) {
+          if (r() < 0.4) add('view_opened', pick([['list', 3], ['map', 4], ['tree', 2]] as [string, number][]))
+          if (r() < 0.3) add('image_view', pick([['collage', 6], ['list', 1], ['map', 2], ['tree', 2], ['comparison', 1], ['wish-list', 1]] as [string, number][]))
+          if (r() < 0.06) add('batch_exported', pick([['family', 3], ['order', 1], ['country', 2], ['continent', 1], ['province', 1], ['year', 2], ['size', 1]] as [string, number][]))
+          if (r() < 0.08) add('compare_made', pick([['2', 6], ['3', 3], ['4', 1], ['5', 1], ['6', 1]] as [string, number][]))
+        }
         if (r() < 0.5) add('image_downloaded', pick([['story', 5], ['post', 3], ['square', 2], ['desktop', 1], ['wide', 1]] as [string, number][]))
         if (r() < 0.12) { add('poster_made', pick([['a2', 4], ['a3', 3], ['a4', 2], ['a1', 1], ['a3-l', 1]] as [string, number][])); if (r() < 0.7) add('poster_downloaded', r() < 0.6 ? 'png' : 'pdf') }
         if (r() < 0.15) add('shared', pick([['story', 3], ['post', 2], ['link', 2], ['square', 1]] as [string, number][]))
@@ -49,7 +56,7 @@ function seed(db: DatabaseSync, today: string) {
         if (r() < 0.3) add('filter_used', pick([['place', 4], ['time', 3], ['continent', 2], ['status', 2], ['group', 1], ['taxonomy', 2]] as [string, number][]))
         if (r() < 0.15) add('search_applied', r() < 0.4 ? 'smart' : 'bird')
       } else if (r() < 0.25) add('collage_made', 'sample')
-      if (r() < 0.02) add('ui_language', pick([['es', 3], ['pt', 2], ['nl', 2], ['en', 1]] as [string, number][]))
+      if (r() < 0.02) add('ui_language', pick([['es', 3], ['pt', 2], ['nl', 2], ['en', 1], ...(day >= released ? [['ja', 1], ['zh-Hans', 1], ['zh-Hant', 1], ['de', 1]] : [])] as [string, number][]))
     }
   }
   db.exec('COMMIT')
