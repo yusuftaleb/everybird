@@ -11,15 +11,16 @@
 // once, each with "Added … · Undo" or "Removed … · Undo". Taking off a bird is the bird card's Remove (removeTicked): it
 // goes into `removed`, so a file that has it no longer counts it. "When and where", a bar under the list that is always
 // there and sticks to the bottom of the screen while the list is in view (as the old "Add N" bar did), gives every bird
-// added a date (the system picker, or a year alone) and a country and region, when set. The search's list is windowed
+// added a date or a year (one field: typed, or a full date from the calendar button's system picker) and a country
+// and state or province (side by side, half the row each), when set. The search's list is windowed
 // (only the rows in view are in the DOM); both lists keep one height (`view` rows, fewer where the box shrinks to fit
 // the dialog).
-import { Check } from '@/components/phosphor-icons'
+import { CalendarBlank, Check } from '@/components/phosphor-icons'
 import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
 import { removedText, UndoToast, type Removal } from '@/components/app/UndoToast'
 import { Sticker } from '@/components/collage/Sticker'
 import { fmt, plural } from '@/i18n/core'
-import { dayText, formatInt, formatMonth } from '@/i18n/format'
+import { dayText, formatInt } from '@/i18n/format'
 import { HTML_LANG } from '@/i18n/langs'
 import { useI18n } from '@/i18n/I18nProvider'
 import { ChevronDownIcon } from '@/components/collage/icons'
@@ -35,7 +36,7 @@ import { displayName, familyName, nameOfCode } from '@/lib/species/names'
 import { orderLabel } from '@/lib/species/orders'
 import { useNames } from '@/lib/species/use-names'
 import type { Regions, SpeciesRow } from '@/lib/species/types'
-import { parseManualDate } from './manual-date'
+import { parseDateOrYear } from './manual-date'
 
 type Props = {
   species: SpeciesIndex
@@ -227,8 +228,10 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
   const [q, setQ] = useState('')
   // The groups open in the list (paths "order", "order/family", "order/family/genus"), kept while a search shows instead.
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set())
+  // The date every bird added gets ('' | 'YYYY' | 'YYYY-MM-DD') and what its field shows: as typed, or the date in
+  // words once picked or left ("12 May 2024", `shown`).
   const [date, setDate] = useState('')
-  const [year, setYear] = useState('')
+  const [dateText, setDateText] = useState('')
   const [country, setCountry] = useState('')
   const [sub1, setSub1] = useState('')
   const [change, setChange] = useState<(Removal & { before: Edits }) | null>(null)
@@ -236,7 +239,8 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
   const treeBox = useRef<HTMLDivElement>(null) // the list that opens in place
   const last = useRef<HTMLDivElement | null>(null) // the listbox a bird was last ticked in: Undo gives it the focus back
   const search = useRef<HTMLInputElement>(null)
-  const yearRef = useRef<HTMLInputElement>(null)
+  const dateRef = useRef<HTMLInputElement>(null)
+  const pickRef = useRef<HTMLInputElement>(null)
   // In the dialog the search has the focus as soon as this opens (an effect: after the dialog's own focus, a layout effect).
   useEffect(() => { if (autoFocus) search.current?.focus({ preventScroll: true }) }, [autoFocus])
 
@@ -255,8 +259,19 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
     () => (country ? Object.entries(regions.sub1).filter(([c]) => c.startsWith(`${country}-`)).map(([c, name]) => [c, stripBracket(name)] as const).sort((a, b) => a[1].localeCompare(b[1], HTML_LANG[lang])) : []),
     [regions, country, lang],
   )
-  // A year alone, checked as typed dates always were (manual-date.ts: from 1800, not in the future).
-  const yearBad = !!year && (!/^\d{4}$/.test(year.trim()) || parseManualDate(year) === null)
+  // A full date reads in words, in the UI language (ui.date's months: "12 May 2024", "2024年5月12日"); a year as typed.
+  const shown = (d: string) => {
+    const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d)
+    return day ? dayText(new Date(+day[1], +day[2] - 1, +day[3]), t.date.months, true) : d
+  }
+  // A year alone or a full date, checked as typed dates always were (manual-date.ts: from 1800, not in the future);
+  // the words a picked date shows read as that date.
+  const dateBad = dateText.trim() !== '' && dateText !== shown(date) && parseDateOrYear(dateText) === null
+  const typeDate = (v: string) => { setDateText(v); setDate(parseDateOrYear(v) ?? '') }
+  const pickDate = (v: string) => { setDate(v); setDateText(shown(v)) }
+  // The calendar button: the system picker where the browser opens it on request (a click on a desktop date input's
+  // body opens nothing); a tap on it opens it on phones anyway.
+  const openPicker = () => { try { pickRef.current?.showPicker?.() } catch { /* not allowed here: the tap itself opens it */ } }
 
   const flip = (code: string, from: HTMLDivElement | null) => {
     last.current = from
@@ -266,17 +281,15 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
       setChange({ codes: [code], text: removedText([name], t), before: edits })
       return
     }
-    if (yearBad) { yearRef.current?.focus(); return }
+    if (dateBad) { dateRef.current?.focus(); return }
     let place: Place | undefined
     if (country) { place = { country }; if (sub1) place.sub1 = sub1 }
-    const d = date || year.trim()
-    dispatch({ type: 'edit', edits: addTicked(edits, [code], { date: d || undefined, place }) })
+    dispatch({ type: 'edit', edits: addTicked(edits, [code], { date: date || undefined, place }) })
     // Only the first bird into an empty list starts a hand-made collage; later ones are edits.
     if (listEmpty) track('collage_made', { source: 'manual' })
     // The date and place the bar gave it, named, so a value left from earlier ticks never goes unnoticed: "Added
     // Mallard · May 2024 · France." The first bird into an empty list adds "Your collage has 1 species."
-    const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d)
-    const when = day ? dayText(new Date(+day[1], +day[2] - 1, +day[3]), t.date.months, true) : formatMonth(d, t.date.months)
+    const when = shown(date)
     const countryName = countries.find(([iso]) => iso === country)?.[1]
     const where = countryName && (sub1 ? `${subs.find(([c]) => c === sub1)?.[1] ?? sub1}, ${countryName}` : countryName)
     const details = [when, where].filter(Boolean).join(' · ')
@@ -336,34 +349,40 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
 
       <div className="eb-tickbar" role="group" aria-labelledby={`${ids}-w`}>
         <p id={`${ids}-w`} className="eb-tickbar-n">{tt.when}</p>
-        {/* Each field under its own visible label (an empty date input draws as a blank box on iOS). */}
+        {/* Each field under its own visible label: the date or year its row's full width, then Country and State or
+            province half the row each (import.css). */}
         <div className="eb-tick-fields">
-          <div className="eb-tickfield">
+          <div className="eb-tickfield eb-tickfield-when">
             <label className="eb-label" htmlFor={`${ids}-d`}>{tt.date}</label>
-            <input
-              id={`${ids}-d`}
-              className="eb-input"
-              type="date"
-              min="1800-01-01"
-              max={today()}
-              value={date}
-              onChange={(e) => { setDate(e.target.value); if (e.target.value) setYear('') }}
-            />
-          </div>
-          <div className="eb-tickfield">
-            <label className="eb-label" htmlFor={`${ids}-y`}>{tt.year}</label>
-            <input
-              ref={yearRef}
-              id={`${ids}-y`}
-              className="eb-input"
-              inputMode="numeric"
-              autoComplete="off"
-              maxLength={4}
-              value={year}
-              aria-invalid={yearBad || undefined}
-              aria-describedby={yearBad ? `${ids}-ye` : undefined}
-              onChange={(e) => { setYear(e.target.value); if (e.target.value) setDate('') }}
-            />
+            <span className="eb-input-wrap">
+              <input
+                ref={dateRef}
+                id={`${ids}-d`}
+                className="eb-input eb-tickdate"
+                inputMode="numeric"
+                autoComplete="off"
+                spellCheck={false}
+                value={dateText}
+                aria-invalid={dateBad || undefined}
+                aria-describedby={dateBad ? `${ids}-de` : undefined}
+                onChange={(e) => typeDate(e.target.value)}
+                onBlur={() => { if (!dateBad) setDateText(shown(date)) }}
+              />
+              {/* The calendar button: the system's own date input, transparent over the icon, so a tap opens its picker
+                  on every phone (and showPicker on a desktop click). */}
+              <input
+                ref={pickRef}
+                className="eb-tickpick"
+                type="date"
+                min="1800-01-01"
+                max={today()}
+                aria-label={tt.pickDate}
+                value={/^\d{4}-\d{2}-\d{2}$/.test(date) ? date : ''}
+                onClick={openPicker}
+                onChange={(e) => pickDate(e.target.value)}
+              />
+              <CalendarBlank className="eb-tickcal" aria-hidden="true" />
+            </span>
           </div>
           <div className="eb-tickfield">
             <label className="eb-label" htmlFor={`${ids}-c`}>{tt.country}</label>
@@ -374,19 +393,18 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
               </select>
             </span>
           </div>
-          {subs.length > 0 && (
-            <div className="eb-tickfield">
-              <label className="eb-label" htmlFor={`${ids}-s`}>{tt.region}</label>
-              <span className="eb-select">
-                <select id={`${ids}-s`} className="eb-input" value={sub1} onChange={(e) => setSub1(e.target.value)}>
-                  <option value="">{tt.wholeCountry}</option>
-                  {subs.map(([c, name]) => <option key={c} value={c}>{name}</option>)}
-                </select>
-              </span>
-            </div>
-          )}
+          {/* Always there; off until the country has subdivisions (its one choice "Pick a country" before one is picked). */}
+          <div className="eb-tickfield">
+            <label className="eb-label" htmlFor={`${ids}-s`}>{tt.region}</label>
+            <span className="eb-select">
+              <select id={`${ids}-s`} className="eb-input" value={sub1} disabled={!subs.length} onChange={(e) => setSub1(e.target.value)}>
+                <option value="">{country ? tt.wholeCountry : tt.pickCountry}</option>
+                {subs.map(([c, name]) => <option key={c} value={c}>{name}</option>)}
+              </select>
+            </span>
+          </div>
         </div>
-        {yearBad && <p id={`${ids}-ye`} className="eb-error">{tt.dateError}</p>}
+        {dateBad && <p id={`${ids}-de`} className="eb-error">{tt.dateError}</p>}
       </div>
       {/* Each change is announced (the toast's slot is a live region); it keeps focus on the list, to tick on. */}
       <UndoToast removal={change} onUndo={undo} onDone={dismiss} focus={false} />

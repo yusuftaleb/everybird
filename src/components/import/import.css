@@ -239,16 +239,29 @@
 }
 .eb-tickbar-n { margin: 0; font-weight: 600; }
 .eb-tickbar .eb-error { margin: 0; }
-.eb-tick-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-/* A field under its visible label (the mono label, .eb-label). */
-.eb-tickfield { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.eb-tickfield > .eb-select, .eb-tickfield > .eb-input { width: 100%; }
+/* The date or year its row's full width, then Country and State or province half the row each, at every width
+   (minmax(0, 1fr): a long country name never widens its column). Each field is its label over its box, bottom-aligned,
+   so a label that wraps grows upward and the two boxes stay on one line. Every box is the site's 44px .eb-input. */
+.eb-tick-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.eb-tickfield { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; min-width: 0; }
+.eb-tickfield-when { grid-column: 1 / -1; }
+.eb-tickfield > .eb-select, .eb-tickfield > .eb-input-wrap { width: 100%; }
+/* The calendar button inside the date field's right end: the system date input, transparent, a 44px square over the
+   20px icon (a tap on it opens the system picker; iOS's own taller date box never shows). Its focus ring is the icon's. */
+.eb-tickdate { padding-right: 48px; }
+.eb-tickpick {
+  position: absolute; top: 0; right: 0; width: 44px; height: 44px; min-width: 0; margin: 0; padding: 0; border: 0;
+  appearance: none; -webkit-appearance: none; opacity: 0; font-size: 16px; cursor: pointer;
+}
+.eb-tickpick::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; margin: 0; cursor: pointer; }
+.eb-tickcal { position: absolute; right: 12px; top: 50%; translate: 0 -50%; width: 20px; height: 20px; color: var(--muted); pointer-events: none; }
+.eb-tickpick:focus-visible { outline: none; }
+.eb-tickpick:focus-visible + .eb-tickcal { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
 /* On phones, while a toast shows (16px from the bottom, about 54px tall), the bar keeps its fields above it. */
 @media (max-width: 600px) {
   body:has(.eb-toast) .eb-tickbar { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
   body:has(.eb-toast) .eb-add .eb-tickbar { padding-bottom: 62px; }
 }
-@media (min-width: 720px) { .eb-tick-fields { grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr) minmax(0, 1fr) minmax(0, 1fr); } }
 .eb-tick-tools { display: flex; }
 .eb-tick-q { flex: 1 1 auto; min-width: 0; }
 .eb-tick-count { margin: 0; }

@@ -710,9 +710,9 @@ describe('editing', () => {
     await go('/settings')
     await openTick()
     fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: 'northern fl' } })
-    fireEvent.change(screen.getByLabelText('Date (optional)'), { target: { value: '2019-06-15' } })
+    fireEvent.change(screen.getByLabelText('Date or year'), { target: { value: '2019-06-15' } })
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'CA' } })
-    fireEvent.change(screen.getByLabelText('Region (optional)'), { target: { value: 'CA-BC' } })
+    fireEvent.change(screen.getByLabelText('State or province'), { target: { value: 'CA-BC' } })
     fireEvent.click(tickOption(/^Northern Flicker/))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     await waitFor(async () => {
@@ -750,8 +750,8 @@ describe('editing', () => {
     expect(within(colaptes).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Northern Flicker, Colaptes auratus', 'Gilded Flicker, Colaptes chrysoides'])
     // "When and where" is always there, under the list (no button to open it); empty, a bird gets no date and no place.
     expect(screen.queryByRole('button', { name: 'When and where' })).toBeNull()
-    expect(screen.getByRole('group', { name: 'When and where' })).toContainElement(screen.getByLabelText('Date (optional)'))
-    expect(screen.getByLabelText('Date (optional)')).toBeVisible()
+    expect(screen.getByRole('group', { name: 'When and where' })).toContainElement(screen.getByLabelText('Date or year'))
+    expect(screen.getByLabelText('Date or year')).toBeVisible()
     // A tap in an open genus adds the bird: selected, and says so in words; announced with Undo, focus left on its list.
     fireEvent.click(within(colaptes).getByRole('option', { name: /^Northern Flicker/ }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species, all ticked by hand.'))
@@ -773,7 +773,7 @@ describe('editing', () => {
     expect(screen.getByTestId('tick-group-Piciformes')).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('listbox', { name: 'Woodpeckers, 2 species' })).toBeInTheDocument()
     // Keyboard, in the search, with a year and a country set: the arrows move the active row, Space adds it with them.
-    fireEvent.change(screen.getByLabelText('Or a year'), { target: { value: '2018' } })
+    fireEvent.change(screen.getByLabelText('Date or year'), { target: { value: '2018' } })
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'US' } })
     fireEvent.change(search, { target: { value: 'flicker' } })
     const flickers = screen.getByRole('listbox', { name: 'Species to tick' })
@@ -795,7 +795,7 @@ describe('editing', () => {
     expect(tickOption(/^Gilded Flicker/)).toHaveAttribute('aria-selected', 'false')
     expect(flickers).toHaveFocus()
     // Cleared again, When and where gives the next bird nothing.
-    fireEvent.change(screen.getByLabelText('Or a year'), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText('Date or year'), { target: { value: '' } })
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: '' } })
     fireEvent.click(tickOption(/^Gilded Flicker/))
     await waitFor(async () => expect((await storage.load())?.edits.added.at(-1)).toEqual({ code: 'gilfli', source: 'manual' }), { timeout: 2000 })
@@ -860,7 +860,7 @@ describe('editing', () => {
   it('add by hand refuses a year it cannot use', async () => {
     await mount()
     await openTick()
-    const year = screen.getByLabelText('Or a year')
+    const year = screen.getByLabelText('Date or year')
     fireEvent.change(year, { target: { value: '20x9' } })
     expect(screen.getByText('Use a year from 1800 to this year.')).toBeInTheDocument()
     expect(year).toHaveAttribute('aria-invalid', 'true')

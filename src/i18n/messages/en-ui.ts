@@ -1054,15 +1054,19 @@ export const EN_UI = {
     /** A row's name for screen readers when the bird is already on the list ({name} is "Common, Scientific"). */
     onListLabel: '{name}, already on your list',
     onList: 'On your list',
-    /** The bar under the list (always shown): the date, year, country and region every bird added gets. */
+    /** The bar under the list (always shown): the date or year, country and state or province every bird added gets. */
     when: 'When and where',
-    date: 'Date (optional)',
-    /** The year field beside the date picker: a year alone, as typed dates allowed. */
-    year: 'Or a year',
+    /** The one field for the date every bird added gets: a year alone or a full date (typed, or from the calendar button). */
+    date: 'Date or year',
+    /** The calendar button inside it, which opens the system date picker. */
+    pickDate: 'Pick a date',
     dateError: 'Use a year from 1800 to this year.',
     country: 'Country (optional)',
     noCountry: 'No country',
-    region: 'Region (optional)',
+    /** Beside Country, half its row: off until a country with subdivisions is picked. */
+    region: 'State or province',
+    /** Its one choice while off: short, to fit a half-width phone field. */
+    pickCountry: 'Pick a country',
     wholeCountry: 'Whole country',
     /** The Undo notice after a tap adds a bird ("Removed {name}." after one takes it off: collage.removed). */
     added: 'Added {name}.',
