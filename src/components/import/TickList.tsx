@@ -12,10 +12,14 @@
 // goes into `removed`, so a file that has it no longer counts it. "When and where", a bar under the list that is always
 // there and sticks to the bottom of the screen while the list is in view (as the old "Add N" bar did), gives every bird
 // added a date or a year (one field: typed, or a full date from the calendar button's system picker) and a country
-// and state or province (side by side, half the row each), when set. The search's list is windowed
+// and state or province (side by side, half the row each), when set. The bar is a disclosure row (the list's group
+// row and chevron), closed at first, reading what is set ("Any time · Anywhere", "2024 · France"); it closes itself
+// when the search takes focus, so the matches get the room above a phone's keyboard, and never opens by itself (but
+// for a bird refused for a bad date, which opens it on that field). Its values stay while it is closed. The search's list is windowed
 // (only the rows in view are in the DOM); both lists keep one height (`view` rows, fewer where the box shrinks to fit
 // the dialog).
 import { CalendarBlank, Check } from '@/components/phosphor-icons'
+import { flushSync } from 'react-dom'
 import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
 import { removedText, UndoToast, type Removal } from '@/components/app/UndoToast'
 import { Sticker } from '@/components/collage/Sticker'
@@ -234,6 +238,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
   const [dateText, setDateText] = useState('')
   const [country, setCountry] = useState('')
   const [sub1, setSub1] = useState('')
+  const [whenOpen, setWhenOpen] = useState(false)
   const [change, setChange] = useState<(Removal & { before: Edits }) | null>(null)
   const box = useRef<HTMLDivElement>(null) // the search's listbox
   const treeBox = useRef<HTMLDivElement>(null) // the list that opens in place
@@ -272,6 +277,9 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
   // The calendar button: the system picker where the browser opens it on request (a click on a desktop date input's
   // body opens nothing); a tap on it opens it on phones anyway.
   const openPicker = () => { try { pickRef.current?.showPicker?.() } catch { /* not allowed here: the tap itself opens it */ } }
+  // The place every bird added gets, in words: "Utah, United States", "France".
+  const countryName = countries.find(([iso]) => iso === country)?.[1]
+  const where = countryName && (sub1 ? `${subs.find(([c]) => c === sub1)?.[1] ?? sub1}, ${countryName}` : countryName)
 
   const flip = (code: string, from: HTMLDivElement | null) => {
     last.current = from
@@ -281,7 +289,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
       setChange({ codes: [code], text: removedText([name], t), before: edits })
       return
     }
-    if (dateBad) { dateRef.current?.focus(); return }
+    if (dateBad) { flushSync(() => setWhenOpen(true)); dateRef.current?.focus(); return }
     let place: Place | undefined
     if (country) { place = { country }; if (sub1) place.sub1 = sub1 }
     dispatch({ type: 'edit', edits: addTicked(edits, [code], { date: date || undefined, place }) })
@@ -290,8 +298,6 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
     // The date and place the bar gave it, named, so a value left from earlier ticks never goes unnoticed: "Added
     // Mallard · May 2024 · France." The first bird into an empty list adds "Your collage has 1 species."
     const when = shown(date)
-    const countryName = countries.find(([iso]) => iso === country)?.[1]
-    const where = countryName && (sub1 ? `${subs.find(([c]) => c === sub1)?.[1] ?? sub1}, ${countryName}` : countryName)
     const details = [when, where].filter(Boolean).join(' · ')
     const added = details ? fmt(tt.addedAt, { name, details }) : fmt(tt.added, { name })
     setChange({ codes: [code], text: listEmpty ? `${added} ${plural(t.import.summary.head, 1, { n: num(1) })}.` : added, before: edits })
@@ -322,6 +328,7 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
           placeholder={t.import.search.placeholder}
           value={q}
           onChange={(e) => setQ(e.target.value)}
+          onFocus={() => setWhenOpen(false)}
           onKeyDown={(e) => {
             if (e.key !== 'ArrowDown') return
             e.preventDefault()
@@ -348,63 +355,74 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
       )}
 
       <div className="eb-tickbar" role="group" aria-labelledby={`${ids}-w`}>
-        <p id={`${ids}-w`} className="eb-tickbar-n">{tt.when}</p>
-        {/* Each field under its own visible label: the date or year its row's full width, then Country and State or
-            province half the row each (import.css). */}
-        <div className="eb-tick-fields">
-          <div className="eb-tickfield eb-tickfield-when">
-            <label className="eb-label" htmlFor={`${ids}-d`}>{tt.date}</label>
-            <span className="eb-input-wrap">
-              <input
-                ref={dateRef}
-                id={`${ids}-d`}
-                className="eb-input eb-tickdate"
-                inputMode="numeric"
-                autoComplete="off"
-                spellCheck={false}
-                value={dateText}
-                aria-invalid={dateBad || undefined}
-                aria-describedby={dateBad ? `${ids}-de` : undefined}
-                onChange={(e) => typeDate(e.target.value)}
-                onBlur={() => { if (!dateBad) setDateText(shown(date)) }}
-              />
-              {/* The calendar button: the system's own date input, transparent over the icon, so a tap opens its picker
-                  on every phone (and showPicker on a desktop click). */}
-              <input
-                ref={pickRef}
-                className="eb-tickpick"
-                type="date"
-                min="1800-01-01"
-                max={today()}
-                aria-label={tt.pickDate}
-                value={/^\d{4}-\d{2}-\d{2}$/.test(date) ? date : ''}
-                onClick={openPicker}
-                onChange={(e) => pickDate(e.target.value)}
-              />
-              <CalendarBlank className="eb-tickcal" aria-hidden="true" />
-            </span>
+        <button
+          type="button" className="eb-tickgroup eb-tickbar-btn" aria-expanded={whenOpen} aria-controls={`${ids}-f`}
+          data-testid="tick-when" onClick={() => setWhenOpen((o) => !o)}
+        >
+          <span className="eb-tickchev" aria-hidden="true"><ChevronDownIcon /></span>
+          <span className="eb-tickgroup-name">
+            <span id={`${ids}-w`}>{tt.when}</span>
+            {' '}<span className="eb-tickbar-sum">{shown(date) || tt.anyTime} · {where || tt.anywhere}</span>
+          </span>
+        </button>
+        <div id={`${ids}-f`} className="eb-tickbar-body" hidden={!whenOpen}>
+          {/* Each field under its own visible label: the date or year its row's full width, then Country and State or
+              province half the row each (import.css). */}
+          <div className="eb-tick-fields">
+            <div className="eb-tickfield eb-tickfield-when">
+              <label className="eb-label" htmlFor={`${ids}-d`}>{tt.date}</label>
+              <span className="eb-input-wrap">
+                <input
+                  ref={dateRef}
+                  id={`${ids}-d`}
+                  className="eb-input eb-tickdate"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={dateText}
+                  aria-invalid={dateBad || undefined}
+                  aria-describedby={dateBad ? `${ids}-de` : undefined}
+                  onChange={(e) => typeDate(e.target.value)}
+                  onBlur={() => { if (!dateBad) setDateText(shown(date)) }}
+                />
+                {/* The calendar button: the system's own date input, transparent over the icon, so a tap opens its picker
+                    on every phone (and showPicker on a desktop click). */}
+                <input
+                  ref={pickRef}
+                  className="eb-tickpick"
+                  type="date"
+                  min="1800-01-01"
+                  max={today()}
+                  aria-label={tt.pickDate}
+                  value={/^\d{4}-\d{2}-\d{2}$/.test(date) ? date : ''}
+                  onClick={openPicker}
+                  onChange={(e) => pickDate(e.target.value)}
+                />
+                <CalendarBlank className="eb-tickcal" aria-hidden="true" />
+              </span>
+            </div>
+            <div className="eb-tickfield">
+              <label className="eb-label" htmlFor={`${ids}-c`}>{tt.country}</label>
+              <span className="eb-select">
+                <select id={`${ids}-c`} className="eb-input" value={country} onChange={(e) => { setCountry(e.target.value); setSub1('') }}>
+                  <option value="">{tt.noCountry}</option>
+                  {countries.map(([iso, name]) => <option key={iso} value={iso}>{name}</option>)}
+                </select>
+              </span>
+            </div>
+            {/* Always there; off until the country has subdivisions (its one choice "Pick a country" before one is picked). */}
+            <div className="eb-tickfield">
+              <label className="eb-label" htmlFor={`${ids}-s`}>{tt.region}</label>
+              <span className="eb-select">
+                <select id={`${ids}-s`} className="eb-input" value={sub1} disabled={!subs.length} onChange={(e) => setSub1(e.target.value)}>
+                  <option value="">{country ? tt.wholeCountry : tt.pickCountry}</option>
+                  {subs.map(([c, name]) => <option key={c} value={c}>{name}</option>)}
+                </select>
+              </span>
+            </div>
           </div>
-          <div className="eb-tickfield">
-            <label className="eb-label" htmlFor={`${ids}-c`}>{tt.country}</label>
-            <span className="eb-select">
-              <select id={`${ids}-c`} className="eb-input" value={country} onChange={(e) => { setCountry(e.target.value); setSub1('') }}>
-                <option value="">{tt.noCountry}</option>
-                {countries.map(([iso, name]) => <option key={iso} value={iso}>{name}</option>)}
-              </select>
-            </span>
-          </div>
-          {/* Always there; off until the country has subdivisions (its one choice "Pick a country" before one is picked). */}
-          <div className="eb-tickfield">
-            <label className="eb-label" htmlFor={`${ids}-s`}>{tt.region}</label>
-            <span className="eb-select">
-              <select id={`${ids}-s`} className="eb-input" value={sub1} disabled={!subs.length} onChange={(e) => setSub1(e.target.value)}>
-                <option value="">{country ? tt.wholeCountry : tt.pickCountry}</option>
-                {subs.map(([c, name]) => <option key={c} value={c}>{name}</option>)}
-              </select>
-            </span>
-          </div>
+          {dateBad && <p id={`${ids}-de`} className="eb-error">{tt.dateError}</p>}
         </div>
-        {dateBad && <p id={`${ids}-de`} className="eb-error">{tt.dateError}</p>}
       </div>
       {/* Each change is announced (the toast's slot is a live region); it keeps focus on the list, to tick on. */}
       <UndoToast removal={change} onUndo={undo} onDone={dismiss} focus={false} />

@@ -855,6 +855,8 @@ export const es: Messages = {
       onListLabel: '{name}, ya en tu lista',
       onList: 'En tu lista',
       when: 'Cuándo y dónde',
+      anyTime: 'Cualquier fecha',
+      anywhere: 'Cualquier lugar',
       date: 'Fecha o año',
       pickDate: 'Elegir una fecha',
       dateError: 'Usa un año entre 1800 y este año.',

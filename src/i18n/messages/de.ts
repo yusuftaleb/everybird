@@ -846,6 +846,8 @@ export const de: Messages = {
       onListLabel: '{name}, schon auf deiner Liste',
       onList: 'Auf deiner Liste',
       when: 'Wann und wo',
+      anyTime: 'Jederzeit',
+      anywhere: 'Überall',
       date: 'Datum oder Jahr',
       pickDate: 'Datum wählen',
       dateError: 'Gib ein Jahr von 1800 bis zum laufenden Jahr an.',

@@ -843,6 +843,8 @@ export const zhHant: Messages = {
       onListLabel: '{name}，已在你的清單上',
       onList: '已在你的清單上',
       when: '時間和地點',
+      anyTime: '任何時間',
+      anywhere: '任何地點',
       date: '日期或年份',
       pickDate: '選擇日期',
       dateError: '請使用 1800 年到今年之間的年份。',
