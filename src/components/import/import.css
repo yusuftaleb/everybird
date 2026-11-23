@@ -327,17 +327,24 @@
 }
 .eb-add:focus { outline: none; }
 @keyframes eb-add-in { from { opacity: 0; transform: translateY(12px); } }
-/* Where the dock's panels are sheets (useIsSheet({ short: true }): 600px wide or 500px tall and under), the same bottom
-   sheet (filters.css .eb-sheet: 8px clear of the edges, its corners, its rise), as tall as the window allows, at the
-   dialog's layer (under the toasts, which carry Undo and an import's progress) and above the on-screen keyboard (--kb,
-   useKeyboardInset). */
+/* Where the dock's panels are sheets (useIsSheet({ short: true }): 600px wide or 500px tall and under), a full-height
+   sheet (Yusuf, 2026-11-19; filters.css .eb-sheet's look and rise): edge to edge, from under the status bar (the top
+   safe area) to the window's bottom, or the on-screen keyboard's top (--kb, useKeyboardInset), its own height (dvh, vh
+   where dvh is missing), so nothing is cut off; the bottom and side safe areas are padding. At the dialog's layer
+   (under the toasts, which carry Undo and an import's progress). The head stays in view while the sheet scrolls. */
 .eb-add-scrim[data-sheet] { z-index: var(--z-dialog-scrim); display: block; padding: 0; }
 .eb-add.eb-sheet {
-  width: auto; padding: 12px 16px 16px;
-  bottom: calc(8px + env(safe-area-inset-bottom) + var(--kb, 0px));
-  max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--kb, 0px));
+  left: 0; right: 0; top: auto; bottom: var(--kb, 0px); width: auto; max-height: none;
+  height: calc(100vh - env(safe-area-inset-top) - var(--kb, 0px));
+  height: calc(100dvh - env(safe-area-inset-top) - var(--kb, 0px));
+  padding: 12px calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+  border-width: 1px 0 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0;
   animation: eb-sheet-up .32s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)) backwards;
 }
+.eb-add.eb-sheet > .eb-add-head { position: sticky; top: 0; z-index: 3; background: var(--paper); }
+/* Add by hand fills it: the species list takes the room left (and still gives way, down to two rows). */
+.eb-add.eb-sheet > .eb-tick { flex: 1 1 auto; }
+.eb-add.eb-sheet .eb-ticklist:not(.eb-ticklist-inline) { flex-grow: 1; }
 /* A source's form in place of the list (ImportPanel's `drill`): its group alone, without its cells, under the path
    back ("All sources / iNaturalist"); the line above the list makes room for it too. */
 .eb-add:has(.eb-srclist[data-drill]) :is(.eb-summary, .eb-add-note) { display: none; }
