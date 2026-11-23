@@ -116,21 +116,60 @@ for (const width of [390, 768, 1280]) {
   });
 }
 
-test("Add by hand: When and where is always in view, and only the species list scrolls in the dialog", async ({ page }) => {
+test("Add by hand: When and where is always in view, opens to its fields, and only the species list scrolls in the dialog", async ({ page }) => {
   await page.goto("/settings");
   const dialog = await openAdd(page, "hand");
-  await expect(dialog.getByLabel("Search birds")).toBeFocused(); // the Add by hand dialog starts at its search
+  const search = dialog.getByLabel("Search birds");
+  await expect(search).toBeFocused(); // the Add by hand dialog starts at its search
   // The search empty: the orders, a list that opens in place, in the list's scrolling box.
   await expect(dialog.getByRole("list", { name: "Species to tick" })).toBeVisible();
   const list = dialog.getByTestId("tick-tree");
-  // No button to open it: the date, the year and the country are there all the time.
-  await expect(dialog.getByRole("button", { name: "When and where" })).toHaveCount(0);
+  // When and where: one disclosure row under the list, closed at first, saying nothing is set (TickList's tick-when).
   const when = dialog.getByRole("group", { name: "When and where" });
-  for (const label of ["Date (optional)", "Or a year", "Country (optional)"]) await expect(when.getByLabel(label, { exact: true })).toBeVisible();
-  // The dialog itself does not scroll; the list does, and the bar stays in view while it does.
+  const row = when.getByRole("button", { name: /^When and where/ });
+  await expect(row).toHaveAttribute("aria-expanded", "false");
+  await expect(row).toHaveText("When and where Any time · Anywhere");
+  const date = when.getByLabel("Date or year", { exact: true });
+  const country = when.getByLabel("Country (optional)", { exact: true });
+  const state = when.getByLabel("State or province", { exact: true });
+  await expect(date).toBeHidden();
+  // The dialog itself does not scroll; the list does, and the row stays in view while it does.
   expect(await dialog.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(true);
   await list.evaluate((el) => { el.scrollTop = el.scrollHeight; });
-  await expect(when.getByLabel("Date (optional)", { exact: true })).toBeInViewport();
+  await expect(row).toBeInViewport();
+  // Opened: one Date or year field with its calendar button, then Country beside State or province, which is off
+  // ("Pick a country") until a country with subdivisions is picked, then starts at "Whole country".
+  await row.click();
+  await expect(row).toHaveAttribute("aria-expanded", "true");
+  for (const field of [date, country, state]) await expect(field).toBeVisible();
+  await expect(when.getByLabel("Pick a date", { exact: true })).toBeVisible();
+  await expect(state).toBeDisabled();
+  await expect(state.locator("option:checked")).toHaveText("Pick a country");
+  const [c, s] = [(await country.boundingBox())!, (await state.boundingBox())!];
+  expect(Math.round(c.y), "Country and State or province on one line").toBe(Math.round(s.y));
+  expect(c.x).toBeLessThan(s.x);
+  await country.selectOption("US");
+  await expect(state).toBeEnabled();
+  await expect(state.locator("option").first()).toHaveText("Whole country");
+  await state.selectOption("US-UT");
+  await date.fill("2024");
+  await expect(row).toHaveText("When and where 2024 · Utah, United States");
+  // The search taking focus closes it (the matches get the room); the values stay.
+  await search.focus();
+  await expect(row).toHaveAttribute("aria-expanded", "false");
+  await expect(date).toBeHidden();
+  await expect(row).toHaveText("When and where 2024 · Utah, United States");
+  // A bad date: the bird is refused and the row opens itself on the date field, with its error.
+  await row.click();
+  await date.fill("1799");
+  await search.fill("snow goose");
+  await expect(row).toHaveAttribute("aria-expanded", "false");
+  await dialog.getByRole("listbox", { name: "Species to tick" }).getByRole("option", { name: /^Snow Goose, Anser caerulescens/ }).click();
+  await expect(row).toHaveAttribute("aria-expanded", "true");
+  await expect(date).toBeFocused();
+  await expect(date).toHaveAttribute("aria-invalid", "true");
+  await expect(when.getByText("Use a year from 1800 to this year.")).toBeVisible();
+  await expect(page.getByTestId("undo-toast")).toHaveCount(0); // nothing was added
 });
 
 test("each source says what it brings, and the line above them sums them up", async ({ page }) => {
@@ -448,6 +487,14 @@ test("Language: Español from the top bar switches every page and stays after a 
   await btn.click();
   const menu = page.getByRole("menu", { name: "Language" });
   await expect(menu.getByRole("menuitemradio", { name: "English" })).toHaveAttribute("aria-checked", "true");
+  await expect(menu.getByRole("menuitemradio", { name: "English" })).toBeFocused();
+  // In columns read down (three of five rows from 480px, .eb-langgrid), all 14 without scrolling: → is the same row
+  // of the next column (Français, the sixth), ← back.
+  await expect(menu.getByRole("menuitemradio")).toHaveCount(14);
+  expect(await menu.evaluate((el) => el.scrollHeight <= el.clientHeight + 1), "the menu doesn't scroll").toBe(true);
+  await page.keyboard.press("ArrowRight");
+  await expect(menu.getByRole("menuitemradio", { name: "Français" })).toBeFocused();
+  await page.keyboard.press("ArrowLeft");
   await expect(menu.getByRole("menuitemradio", { name: "English" })).toBeFocused();
   await Promise.all([page.waitForEvent("load"), menu.getByRole("menuitemradio", { name: "Español" }).click()]);
   await expect(page.locator("html")).toHaveAttribute("lang", "es");
