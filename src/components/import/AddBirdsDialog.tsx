@@ -3,8 +3,8 @@
 // file" (the source rows, ImportPanel), with Add by hand (TickList) one press away in the same control; from Settings'
 // "Add by hand" it is adding by hand alone, titled "Add by hand", with no switch to Import a file (Yusuf, 2026-11-21: Settings
 // has its own import rows). Fits a 1440 × 830 window with any Add panel open (compact cells, import.css). Centred, or,
-// where the dock's panels are sheets (useIsSheet({ short: true }): 600px wide or 500px tall and under), their bottom
-// sheet, kept above the on-screen keyboard (useKeyboardInset); there a source's Add shows its form in place of the
+// where the dock's panels are sheets (useIsSheet({ short: true }): 600px wide or 500px tall and under), a full-height
+// sheet (import.css), kept above the on-screen keyboard (useKeyboardInset); there a source's Add shows its form in place of the
 // list, under a path back to it (ImportPanel's `drill`). On Add by hand the dialog fits the screen: only the species list scrolls (import.css). Esc, ✕ and a press outside close it; Tab stays inside; focus goes back to the button
 // that opened it (or, when that button has gone, as the landing's does once a first list is made, to the collage's
 // "Add birds"). Imports run in EverybirdProvider, so closing it mid-import loses nothing.
