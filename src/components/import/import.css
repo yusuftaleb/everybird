@@ -229,28 +229,35 @@
 
 /* Fields (.eb-input, .eb-select, .eb-input-wrap): styles/globals.css, shared with the Places panel's search. */
 
-/* Add by hand (the Add birds dialog and Settings): the search, the list that opens in place (or the search's windowed
-   matches), and under it the "When and where" bar (the old "Add N" bar's design: Paper, a Hairline above, sticky at the screen's bottom while the
-   list is in view), always shown. */
+/* Add by hand (the Add birds dialog): first the "When and where" bar, always shown, so its date and place are set before
+   the birds they go with are ticked; then the search and the list that opens in place (or the search's windowed matches). */
 .eb-tick { display: flex; flex-direction: column; gap: 10px; }
-.eb-tickbar {
-  position: sticky; bottom: 0; z-index: 2; display: flex; flex-direction: column; gap: 8px; padding: 12px 0 14px;
-  background: var(--paper); border-top: 1px solid var(--hairline);
-}
+.eb-tickbar { display: flex; flex-direction: column; gap: 8px; padding-bottom: 4px; }
 .eb-tickbar-n { margin: 0; font-weight: 600; }
 .eb-tickbar .eb-error { margin: 0; }
-.eb-tick-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-/* A field under its visible label (the mono label, .eb-label). */
-.eb-tickfield { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+/* minmax(0, …): a date input's own minimum width (Safari's) never widens its column past its half. */
+.eb-tick-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+/* A field under its visible label (the mono label, .eb-label), at its cell's bottom, so a label that wraps never moves
+   its box out of line with the row's others. */
+.eb-tickfield { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; min-width: 0; }
+/* On phones the date and the year share a row; the country and the state or province (longer label and choices) take
+   one each. */
+@media (max-width: 600px) { .eb-tickfield-place { grid-column: 1 / -1; } }
 .eb-tickfield > .eb-select, .eb-tickfield > .eb-input { width: 100%; }
-/* On phones, while a toast shows (16px from the bottom, about 54px tall), the bar keeps its fields above it. */
-@media (max-width: 600px) {
-  body:has(.eb-toast) .eb-tickbar { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
-  body:has(.eb-toast) .eb-add .eb-tickbar { padding-bottom: 62px; }
+/* The date field with its hint: empty, iOS draws a blank box (no placeholder for type="date"), so a Muted hint sits
+   where the value goes, at the field's text inset; the browsers that draw "mm/dd/yyyy" keep it hidden under the hint
+   until the field has focus. */
+.eb-tickdate { position: relative; display: block; min-width: 0; }
+.eb-tickdate > input[data-empty]:not(:focus) { color: transparent; }
+.eb-tickdate-hint {
+  position: absolute; left: 13px; top: 50%; translate: 0 -50%; max-width: calc(100% - 50px);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; line-height: 1.3; color: var(--muted); pointer-events: none;
 }
+.eb-tickdate > input:focus + .eb-tickdate-hint { display: none; }
+@supports (-webkit-touch-callout: none) { .eb-tickdate-hint { max-width: calc(100% - 26px); } } /* iOS draws no calendar button */
 @media (min-width: 720px) { .eb-tick-fields { grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr) minmax(0, 1fr) minmax(0, 1fr); } }
 .eb-tick-tools { display: flex; }
-.eb-tick-q { flex: 1 1 auto; min-width: 0; }
+.eb-tick-q { flex: 1 1 auto; min-width: 0; } /* the search's .eb-input-wrap */
 .eb-tick-count { margin: 0; }
 .eb-ticklist {
   position: relative; overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--hairline); /* below it, the bar's Hairline: one line, not two */
@@ -303,6 +310,7 @@
 .eb-tickgroup-name > [lang] { font-style: italic; }
 @media (pointer: coarse) { .eb-tickgroup { min-height: 44px; } }
 .eb-tickgroup-n { flex: none; margin-left: auto; }
+.eb-tickgroup-on { color: var(--ink); } /* "12 / 178": the birds on the list in Ink, the taxonomy's total Muted */
 /* An open genus's species: the same rows, in a listbox as tall as they are, scrolling with the list. */
 .eb-ticklist.eb-ticklist-inline { border-top: 0; overflow: visible; contain: none; }
 @media (hover: hover) and (pointer: fine) {
@@ -327,17 +335,24 @@
 }
 .eb-add:focus { outline: none; }
 @keyframes eb-add-in { from { opacity: 0; transform: translateY(12px); } }
-/* Where the dock's panels are sheets (useIsSheet({ short: true }): 600px wide or 500px tall and under), the same bottom
-   sheet (filters.css .eb-sheet: 8px clear of the edges, its corners, its rise), as tall as the window allows, at the
-   dialog's layer (under the toasts, which carry Undo and an import's progress) and above the on-screen keyboard (--kb,
-   useKeyboardInset). */
+/* Where the dock's panels are sheets (useIsSheet({ short: true }): 600px wide or 500px tall and under), a full-height
+   sheet (Yusuf, 2026-11-19; filters.css .eb-sheet's look and rise): edge to edge, from under the status bar (the top
+   safe area) to the window's bottom, or the on-screen keyboard's top (--kb, useKeyboardInset), its own height (dvh, vh
+   where dvh is missing), so nothing is cut off; the bottom and side safe areas are padding. At the dialog's layer
+   (under the toasts, which carry Undo and an import's progress). The head stays in view while the sheet scrolls. */
 .eb-add-scrim[data-sheet] { z-index: var(--z-dialog-scrim); display: block; padding: 0; }
 .eb-add.eb-sheet {
-  width: auto; padding: 12px 16px 16px;
-  bottom: calc(8px + env(safe-area-inset-bottom) + var(--kb, 0px));
-  max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--kb, 0px));
+  left: 0; right: 0; top: auto; bottom: var(--kb, 0px); width: auto; max-height: none;
+  height: calc(100vh - env(safe-area-inset-top) - var(--kb, 0px));
+  height: calc(100dvh - env(safe-area-inset-top) - var(--kb, 0px));
+  padding: 12px calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+  border-width: 1px 0 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0;
   animation: eb-sheet-up .32s var(--eb-ease, cubic-bezier(.16, 1, .3, 1)) backwards;
 }
+.eb-add.eb-sheet > .eb-add-head { position: sticky; top: 0; z-index: 3; background: var(--paper); }
+/* Add by hand fills it: the species list takes the room left (and still gives way, down to two rows). */
+.eb-add.eb-sheet > .eb-tick { flex: 1 1 auto; }
+.eb-add.eb-sheet .eb-ticklist:not(.eb-ticklist-inline) { flex-grow: 1; }
 /* A source's form in place of the list (ImportPanel's `drill`): its group alone, without its cells, under the path
    back ("All sources / iNaturalist"); the line above the list makes room for it too. */
 .eb-add:has(.eb-srclist[data-drill]) :is(.eb-summary, .eb-add-note) { display: none; }
@@ -360,7 +375,6 @@
    gives way, down to two rows, scrolling inside (its windowing follows its drawn height). */
 .eb-add > .eb-tick { min-height: 0; }
 .eb-add .eb-ticklist:not(.eb-ticklist-inline) { flex: 0 1 auto; min-height: 112px; }
-.eb-add .eb-tickbar { padding-bottom: 0; }
 .eb-add .eb-srclist { flex: none; }
 /* Import a file fits a 1440 × 830 window with any Add panel open (and scrolls as little as it can on phones): the
    cells compact (the name, its status and the button on one line where they fit, else the status wraps under the

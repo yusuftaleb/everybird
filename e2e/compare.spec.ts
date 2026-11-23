@@ -65,23 +65,28 @@ async function shot(page: Page, name: string, browser: string) {
 /** The families' counts (each heading's, in taxonomic order) of the chosen group's birds (FamilyAccordion). */
 const famCounts = async (page: Page) =>
   (await page.getByTestId("family-accordion").locator(".eb-lhead-count").allTextContents()).map((c) => +c.replace(/\D/g, ""));
-/** The chosen group holds `n` birds: its families' counts sum to `n`, the first family alone is open (on a new choice)
- *  and its grid holds that family's birds. Retried, since the group chosen before may still show for a frame. */
+/** The chosen group holds `n` birds: its families' counts sum to `n` and every family is closed (on a new choice:
+ *  FamilyAccordion's `reset`, Yusuf 2026-11-21); then the first is opened and its grid holds that family's birds.
+ *  Retried, since the group chosen before may still show for a frame. */
 async function expectAll(page: Page, n: number) {
+  const acc = page.getByTestId("family-accordion");
+  let counts: number[] = [];
   await expect(async () => {
-    const counts = await famCounts(page);
+    counts = await famCounts(page);
     expect(counts.reduce((a, b) => a + b, 0)).toBe(n);
-    const heads = page.getByTestId("family-accordion").locator(".eb-facc-btn");
-    await expect(heads.first()).toHaveAttribute("aria-expanded", "true", { timeout: 500 });
-    await expect(page.getByTestId("family-accordion").locator('.eb-facc-btn[aria-expanded="true"]')).toHaveCount(1, { timeout: 500 });
-    await expect(page.getByTestId("compare-birds").getByRole("listitem")).toHaveCount(counts[0], { timeout: 500 });
+    await expect(acc.locator('.eb-facc-btn[aria-expanded="true"]')).toHaveCount(0, { timeout: 500 });
+    await expect(page.getByTestId("compare-birds")).toHaveCount(0, { timeout: 500 });
   }).toPass({ timeout: 10_000 });
+  const first = acc.locator(".eb-facc-btn").first();
+  await first.click();
+  await expect(first).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByTestId("compare-birds").getByRole("listitem")).toHaveCount(counts[0]);
 }
 /** The point of region `mask` (bit i: inside circle i, outside the others) farthest from every circle's edge, in the
- *  drawing's units: a press there is surely in that region. */
-function inRegion(circles: C[], mask: number): [number, number] {
+ *  drawing's units (its viewBox, `w` × `h`): a press there is surely in that region. */
+function inRegion(circles: C[], mask: number, w: number, h: number): [number, number] {
   let best: [number, number] = [0, 0], room = -1;
-  for (let x = 0; x <= 320; x += 2) for (let y = 0; y <= 260; y += 2) {
+  for (let x = 0; x <= w; x += 2) for (let y = 0; y <= h; y += 2) {
     const d = circles.map((c) => Math.hypot(x - c.cx, y - c.cy) - c.r);
     if (!d.every((v, i) => (mask & (1 << i) ? v < 0 : v > 0))) continue;
     const m = Math.min(...d.map(Math.abs));
@@ -89,14 +94,16 @@ function inRegion(circles: C[], mask: number): [number, number] {
   }
   return best;
 }
-/** Clicks the diagram at (x, y) in its drawing's units (its viewBox). */
-async function pressDiagram(page: Page, at: (circles: C[]) => [number, number]) {
+/** Clicks the diagram at (x, y) in its drawing's units (its viewBox: the column's width up to 443 at 320 × 260's
+ *  shape, CompareView's Circles). */
+async function pressDiagram(page: Page, at: (circles: C[], w: number, h: number) => [number, number]) {
   const svg = page.getByTestId("compare-diagram");
   const circles = await svg.locator("circle.eb-compare-circle").evaluateAll((els) =>
     els.map((e) => ({ cx: +e.getAttribute("cx")!, cy: +e.getAttribute("cy")!, r: +e.getAttribute("r")! })));
-  const [x, y] = at(circles);
+  const vb = await svg.evaluate((e) => { const b = (e as SVGSVGElement).viewBox.baseVal; return { w: b.width, h: b.height }; });
+  const [x, y] = at(circles, vb.w, vb.h);
   const box = (await svg.boundingBox())!;
-  await svg.click({ position: { x: (x * box.width) / 320, y: (y * box.height) / 260 } });
+  await svg.click({ position: { x: (x * box.width) / vb.w, y: (y * box.height) / vb.h } });
 }
 
 /** The Share dialog on a phone: the preview box has the card's shape and its row no more room (12px gaps either side). */
@@ -107,9 +114,12 @@ async function expectNoBands(dialog: Locator) {
   await expect(preview).not.toHaveAttribute("data-resizing");
   await preview.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished.catch(() => undefined))));
   const [top, pv, below] = await Promise.all([".eb-share-formats", '[data-testid="share-preview"]', ".eb-share-scroll"].map((q) => dialog.locator(q).boundingBox()));
+  // Compare's cards are a PNG in an img; the collage's preview is a canvas in a span (speed audit finding 8).
   const ar = await preview.evaluate((el) => {
-    const img = el.querySelector<HTMLImageElement>("img.eb-share-in")!;
-    return img.naturalWidth / img.naturalHeight;
+    const img = el.querySelector<HTMLImageElement>("img.eb-share-in");
+    if (img) return img.naturalWidth / img.naturalHeight;
+    const c = el.querySelector<HTMLCanvasElement>(".eb-share-in canvas")!;
+    return c.width / c.height;
   });
   expect(Math.abs(pv!.width / pv!.height - ar)).toBeLessThan(0.02);
   expect(Math.round(pv!.y - (top!.y + top!.height))).toBeLessThanOrEqual(13);
@@ -185,8 +195,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await expect(chip(page, "need")).toHaveAttribute("aria-pressed", "true");
       await expect(shown(page)).toHaveText("Yet to see · 50");
       const birds = page.getByTestId("compare-birds").getByRole("listitem");
-      await expect(birds.first()).toBeVisible();
-      // The birds under one heading per family, every bird in some family, no "Show all": the first family open.
+      // The birds under one heading per family, every bird in some family, no "Show all": every family closed on
+      // arrival (expectAll opens the first).
       await expect(page.getByTestId("compare-more")).toHaveCount(0);
       await expectAll(page, 50);
       // One family open at a time: opening the second closes the first; pressing the open one closes it, so none is open.
@@ -202,6 +212,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await expect(page.getByTestId("compare-birds")).toHaveCount(0);
       await heads.first().click();
       await expect(birds).toHaveCount(counts[0]);
+      await expect(page.getByTestId("compare-diagram")).toHaveAccessibleName("How the lists overlap");
       await expect(page.getByTestId("compare-region-1")).toHaveAccessibleName(`Only ${ME}: 40.`);
       await expect(page.getByTestId("compare-region-6")).toHaveAccessibleName("Only Sam and Ada: 10.");
       // The circles at the left, the bars at the right, side by side from 640px; stacked under it.
@@ -256,7 +267,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         1: "Only you · 40", 2: "Only Sam · 20", 4: "Only Ada · 20", 3: `${ME} & Sam · 10`, 5: `${ME} & Ada · 0`, 6: "Sam & Ada · 10", 7: "On every list · 10",
       };
       for (const [mask, text] of Object.entries(expected)) {
-        await pressDiagram(page, (cs) => inRegion(cs, +mask));
+        await pressDiagram(page, (cs, w, h) => inRegion(cs, +mask, w, h));
         await expect(shown(page)).toHaveText(text);
         await expect(page.getByTestId(`compare-region-${mask}`)).toHaveAttribute("aria-pressed", "true");
       }

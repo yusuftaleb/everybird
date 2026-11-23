@@ -84,6 +84,8 @@ test("the About demo: its stickers draw nothing until they load", async ({ page 
   const net = await holdStickers(page);
   await page.goto("/about", { waitUntil: "domcontentloaded" });
   const demo = page.getByTestId("howto-demo");
+  // The poster's stickers are lazy (HowItWorksDemo.tsx: only POSTER_EAGER of them are preloaded from the head, the hidden
+  // design's are never fetched): in view, the shown design's are requested and held.
   await demo.scrollIntoViewIfNeeded();
   await expect.poll(() => net.count(), { timeout: 20_000 }).toBeGreaterThan(0);
   await page.waitForTimeout(400);

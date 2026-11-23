@@ -9,9 +9,11 @@ import { pt } from "../src/i18n/messages/pt";
 
 export type TopbarLang = "en" | "es" | "pt" | "nl";
 
-/** Whether the nav has its own second row: under 620px (tokens.css's --topbar-h rules). */
+/** Whether the nav has its own row: under 320px only (tokens.css's --topbar-h rules). From 320px the bar is one line:
+ *  under 620px the four pages are icon tabs (Birdhouse, Intersect, GearSix, Info), still named by their words
+ *  (aria-label), and under 381px the origami bird stands for the wordmark's word (app.css). */
 export function navSplits(width: number): boolean {
-  return width < 620;
+  return width < 320;
 }
 
 /** The nav labels per language, in the bar's order (src/i18n/messages, ui.shell.nav). */
@@ -61,13 +63,14 @@ export async function checkTopbar(page: Page, path: string, lang: TopbarLang, wi
   }
   // The gutter is the page's: 16px from 360px to 719px, split or not (32px from 720px).
   if (width >= 360 && width < 720) expect(inner.left, `${path}: 16px gutter`).toBeCloseTo(16, 0);
-  // --topbar-h follows the rows (a one-row bar never gets the two-row offset).
+  // --topbar-h follows the rows (a one-row bar never gets the two-row offset). Under 320px the nav's own row wraps onto
+  // a second line in these languages (133px; Chinese keeps one line, 93px).
   const [h, token] = await Promise.all([
     bar.evaluate((el) => el.getBoundingClientRect().height),
     page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--topbar-h"))),
   ]);
   expect(Math.abs(h - token), `${path}: bar ${h}px, --topbar-h ${token}px`).toBeLessThan(1);
-  expect(token, `${path}: --topbar-h`).toBe(split ? 93 : width >= 720 ? 65 : 61);
+  expect(token, `${path}: --topbar-h`).toBe(split ? 133 : width >= 720 ? 65 : 61);
   const sw = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(sw, `${path} at ${width}px`).toBeLessThanOrEqual(width);
 }

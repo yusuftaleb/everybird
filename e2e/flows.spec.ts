@@ -20,11 +20,12 @@ import { ja } from "../src/i18n/messages/ja";
 import { zhHans } from "../src/i18n/messages/zh-Hans";
 import { zhHant } from "../src/i18n/messages/zh-Hant";
 import { pt } from "../src/i18n/messages/pt";
+import { storedLayouts } from "./layouts";
 
 // Every flow end to end, in every engine: each way in (eBird life list, MyEBirdData, iNaturalist with a mocked API, tick
 // by hand) and their merge, the filters (taxonomy, Places with several countries, a Time range), True size and the list
 // view, the card (marks, remove, undo), the share image in all three formats, Copy link and the shared view it opens,
-// backup, forget and restore.
+// backup, forget (the stored layouts with it) and restore.
 //
 // Viewports: by default each engine walks two widths, so the three engines cover all five between them (Chromium 390 and
 // 1280, WebKit 390 and 1024, Firefox 768 and 1440). MATRIX=full walks every width in every engine:
@@ -343,6 +344,8 @@ for (const width of WIDTHS) {
         r.onsuccess = () => { const g = r.result.transaction("kv").objectStore("kv").get("everybird:v1"); g.onsuccess = () => { r.result.close(); done(g.result?.name); }; };
       }));
       await expect.poll(storedName).toBe("Kalin's lifers");
+      // The birder's own collage keeps its finished layouts on the device (src/lib/layout/layout-store.ts).
+      await expect.poll(() => storedLayouts(page), { timeout: 30_000 }).toBeGreaterThan(0);
       await page.goto("/settings");
       await expect.poll(storedName).toBe("Kalin's lifers");
       const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download JSON backup" }).click()]);
@@ -353,10 +356,17 @@ for (const width of WIDTHS) {
       const [csv] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download CSV" }).click()]);
       expect(csv.suggestedFilename()).toBe(`everybird-kalins-lifers-life-list-${localDay()}.csv`);
 
+      // Forget asks once, in ConfirmDialog (an alertdialog portalled to the body, focus on its action).
       await page.getByRole("button", { name: "Forget my list" }).click();
-      await page.getByRole("button", { name: "Yes, forget it" }).click();
-      // The list is gone: the downloads leave with it.
+      const ask = page.getByRole("alertdialog", { name: /^Forget this list on this device\?/ });
+      const yes = ask.getByRole("button", { name: "Yes, forget it" });
+      await expect(yes).toBeFocused();
+      await yes.click();
+      await expect(ask).toHaveCount(0);
+      await expect(page.getByTestId("data-toast")).toHaveText("This device no longer holds your list.");
+      // The list is gone: the downloads leave with it, and so do the stored layouts.
       await expect(page.getByRole("button", { name: "Download CSV" })).toHaveCount(0);
+      await expect.poll(() => storedLayouts(page)).toBe(0);
       await page.getByRole("banner").getByRole("link", { name: "My birds" }).click();
       await expect(page.getByRole("heading", { level: 1, name: "A lifetime of birds." })).toBeVisible();
 
@@ -442,7 +452,7 @@ test.describe("on a touch screen (pointer: coarse)", () => {
 
 const MESSAGES = { es, pt, nl, pl, fr, de, it, sv, da, ru, ja, 'zh-Hans': zhHans, 'zh-Hant': zhHant } as const;
 
-// A short pass per language (Spanish, Portuguese, Dutch, Polish): the sample collage draws and Settings' Add birds offers
+// A short pass per language (every one but English): the sample collage draws and Settings' Add birds offers
 // each source and Add by hand in the language's words. For manual runs.
 for (const lang of LANGS.filter((l) => l !== "en")) {
   test.describe(`a short pass in ${lang}`, () => {

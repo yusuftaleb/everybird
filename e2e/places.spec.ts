@@ -303,8 +303,8 @@ test("a province, then a county", async ({ page }) => {
   expect(m.page).toBeLessThanOrEqual(0);
 });
 
-// The lifer-only note's link is a client navigation to /settings#add-mydata: the Add birds dialog opens there at "Import a
-// file", with MyEBirdData's Add panel open, its picker focused and in view; with MyEBirdData already on the list (saved
+// The lifer-only note's link is a client navigation to /settings#add-mydata: Settings' own source rows ("Your list", no
+// dialog) open MyEBirdData's Add panel there, its picker focused and in view; with MyEBirdData already on the list (saved
 // before seen-here), its Replace is focused.
 test("the lifer-only note opens MyEBirdData's Add panel on Settings, or focuses its Replace", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });

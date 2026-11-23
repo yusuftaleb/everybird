@@ -5,6 +5,8 @@ import { en, type Ui } from "../src/i18n/messages/en";
 // row's "Add by hand" opens the Add birds dialog on adding by hand alone: titled "Add by hand", with no switch to Import
 // a file. Elsewhere the Add birds dialog (src/components/import/AddBirdsDialog.tsx), opened by the collage's "Add birds"
 // and the landing's "Make yours", starts at "Import a file" (the source rows); "Add by hand" is its other choice.
+// Where the dock's panels are sheets (600px wide or 500px tall and under) the dialog is their bottom sheet, and a
+// source's Add shows its form alone under the path "All sources / <source>" (data-testid="sources-path").
 
 export type AddWay = "file" | "hand";
 

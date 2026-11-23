@@ -89,7 +89,8 @@ test.describe("files and unknown paths", () => {
   test.use({ locale: "es-ES" });
 
   test("static files are served as they are", async ({ request }) => {
-    for (const path of ["/data/species.v1.json", "/icons/icon-192.png", "/robots.txt", "/manifest.webmanifest"]) {
+    // /og/<lang>.jpg: the site's link preview per language, a static file chosen by the page's metadata, never rewritten
+    for (const path of ["/data/species.v1.json", "/icons/icon-192.png", "/og/es.jpg", "/robots.txt", "/manifest.webmanifest"]) {
       const res = await request.get(path, { headers: { "accept-language": "es-ES", cookie: "everybird-lang=es" } });
       expect(res.status(), path).toBe(200);
     }
