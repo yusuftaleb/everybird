@@ -176,6 +176,8 @@ for (const width of WIDTHS) {
       // The search empty, the orders as a list that opens in place; typed, its matches in their place.
       await expect(dialog.getByRole("list", { name: "Species to tick" })).toBeVisible();
       const list = dialog.getByRole("listbox", { name: "Species to tick" });
+      // When and where stays closed ("Any time · Anywhere"), so the bird gets no date or place.
+      await expect(dialog.getByTestId("tick-when")).toHaveAttribute("aria-expanded", "false");
       await dialog.getByLabel("Search birds").fill("mallard");
       const mallard = list.getByRole("option", { name: /^Mallard, Anas platyrhynchos/ });
       await mallard.click();
@@ -418,6 +420,11 @@ for (const width of WIDTHS) {
       const hand = await openAdd(page, "hand");
       await expect(hand.getByRole("list", { name: "Species to tick" })).toBeVisible();
       await check("add birds: by hand");
+      // Opened, its fields (the date with its calendar button, Country and the State or province select, off until a
+      // country is picked) take a 44px press too.
+      await hand.getByTestId("tick-when").click();
+      await expect(hand.getByLabel("State or province", { exact: true })).toBeDisabled();
+      await check("add birds: by hand, When and where open");
     });
   });
 }
@@ -444,6 +451,16 @@ test.describe("on a touch screen (pointer: coarse)", () => {
     expect(heights.length, "the source row's small buttons on screen").toBeGreaterThan(0);
     for (const h of heights) expect(Math.round(h)).toBeGreaterThanOrEqual(44);
     expect((await pressAreas(page)).small, "Add birds: controls under 44px").toEqual([]);
+    // Add by hand on touch: its group rows and the closed When and where row are 44px (import.css), then its fields.
+    const hand = await openAdd(page, "hand");
+    const when = hand.getByTestId("tick-when");
+    expect(Math.round((await when.boundingBox())!.height), "When and where's row").toBeGreaterThanOrEqual(44);
+    expect((await pressAreas(page)).small, "Add by hand: controls under 44px").toEqual([]);
+    await when.click();
+    await expect(hand.getByLabel("State or province", { exact: true })).toBeVisible();
+    expect((await pressAreas(page)).small, "Add by hand, When and where open: controls under 44px").toEqual([]);
+    await page.keyboard.press("Escape");
+    await expect(hand).toHaveCount(0);
     await seeCollage(page).getByRole("link", { name: "See my collage" }).click();
     await expect(shownBirds(page)).toHaveCount(4);
     expect((await pressAreas(page)).small, "collage: controls under 44px").toEqual([]);
