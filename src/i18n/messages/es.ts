@@ -113,7 +113,7 @@ export const es: Messages = {
         mapFewer: 'Mostrar menos',
         mapFailed: 'No se pudo cargar el mapa. La lista de abajo tiene los mismos recuentos.',
         mapRetry: 'Reintentar',
-        mapUnplaced: { one: '{n} ave de esta lista no tiene lugar, así que el mapa la deja fuera.', other: '{n} aves de esta lista no tienen lugar, así que el mapa las deja fuera.' },
+        mapUnplaced: { one: '{n} ave de esta lista no tiene lugar registrado, así que el mapa la deja fuera.', other: '{n} aves de esta lista no tienen lugar registrado, así que el mapa las deja fuera.' },
         mapHint: 'Pellizca o usa +/− para hacer zoom · arrastra para mover',
         mapZoomIn: 'Acercar',
         mapZoomOut: 'Alejar',
@@ -163,7 +163,7 @@ export const es: Messages = {
       tree: {
         loading: 'Cargando el árbol',
         failed: 'El árbol no se cargó.',
-        retry: 'Volver a intentarlo',
+        retry: 'Reintentar',
         tips: 'Puntas del árbol, de arriba abajo',
         axis: 'Millones de años atrás (estimaciones)',
         onList: '{n} de {total} en la lista',
@@ -381,7 +381,7 @@ export const es: Messages = {
       lede: 'Everybird convierte la lista de vida de un observador de aves en un collage de stickers.',
       untitled: 'La lista de vida de un observador de aves',
       endCta: 'Tu lista, desde eBird, iNaturalist, una hoja de cálculo o a mano, en un collage como este.',
-      retry: 'Volver a intentarlo',
+      retry: 'Reintentar',
       noPlacesDates: 'Este enlace no trae lugares ni fechas, así que esos filtros no aparecen.',
       noPlaces: 'Este enlace no trae lugares, así que esos filtros no aparecen.',
       noDates: 'Este enlace no trae fechas, así que esos filtros no aparecen.',
@@ -520,7 +520,7 @@ export const es: Messages = {
       filters: 'Mostrando tus filtros: {label}',
       filtersNoLabel: 'Mostrando tus filtros.',
       clearFilters: 'Quitar filtros',
-      noMatch: 'Ningún ave coincide con tus filtros.',
+      noMatch: 'Ninguna ave coincide con tus filtros.',
       linkWhole: 'El enlace abre tu lista completa, sin los filtros.',
       previewOf: '{preview}: {title}, {count}',
       previewOfCount: '{preview}: {count}',
@@ -549,8 +549,8 @@ export const es: Messages = {
       downloadShort: 'Descargar',
       /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
       print: {
-        title: 'Imprimir tu collage',
-        viewTitle: { map: 'Imprimir tu mapa', tree: 'Imprimir tu árbol' },
+        title: 'Imprime tu collage',
+        viewTitle: { map: 'Imprime tu mapa', tree: 'Imprime tu árbol' },
         nameLabel: 'Título del póster',
         size: 'Tamaño del póster',
         downTo: 'Nivel',
@@ -911,7 +911,7 @@ export const es: Messages = {
     /** About (app/[lang]/(app)/about/page.tsx). `<tag>` words become links; proper names, licences and the Buy Me a Coffee button stay as they are. */
     about: {
       lede: 'Everybird convierte la lista de vida de cualquier observador de aves en un collage de stickers.',
-      what: { head: 'Qué es', body: 'Tu lista de vida ya es el registro de toda una vida de aves. Everybird la dispone en un solo collage: cada especie es un sticker, con el tamaño según su masa corporal, y el recuento en el centro. Fíltrala por grupo, lugar, año o estado de conservación y compártela como imagen o como enlace.', more: 'Mírala como collage, como lista, en un mapa del mundo o en el árbol de las aves. Compártela como imagen o como enlace, imprímela como póster o expórtala por lotes: una imagen o un póster por cada familia, país, año u otro grupo. Con Comparar, tu lista se pone junto a las de tus amigos y ves qué aves tienen en común.' },
+      what: { head: 'Qué es', body: 'Tu lista de vida ya es el registro de toda una vida de aves. Everybird la dispone en un solo collage: cada especie es un sticker, con el tamaño según su masa corporal, y el recuento en el centro. Fíltrala por grupo, lugar, año o estado de conservación y compártela como imagen o como enlace.', more: 'Mírala como collage, como lista, en un mapa del mundo o en el árbol de las aves. Compártela como imagen o como enlace, imprímela como póster o expórtala por lotes: una imagen o un póster por cada familia, país, año u otro grupo. Comparar pone tu lista junto a las de tus amigos y muestra qué aves tienen en común.' },
       how: {
         head: 'Cómo funciona',
         steps: [

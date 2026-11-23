@@ -6,7 +6,7 @@ import type { Page } from "@playwright/test";
  * reached by keyboard too), links inside running text (WCAG 2.5.8's inline exception), a checkbox inside its row's
  * label (the 44px row is the target), file inputs behind their buttons, visually hidden controls (.eb-sr, such as the
  * bird card's Close: for screen readers and the keyboard, no pointer target), the small source buttons and the share
- * dialog's controls and Add by hand's group rows on a fine pointer (40px and 36px rows for a mouse, 44px for touch:
+ * dialog's controls and Add by hand's group rows (its When and where row too, the same .eb-tickgroup) on a fine pointer (40px and 36px rows for a mouse, 44px for touch:
  * share.css, import.css, DESIGN.md, AGENTS.md; flows.spec.ts's
  * touch test holds the source buttons to 44px), and the width of the share dialog's segments (adjacent 28px segments
  * whose touch press is 44px tall across the segment's own width: share.css's `.eb-share-seg`).

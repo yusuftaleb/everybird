@@ -113,7 +113,7 @@ export const pt: Messages = {
         mapFewer: 'Mostrar menos',
         mapFailed: 'Não foi possível carregar o mapa. A lista abaixo tem as mesmas contagens.',
         mapRetry: 'Tentar de novo',
-        mapUnplaced: { one: '{n} ave desta lista não tem lugar, então o mapa a deixa de fora.', other: '{n} aves desta lista não têm lugar, então o mapa as deixa de fora.' },
+        mapUnplaced: { one: '{n} ave desta lista não tem lugar registrado, então o mapa a deixa de fora.', other: '{n} aves desta lista não têm lugar registrado, então o mapa as deixa de fora.' },
         mapHint: 'Use dois dedos ou +/− para dar zoom · arraste para mover',
         mapZoomIn: 'Aumentar o zoom',
         mapZoomOut: 'Diminuir o zoom',
@@ -549,8 +549,8 @@ export const pt: Messages = {
       downloadShort: 'Baixar',
       /** Print mode (a poster in A1 to A4; the sizes, PNG, PDF and dpi stay as they are). */
       print: {
-        title: 'Imprimir sua colagem',
-        viewTitle: { map: 'Imprimir seu mapa', tree: 'Imprimir sua árvore' },
+        title: 'Imprima sua colagem',
+        viewTitle: { map: 'Imprima seu mapa', tree: 'Imprima sua árvore' },
         nameLabel: 'Título do pôster',
         size: 'Tamanho do pôster',
         downTo: 'Nível',
