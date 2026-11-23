@@ -1054,22 +1054,20 @@ export const EN_UI = {
     /** A row's name for screen readers when the bird is already on the list ({name} is "Common, Scientific"). */
     onListLabel: '{name}, already on your list',
     onList: 'On your list',
-    /** The bar under the list (always shown): the date, year, country and region every bird added gets. */
+    /** The bar under the list (always shown): the date or year, country and state or province every bird added gets. */
     when: 'When and where',
-    date: 'Date (optional)',
-    /** The year field beside the date picker: a year alone, as typed dates allowed. */
-    year: 'Or a year',
+    /** The one field for the date every bird added gets: a year alone or a full date (typed, or from the calendar button). */
+    date: 'Date or year',
+    /** The calendar button inside it, which opens the system date picker. */
+    pickDate: 'Pick a date',
     dateError: 'Use a year from 1800 to this year.',
     country: 'Country (optional)',
     noCountry: 'No country',
-    /** The subdivision select, always shown (disabled until a country is picked, `pickCountry` its one choice). */
-    region: 'State or province (optional)',
+    /** Beside Country, half its row: off until a country with subdivisions is picked. */
+    region: 'State or province',
+    /** Its one choice while off: short, to fit a half-width phone field. */
+    pickCountry: 'Pick a country',
     wholeCountry: 'Whole country',
-    pickCountry: 'Pick a country first',
-    /** The muted hint inside the empty date field (iOS draws an empty date input as a blank box). */
-    datePick: 'Pick a date',
-    /** A group row's count for screen readers when some of its species are on the list (shown as "{on} / {n}"). */
-    groupOnList: '{on} of {n} on your list',
     /** The Undo notice after a tap adds a bird ("Removed {name}." after one takes it off: collage.removed). */
     added: 'Added {name}.',
     /** The same, with the date and place the bar gave it ({details}: "May 2024 · France"). */

@@ -13,3 +13,14 @@ export function parseManualDate(raw: string): string | null {
   if (dt.getTime() > Date.now()) return null
   return s
 }
+
+/**
+ * Add by hand's "Date or year" field: a year alone ('YYYY') or a full date ('YYYY-MM-DD', the date picker's value),
+ * checked as parseManualDate (from 1800, not in the future); '' when empty; null otherwise (a month alone included:
+ * the field stores a date or a year, as its two fields did).
+ */
+export function parseDateOrYear(raw: string): string | null {
+  const s = raw.trim()
+  if (s && !/^\d{4}(-\d{2}-\d{2})?$/.test(s)) return null
+  return parseManualDate(s)
+}

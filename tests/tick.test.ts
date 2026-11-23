@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addTicked, filterTickRows, genusOf, onListByGroup, removeTicked, taxonChildren, taxonOpen, TICK_SPECIES_AT, toggleOpen, undoEdit } from '@/lib/list/tick'
+import { addTicked, filterTickRows, genusOf, removeTicked, taxonChildren, taxonOpen, TICK_SPECIES_AT, toggleOpen, undoEdit } from '@/lib/list/tick'
 import { SPECIES_AT } from '@/lib/tree/levels'
 import type { Edits } from '@/lib/list/model'
 import type { SpeciesRow } from '@/lib/species/types'
@@ -169,18 +169,5 @@ describe('undoEdit (Undo after a removal or an add by hand)', () => {
     expect(back.added).toEqual(before.added)
     const fresh = undoEdit(addTicked(before, ['new'], {}), before, ['new'])
     expect(fresh).toEqual(before)
-  })
-})
-
-describe('onListByGroup (Add by hand: "12 / 178", the birds on the list in each group)', () => {
-  it('counts each bird on the list in its order, family and genus, by the open groups\' keys; codes outside the taxonomy are skipped', () => {
-    const byCode = new Map(rows.map((r) => [r.code, r]))
-    const on = onListByGroup(byCode, ['norfli', 'emptou1', 'snogoo', 'nosuch'])
-    expect(Object.fromEntries(on)).toEqual({
-      Anseriformes: 1, 'Anseriformes/Anatidae': 1, 'Anseriformes/Anatidae/Anser': 1,
-      Piciformes: 2, 'Piciformes/Picidae': 1, 'Piciformes/Picidae/Colaptes': 1,
-      'Piciformes/Ramphastidae': 1, 'Piciformes/Ramphastidae/Aulacorhynchus': 1,
-    })
-    expect(on.get('Passeriformes')).toBeUndefined()
   })
 })
