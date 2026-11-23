@@ -1062,8 +1062,14 @@ export const EN_UI = {
     dateError: 'Use a year from 1800 to this year.',
     country: 'Country (optional)',
     noCountry: 'No country',
-    region: 'Region (optional)',
+    /** The subdivision select, always shown (disabled until a country is picked, `pickCountry` its one choice). */
+    region: 'State or province (optional)',
     wholeCountry: 'Whole country',
+    pickCountry: 'Pick a country first',
+    /** The muted hint inside the empty date field (iOS draws an empty date input as a blank box). */
+    datePick: 'Pick a date',
+    /** A group row's count for screen readers when some of its species are on the list (shown as "{on} / {n}"). */
+    groupOnList: '{on} of {n} on your list',
     /** The Undo notice after a tap adds a bird ("Removed {name}." after one takes it off: collage.removed). */
     added: 'Added {name}.',
     /** The same, with the date and place the bar gave it ({details}: "May 2024 · France"). */
