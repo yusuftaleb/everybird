@@ -845,6 +845,8 @@ export const da: Messages = {
       onListLabel: '{name}, allerede på din liste',
       onList: 'På din liste',
       when: 'Hvornår og hvor',
+      anyTime: 'Når som helst',
+      anywhere: 'Hvor som helst',
       date: 'Dato eller år',
       pickDate: 'Vælg dato',
       dateError: 'Brug et år fra 1800 til i år.',

@@ -853,6 +853,8 @@ export const pl: Messages = {
       onListLabel: '{name}, już na twojej liście',
       onList: 'Na twojej liście',
       when: 'Kiedy i gdzie',
+      anyTime: 'Dowolna data',
+      anywhere: 'Dowolne miejsce',
       date: 'Data lub rok',
       pickDate: 'Wybierz datę',
       dateError: 'Podaj rok od 1800 do bieżącego.',
