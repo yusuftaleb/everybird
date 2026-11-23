@@ -82,14 +82,6 @@ input, textarea { caret-color: var(--accent); }
 .eb-input[type="search"]::-webkit-search-decoration,
 .eb-input[type="search"]::-webkit-search-cancel-button { display: none; -webkit-appearance: none; }
 .eb-input::placeholder { color: var(--muted); opacity: 1; }
-/* Off (a select with nothing to offer yet): Muted text at full strength, the Quiet Disabled Rule (iOS would fade it). */
-.eb-input:disabled { color: var(--muted); -webkit-text-fill-color: var(--muted); opacity: 1; cursor: default; }
-/* type="date" on iOS Safari (the only engine with -webkit-touch-callout): its native box is taller than the field and
-   centres its value; drawn as the field's own box instead, the value at the left. The system picker stays. */
-@supports (-webkit-touch-callout: none) {
-  .eb-input[type="date"] { appearance: none; -webkit-appearance: none; display: block; padding-block: 0; line-height: 42px; } /* 42: the 44px box less its border, one centred line */
-  .eb-input[type="date"]::-webkit-date-and-time-value { margin: 0; text-align: left; }
-}
 .eb-input[aria-invalid] { border-color: var(--accent); }
 .eb-input-wrap { position: relative; display: block; min-width: 0; }
 .eb-input-icon { position: absolute; left: 12px; top: 50%; translate: 0 -50%; width: 16px; height: 16px; color: var(--muted); pointer-events: none; }

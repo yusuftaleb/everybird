@@ -53,7 +53,7 @@ const ALLOW_SAME = [
   // The share dialog's parts: fr "Image", nl and de "Poster"; fr "{n} image(s)" in Export in batches' count.
   'Image', 'Poster', '{n} image', '{n} images',
   // de: months spelled as in English, and "(optional)".
-  'Jan', 'Feb', 'Apr', 'Aug', 'Sep', 'Nov', 'April', 'August', 'September', 'November', '(optional)',
+  'Jan', 'Feb', 'Apr', 'Aug', 'Sep', 'Nov', 'April', 'August', 'September', 'November', '(optional)', 'Region (optional)',
   // ja and zh group numbers with "," and use "." for decimals, as English does.
   ',', '.',
   // ru: the share format's name and ratio, a template with no words.

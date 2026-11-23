@@ -70,17 +70,6 @@ export function toggleOpen(open: ReadonlySet<string>, key: string): Set<string> 
   return next.add(key)
 }
 
-/** How many of `codes` (the birds on the list) each group holds, by the same keys as `toggleOpen`'s ("order", "order/family", "order/family/genus"). */
-export function onListByGroup(byCode: ReadonlyMap<string, SpeciesRow>, codes: Iterable<string>): Map<string, number> {
-  const out = new Map<string, number>()
-  for (const code of codes) {
-    const r = byCode.get(code)
-    if (!r) continue
-    for (const key of [r.ord, `${r.ord}/${r.fam}`, `${r.ord}/${r.fam}/${genusOf(r.sci)}`]) out.set(key, (out.get(key) ?? 0) + 1)
-  }
-  return out
-}
-
 /**
  * The rows to show: the whole taxonomy in taxonomic order, narrowed to a group when given (a genus's species); with a search,
  * only rows whose common or scientific name matches by word prefixes (accent-insensitive), best match first.

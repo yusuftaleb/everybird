@@ -9,10 +9,9 @@
 // (a fill only under the pointer and on the active row while their list has the keyboard's focus) are a multi-select listbox whose selected options are the birds on the list (the search's, and each open genus's): the
 // arrow keys move the active row, Space or Enter flips it; a click flips a row. A tap adds a bird to the list at once and a tap on a bird already on it takes it off at
 // once, each with "Added … · Undo" or "Removed … · Undo". Taking off a bird is the bird card's Remove (removeTicked): it
-// goes into `removed`, so a file that has it no longer counts it. "When and where", a bar before the search and the list
-// (2026-11-22: under the list it was missed until after the ticking), always there, gives every bird added next a date
-// (the system picker, or a year alone) and a country and a state or province (its select always shown, off until the
-// country has some), when set. A group's count is the taxonomy's, "12 / 178" once some are on the list. The search's list is windowed
+// goes into `removed`, so a file that has it no longer counts it. "When and where", a bar under the list that is always
+// there and sticks to the bottom of the screen while the list is in view (as the old "Add N" bar did), gives every bird
+// added a date (the system picker, or a year alone) and a country and region, when set. The search's list is windowed
 // (only the rows in view are in the DOM); both lists keep one height (`view` rows, fewer where the box shrinks to fit
 // the dialog).
 import { Check } from '@/components/phosphor-icons'
@@ -23,14 +22,14 @@ import { fmt, plural } from '@/i18n/core'
 import { dayText, formatInt, formatMonth } from '@/i18n/format'
 import { HTML_LANG } from '@/i18n/langs'
 import { useI18n } from '@/i18n/I18nProvider'
-import { ChevronDownIcon, SearchIcon } from '@/components/collage/icons'
+import { ChevronDownIcon } from '@/components/collage/icons'
 import { regionsIn } from '@/lib/i18n-places'
 import { track } from '@/lib/analytics'
 import { today } from '@/lib/download'
 import { stripBracket } from '@/lib/import/places'
 import type { Edits, Place } from '@/lib/list/model'
 import type { Action } from '@/lib/list/store'
-import { addTicked, filterTickRows, onListByGroup, removeTicked, taxonChildren, taxonOpen, toggleOpen, undoEdit, type TaxonGroup, type TaxonPath } from '@/lib/list/tick'
+import { addTicked, filterTickRows, removeTicked, taxonChildren, taxonOpen, toggleOpen, undoEdit, type TaxonGroup, type TaxonPath } from '@/lib/list/tick'
 import type { SpeciesIndex } from '@/lib/species/load'
 import { displayName, familyName, nameOfCode } from '@/lib/species/names'
 import { orderLabel } from '@/lib/species/orders'
@@ -163,8 +162,6 @@ function TickOptions({ rows, onList, onFlip, view, inline, boxRef, label, labell
 type Tree = {
   species: SpeciesIndex; onList: ReadonlySet<string>; onFlip: (code: string, box: HTMLDivElement | null) => void
   open: ReadonlySet<string>; toggle: (key: string) => void
-  /** How many birds on the list each group holds (onListByGroup). */
-  onGroup: ReadonlyMap<string, number>
 }
 
 /**
@@ -182,14 +179,11 @@ function GroupNode({ path, g, depth, tree }: { path: TaxonPath; g: TaxonGroup; d
   const common = at.length === 1 ? orderLabel(g.id, t) : at.length === 2 ? familyName(g.first) : undefined
   const lead = common ?? g.id
   const count = formatInt(g.n, t.num)
-  // The count is the taxonomy's; with birds of the group on the list, "12 / 178" (Ink, then Muted), read "12 of 178 on your list".
-  const on = tree.onGroup.get(key) ?? 0
-  const spoken = on ? fmt(t.tick.groupOnList, { on: formatInt(on, t.num), n: count }) : plural(t.import.species, g.n, { n: count })
   return (
     <li>
       <button
         type="button" id={`${id}-b`} className="eb-tickgroup" aria-expanded={isOpen} aria-controls={isOpen ? id : undefined}
-        aria-label={`${lead}, ${spoken}`} data-testid={`tick-group-${key}`}
+        aria-label={`${lead}, ${plural(t.import.species, g.n, { n: count })}`} data-testid={`tick-group-${key}`}
         style={depth ? { paddingLeft: `calc(8px + ${depth} * var(--eb-tick-indent))` } : undefined} onClick={() => tree.toggle(key)}
       >
         <span className="eb-tickchev" aria-hidden="true"><ChevronDownIcon /></span>
@@ -197,7 +191,7 @@ function GroupNode({ path, g, depth, tree }: { path: TaxonPath; g: TaxonGroup; d
           <span lang={common === undefined ? 'la' : undefined}>{lead}</span>
           {common !== undefined && <>{' '}<i className="eb-ticksub" lang="la">{g.id}</i></>}
         </span>
-        <span className="eb-mono eb-langcode eb-tickgroup-n" aria-hidden="true">{on ? <><span className="eb-tickgroup-on">{formatInt(on, t.num)}</span> / {count}</> : count}</span>
+        <span className="eb-mono eb-langcode eb-tickgroup-n" aria-hidden="true">{count}</span>
       </button>
       {isOpen && <GroupBody id={id} labelledBy={`${id}-b`} path={at} n={g.n} depth={depth + 1} tree={tree} />}
     </li>
@@ -298,92 +292,30 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
     last.current?.focus({ preventScroll: true })
   }
   const dismiss = useCallback(() => setChange(null), [])
-  const onGroup = useMemo(() => onListByGroup(species.byCode, onList), [species, onList])
-  const tree: Tree = { species, onList, onFlip: flip, open, toggle, onGroup }
+  const tree: Tree = { species, onList, onFlip: flip, open, toggle }
 
   return (
     <section className="eb-tick" aria-labelledby={`${ids}-h`}>
       <h3 id={`${ids}-h`} className="eb-sr">{tt.label}</h3>
-      <div className="eb-tickbar" role="group" aria-labelledby={`${ids}-w`}>
-        <p id={`${ids}-w`} className="eb-tickbar-n">{tt.when}</p>
-        {/* Each field under its own visible label; an empty date input draws as a blank box on iOS, so it carries a muted hint. */}
-        <div className="eb-tick-fields">
-          <div className="eb-tickfield">
-            <label className="eb-label" htmlFor={`${ids}-d`}>{tt.date}</label>
-            <span className="eb-tickdate">
-              <input
-                id={`${ids}-d`}
-                className="eb-input"
-                type="date"
-                min="1800-01-01"
-                max={today()}
-                value={date}
-                data-empty={!date || undefined}
-                onChange={(e) => { setDate(e.target.value); if (e.target.value) setYear('') }}
-              />
-              {!date && <span className="eb-tickdate-hint" aria-hidden="true">{tt.datePick}</span>}
-            </span>
-          </div>
-          <div className="eb-tickfield">
-            <label className="eb-label" htmlFor={`${ids}-y`}>{tt.year}</label>
-            <input
-              ref={yearRef}
-              id={`${ids}-y`}
-              className="eb-input"
-              inputMode="numeric"
-              autoComplete="off"
-              maxLength={4}
-              value={year}
-              aria-invalid={yearBad || undefined}
-              aria-describedby={yearBad ? `${ids}-ye` : undefined}
-              onChange={(e) => { setYear(e.target.value); if (e.target.value) setDate('') }}
-            />
-          </div>
-          <div className="eb-tickfield eb-tickfield-place">
-            <label className="eb-label" htmlFor={`${ids}-c`}>{tt.country}</label>
-            <span className="eb-select">
-              <select id={`${ids}-c`} className="eb-input" value={country} onChange={(e) => { setCountry(e.target.value); setSub1('') }}>
-                <option value="">{tt.noCountry}</option>
-                {countries.map(([iso, name]) => <option key={iso} value={iso}>{name}</option>)}
-              </select>
-            </span>
-          </div>
-          {/* Always there, so a state or province is found before a country is picked; off until it has one to offer. */}
-          <div className="eb-tickfield eb-tickfield-place">
-            <label className="eb-label" htmlFor={`${ids}-s`}>{tt.region}</label>
-            <span className="eb-select">
-              <select id={`${ids}-s`} className="eb-input" value={sub1} disabled={!subs.length} onChange={(e) => setSub1(e.target.value)}>
-                <option value="">{country ? tt.wholeCountry : tt.pickCountry}</option>
-                {subs.map(([c, name]) => <option key={c} value={c}>{name}</option>)}
-              </select>
-            </span>
-          </div>
-        </div>
-        {yearBad && <p id={`${ids}-ye`} className="eb-error">{tt.dateError}</p>}
-      </div>
       <div className="eb-tick-tools">
         <label className="eb-sr" htmlFor={`${ids}-q`}>{tt.search}</label>
-        {/* The site's search field (DESIGN.md "Fields"): the lens, as the bird search and Places' "Find a country". */}
-        <span className="eb-input-wrap eb-tick-q">
-          <SearchIcon className="eb-input-icon" />
-          <input
-            ref={search}
-            id={`${ids}-q`}
-            className="eb-input eb-input-search"
-            type="search"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder={t.import.search.placeholder}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key !== 'ArrowDown') return
-              e.preventDefault()
-              if (searching) box.current?.focus()
-              else treeBox.current?.querySelector<HTMLElement>('.eb-tickgroup')?.focus()
-            }}
-          />
-        </span>
+        <input
+          ref={search}
+          id={`${ids}-q`}
+          className="eb-input eb-tick-q"
+          type="search"
+          autoComplete="off"
+          spellCheck={false}
+          placeholder={t.import.search.placeholder}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== 'ArrowDown') return
+            e.preventDefault()
+            if (searching) box.current?.focus()
+            else treeBox.current?.querySelector<HTMLElement>('.eb-tickgroup')?.focus()
+          }}
+        />
       </div>
       <p className="eb-mono eb-tick-count" aria-live="polite">{plural(t.import.species, searching ? rows.length : species.rows.length, { n: num(searching ? rows.length : species.rows.length) })}</p>
 
@@ -402,6 +334,60 @@ export function TickList({ species, regions, edits, dispatch, onList, listEmpty,
         </div>
       )}
 
+      <div className="eb-tickbar" role="group" aria-labelledby={`${ids}-w`}>
+        <p id={`${ids}-w`} className="eb-tickbar-n">{tt.when}</p>
+        {/* Each field under its own visible label (an empty date input draws as a blank box on iOS). */}
+        <div className="eb-tick-fields">
+          <div className="eb-tickfield">
+            <label className="eb-label" htmlFor={`${ids}-d`}>{tt.date}</label>
+            <input
+              id={`${ids}-d`}
+              className="eb-input"
+              type="date"
+              min="1800-01-01"
+              max={today()}
+              value={date}
+              onChange={(e) => { setDate(e.target.value); if (e.target.value) setYear('') }}
+            />
+          </div>
+          <div className="eb-tickfield">
+            <label className="eb-label" htmlFor={`${ids}-y`}>{tt.year}</label>
+            <input
+              ref={yearRef}
+              id={`${ids}-y`}
+              className="eb-input"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={4}
+              value={year}
+              aria-invalid={yearBad || undefined}
+              aria-describedby={yearBad ? `${ids}-ye` : undefined}
+              onChange={(e) => { setYear(e.target.value); if (e.target.value) setDate('') }}
+            />
+          </div>
+          <div className="eb-tickfield">
+            <label className="eb-label" htmlFor={`${ids}-c`}>{tt.country}</label>
+            <span className="eb-select">
+              <select id={`${ids}-c`} className="eb-input" value={country} onChange={(e) => { setCountry(e.target.value); setSub1('') }}>
+                <option value="">{tt.noCountry}</option>
+                {countries.map(([iso, name]) => <option key={iso} value={iso}>{name}</option>)}
+              </select>
+            </span>
+          </div>
+          {subs.length > 0 && (
+            <div className="eb-tickfield">
+              <label className="eb-label" htmlFor={`${ids}-s`}>{tt.region}</label>
+              <span className="eb-select">
+                <select id={`${ids}-s`} className="eb-input" value={sub1} onChange={(e) => setSub1(e.target.value)}>
+                  <option value="">{tt.wholeCountry}</option>
+                  {subs.map(([c, name]) => <option key={c} value={c}>{name}</option>)}
+                </select>
+              </span>
+            </div>
+          )}
+        </div>
+        {yearBad && <p id={`${ids}-ye`} className="eb-error">{tt.dateError}</p>}
+      </div>
       {/* Each change is announced (the toast's slot is a live region); it keeps focus on the list, to tick on. */}
       <UndoToast removal={change} onUndo={undo} onDone={dismiss} focus={false} />
     </section>

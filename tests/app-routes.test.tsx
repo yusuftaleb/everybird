@@ -712,7 +712,7 @@ describe('editing', () => {
     fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: 'northern fl' } })
     fireEvent.change(screen.getByLabelText('Date (optional)'), { target: { value: '2019-06-15' } })
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'CA' } })
-    fireEvent.change(screen.getByLabelText('State or province (optional)'), { target: { value: 'CA-BC' } })
+    fireEvent.change(screen.getByLabelText('Region (optional)'), { target: { value: 'CA-BC' } })
     fireEvent.click(tickOption(/^Northern Flicker/))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 3 species'))
     await waitFor(async () => {
@@ -748,7 +748,7 @@ describe('editing', () => {
     expect(document.getElementById(order.getAttribute('aria-controls')!)).toContainElement(colaptes)
     expect(colaptes).toHaveAttribute('aria-multiselectable', 'true')
     expect(within(colaptes).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Northern Flicker, Colaptes auratus', 'Gilded Flicker, Colaptes chrysoides'])
-    // "When and where" is always there, before the search and the list (no button to open it); empty, a bird gets no date and no place.
+    // "When and where" is always there, under the list (no button to open it); empty, a bird gets no date and no place.
     expect(screen.queryByRole('button', { name: 'When and where' })).toBeNull()
     expect(screen.getByRole('group', { name: 'When and where' })).toContainElement(screen.getByLabelText('Date (optional)'))
     expect(screen.getByLabelText('Date (optional)')).toBeVisible()
@@ -771,8 +771,7 @@ describe('editing', () => {
     fireEvent.change(search, { target: { value: '' } })
     expect(screen.queryByRole('listbox', { name: 'Species to tick' })).toBeNull()
     expect(screen.getByTestId('tick-group-Piciformes')).toHaveAttribute('aria-expanded', 'true')
-    // The order's count now says how many of it are on the list (the Northern Flicker).
-    expect(screen.getByRole('listbox', { name: 'Woodpeckers, 1 of 2 on your list' })).toBeInTheDocument()
+    expect(screen.getByRole('listbox', { name: 'Woodpeckers, 2 species' })).toBeInTheDocument()
     // Keyboard, in the search, with a year and a country set: the arrows move the active row, Space adds it with them.
     fireEvent.change(screen.getByLabelText('Or a year'), { target: { value: '2018' } })
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'US' } })
@@ -834,7 +833,7 @@ describe('editing', () => {
     await openTick()
     // Add by hand's groups keep the common name first, the scientific one after it (round 6).
     const tree = screen.getByRole('list', { name: 'Species to tick' })
-    expect(within(tree).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Waterfowl, 1 of 1 on your list', 'Woodpeckers, 2 species', 'Perching birds, 2 species'])
+    expect(within(tree).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['Waterfowl, 1 species', 'Woodpeckers, 2 species', 'Perching birds, 2 species'])
     const order = screen.getByTestId('tick-group-Piciformes')
     expect(within(order).getByText('Piciformes')).toHaveAttribute('lang', 'la')
     expect(within(order).getByText('Piciformes')).toHaveClass('eb-ticksub')
@@ -1142,11 +1141,10 @@ describe('remembered sources', () => {
     await waitFor(() => expect(screen.getByLabelText('Search birds')).toHaveFocus())
     // Tab from the last control wraps to the first (the close button).
     const close = within(dialog).getByRole('button', { name: 'Close' })
-    // In document order (jsdom returns a selector list's matches grouped by selector): the last is the list's last row
-    // (When and where comes before the search).
+    // In document order (jsdom returns a selector list's matches grouped by selector): the last is When and where's.
     const focusables = [...dialog.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])')]
       .sort((x, y) => (x.compareDocumentPosition(y) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))
-    expect(focusables.at(-1)).toHaveAccessibleName(/^Perching birds, /)
+    expect(focusables.at(-1)).toHaveAccessibleName('Country (optional)')
     focusables.at(-1)!.focus()
     fireEvent.keyDown(focusables.at(-1)!, { key: 'Tab' })
     expect(close).toHaveFocus()
