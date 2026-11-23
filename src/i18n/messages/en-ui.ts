@@ -1056,6 +1056,9 @@ export const EN_UI = {
     onList: 'On your list',
     /** The bar under the list (always shown): the date or year, country and state or province every bird added gets. */
     when: 'When and where',
+    /** What the closed bar reads when nothing is set: "Any time · Anywhere". */
+    anyTime: 'Any time',
+    anywhere: 'Anywhere',
     /** The one field for the date every bird added gets: a year alone or a full date (typed, or from the calendar button). */
     date: 'Date or year',
     /** The calendar button inside it, which opens the system date picker. */

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // Add by hand (TickList): the search, the list, then "When and where" (the layout before 2026-11-22's round 1), with
-// one "Date or year" field and Country beside State or province.
+// one "Date or year" field and Country beside State or province; since 2026-11-22 a disclosure row, closed at first.
 import '@testing-library/jest-dom/vitest'
 import { readFileSync } from 'node:fs'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
@@ -25,6 +25,9 @@ const mount = () => {
   render(<TickList species={species} regions={regions} edits={EMPTY_EDITS} dispatch={dispatch} onList={new Set()} />, { wrapper: withI18n('en') })
   return dispatch
 }
+const whenButton = () => screen.getByTestId('tick-when')
+/** Opens "When and where" (closed at first). */
+const openWhen = () => { if (whenButton().getAttribute('aria-expanded') !== 'true') fireEvent.click(whenButton()) }
 const follows = (a: Node, b: Node) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
 const addSnowGoose = (dispatch: ReturnType<typeof mount>) => {
   fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: 'snow' } })
@@ -62,6 +65,7 @@ describe('Add by hand (TickList)', () => {
 
   it('one "Date or year" field: a year as typed, a date from the calendar button in words, stored as before', () => {
     const dispatch = mount()
+    openWhen()
     const field = screen.getByLabelText('Date or year')
     expect(screen.queryByLabelText('Or a year')).toBeNull()
     expect(field.closest('.eb-tickfield')).toHaveClass('eb-tickfield-when')
@@ -82,6 +86,7 @@ describe('Add by hand (TickList)', () => {
 
   it('a year outside 1800 to now is refused with the old message, and nothing is added', () => {
     const dispatch = mount()
+    openWhen()
     const field = screen.getByLabelText('Date or year')
     fireEvent.change(field, { target: { value: '1799' } })
     expect(field).toHaveAttribute('aria-invalid', 'true')
@@ -92,6 +97,7 @@ describe('Add by hand (TickList)', () => {
 
   it('Country and State or province share one row; State is off until a country with subdivisions, then Whole country first', () => {
     mount()
+    openWhen()
     const country = screen.getByLabelText('Country (optional)') as HTMLSelectElement
     const state = screen.getByLabelText('State or province') as HTMLSelectElement
     const fields = country.closest('.eb-tick-fields')!
@@ -114,5 +120,66 @@ describe('Add by hand (TickList)', () => {
     expect(css).toMatch(/\.eb-tickfield-when \{ grid-column: 1 \/ -1; \}/)
     expect(css).toMatch(/\.eb-tickfield \{[^}]*justify-content: flex-end[^}]*min-width: 0/)
     expect(css).toMatch(/\.eb-tickpick \{[^}]*position: absolute[^}]*height: 44px[^}]*-webkit-appearance: none/)
+  })
+
+  it('"When and where" starts closed, one row reading "Any time · Anywhere", and opens and closes on a press', () => {
+    mount()
+    const b = whenButton()
+    expect(b).toHaveClass('eb-tickgroup')
+    expect(b.querySelector('.eb-tickchev')).not.toBeNull()
+    expect(b).toHaveAttribute('aria-expanded', 'false')
+    expect(b).toHaveTextContent('When and where Any time · Anywhere')
+    const body = document.getElementById(b.getAttribute('aria-controls')!)!
+    expect(body).not.toBeVisible()
+    expect(body).toContainElement(screen.getByLabelText('Date or year'))
+    fireEvent.click(b)
+    expect(b).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByLabelText('Date or year')).toBeVisible()
+    fireEvent.click(b)
+    expect(b).toHaveAttribute('aria-expanded', 'false')
+    expect(body).not.toBeVisible()
+    // The group keeps its name.
+    expect(screen.getByRole('group', { name: 'When and where' })).toContainElement(b)
+  })
+
+  it('its summary reads the date or year and the place set', () => {
+    mount()
+    openWhen()
+    fireEvent.change(screen.getByLabelText('Pick a date'), { target: { value: '2024-05-12' } })
+    fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'US' } })
+    fireEvent.change(screen.getByLabelText('State or province'), { target: { value: 'US-UT' } })
+    expect(whenButton()).toHaveTextContent('When and where 12 May 2024 · Utah, United States')
+    fireEvent.change(screen.getByLabelText('Date or year'), { target: { value: '2024' } })
+    fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'FR' } })
+    expect(whenButton()).toHaveTextContent('When and where 2024 · France')
+    fireEvent.change(screen.getByLabelText('Date or year'), { target: { value: '' } })
+    expect(whenButton()).toHaveTextContent('When and where Any time · France')
+  })
+
+  it('focusing the search closes it; it never opens by itself, and its values still go with the birds added', () => {
+    const dispatch = mount()
+    openWhen()
+    fireEvent.change(screen.getByLabelText('Date or year'), { target: { value: '2018' } })
+    fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'FR' } })
+    fireEvent.focus(screen.getByLabelText('Search birds'))
+    expect(whenButton()).toHaveAttribute('aria-expanded', 'false')
+    expect(whenButton()).toHaveTextContent('2018 · France')
+    expect(addSnowGoose(dispatch)).toEqual([{ code: 'snogoo', source: 'manual', date: '2018', place: { country: 'FR' } }])
+    expect(whenButton()).toHaveAttribute('aria-expanded', 'false')
+    // Opened again, the fields hold what was set.
+    openWhen()
+    expect(screen.getByLabelText('Date or year')).toHaveValue('2018')
+    expect(screen.getByLabelText('Country (optional)')).toHaveValue('FR')
+  })
+
+  it('a bird refused for a bad date opens it on the date field', () => {
+    const dispatch = mount()
+    openWhen()
+    fireEvent.change(screen.getByLabelText('Date or year'), { target: { value: '1799' } })
+    fireEvent.focus(screen.getByLabelText('Search birds'))
+    expect(whenButton()).toHaveAttribute('aria-expanded', 'false')
+    expect(addSnowGoose(dispatch)).toBeUndefined()
+    expect(whenButton()).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByLabelText('Date or year')).toHaveFocus()
   })
 })

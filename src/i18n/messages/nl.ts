@@ -855,6 +855,8 @@ export const nl: Messages = {
       onListLabel: '{name}, al op je lijst',
       onList: 'Op je lijst',
       when: 'Wanneer en waar',
+      anyTime: 'Elke datum',
+      anywhere: 'Overal',
       date: 'Datum of jaar',
       pickDate: 'Kies een datum',
       dateError: 'Gebruik een jaar van 1800 tot en met dit jaar.',

@@ -895,6 +895,8 @@ export const ru: Messages = {
       onListLabel: '{name}, уже в твоём списке',
       onList: 'В твоём списке',
       when: 'Когда и где',
+      anyTime: 'Любая дата',
+      anywhere: 'Любое место',
       date: 'Дата или год',
       pickDate: 'Выбрать дату',
       dateError: 'Укажи год от 1800 до текущего.',

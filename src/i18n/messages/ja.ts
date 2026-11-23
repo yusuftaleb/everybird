@@ -843,6 +843,8 @@ export const ja: Messages = {
       onListLabel: '{name}、すでにリストにあります',
       onList: 'リストにあります',
       when: '日付と場所',
+      anyTime: 'いつでも',
+      anywhere: 'どこでも',
       date: '日付または年',
       pickDate: '日付を選択',
       dateError: '1800年から今年までの年を入力してください。',
