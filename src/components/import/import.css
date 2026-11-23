@@ -237,7 +237,12 @@
   position: sticky; bottom: 0; z-index: 2; display: flex; flex-direction: column; gap: 8px; padding: 12px 0 14px;
   background: var(--paper); border-top: 1px solid var(--hairline);
 }
-.eb-tickbar-n { margin: 0; font-weight: 600; }
+/* Its head is a disclosure row (the list's .eb-tickgroup and chevron, flush with the fields, no rule of its own): "When
+   and where" and, Muted, what is set. Closed (hidden), the fields keep their values. */
+.eb-tickbar .eb-tickbar-btn { padding-inline: 0; border-bottom: 0; }
+.eb-tickbar-sum { color: var(--muted); font-weight: 400; }
+.eb-tickbar-body { display: flex; flex-direction: column; gap: 8px; }
+.eb-tickbar-body[hidden] { display: none; }
 .eb-tickbar .eb-error { margin: 0; }
 /* The date or year its row's full width, then Country and State or province half the row each, at every width
    (minmax(0, 1fr): a long country name never widens its column). Each field is its label over its box, bottom-aligned,
