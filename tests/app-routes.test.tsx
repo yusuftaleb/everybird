@@ -710,6 +710,7 @@ describe('editing', () => {
     await go('/settings')
     await openTick()
     fireEvent.change(screen.getByLabelText('Search birds'), { target: { value: 'northern fl' } })
+    fireEvent.click(screen.getByTestId('tick-when')) // When and where starts closed
     fireEvent.change(screen.getByLabelText('Date or year'), { target: { value: '2019-06-15' } })
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'CA' } })
     fireEvent.change(screen.getByLabelText('State or province'), { target: { value: 'CA-BC' } })
@@ -748,10 +749,13 @@ describe('editing', () => {
     expect(document.getElementById(order.getAttribute('aria-controls')!)).toContainElement(colaptes)
     expect(colaptes).toHaveAttribute('aria-multiselectable', 'true')
     expect(within(colaptes).getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual(['Northern Flicker, Colaptes auratus', 'Gilded Flicker, Colaptes chrysoides'])
-    // "When and where" is always there, under the list (no button to open it); empty, a bird gets no date and no place.
-    expect(screen.queryByRole('button', { name: 'When and where' })).toBeNull()
+    // "When and where" is always there, under the list, closed at first (one row saying nothing is set); empty, a bird
+    // gets no date and no place.
+    const when = screen.getByRole('button', { name: /^When and where/ })
+    expect(when).toHaveAttribute('aria-expanded', 'false')
+    expect(when).toHaveTextContent('Any time · Anywhere')
     expect(screen.getByRole('group', { name: 'When and where' })).toContainElement(screen.getByLabelText('Date or year'))
-    expect(screen.getByLabelText('Date or year')).toBeVisible()
+    expect(screen.getByLabelText('Date or year')).not.toBeVisible()
     // A tap in an open genus adds the bird: selected, and says so in words; announced with Undo, focus left on its list.
     fireEvent.click(within(colaptes).getByRole('option', { name: /^Northern Flicker/ }))
     await waitFor(() => expect(made()).toHaveTextContent('Your collage has 1 species, all ticked by hand.'))
@@ -773,6 +777,7 @@ describe('editing', () => {
     expect(screen.getByTestId('tick-group-Piciformes')).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('listbox', { name: 'Woodpeckers, 2 species' })).toBeInTheDocument()
     // Keyboard, in the search, with a year and a country set: the arrows move the active row, Space adds it with them.
+    fireEvent.click(when)
     fireEvent.change(screen.getByLabelText('Date or year'), { target: { value: '2018' } })
     fireEvent.change(screen.getByLabelText('Country (optional)'), { target: { value: 'US' } })
     fireEvent.change(search, { target: { value: 'flicker' } })
@@ -860,6 +865,7 @@ describe('editing', () => {
   it('add by hand refuses a year it cannot use', async () => {
     await mount()
     await openTick()
+    fireEvent.click(screen.getByTestId('tick-when'))
     const year = screen.getByLabelText('Date or year')
     fireEvent.change(year, { target: { value: '20x9' } })
     expect(screen.getByText('Use a year from 1800 to this year.')).toBeInTheDocument()
@@ -1141,10 +1147,12 @@ describe('remembered sources', () => {
     await waitFor(() => expect(screen.getByLabelText('Search birds')).toHaveFocus())
     // Tab from the last control wraps to the first (the close button).
     const close = within(dialog).getByRole('button', { name: 'Close' })
-    // In document order (jsdom returns a selector list's matches grouped by selector): the last is When and where's.
+    // In document order (jsdom returns a selector list's matches grouped by selector), as the trap counts them (none
+    // inside [hidden]): the last is When and where's button, closed at first.
     const focusables = [...dialog.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])')]
+      .filter((el) => !el.closest('[hidden]'))
       .sort((x, y) => (x.compareDocumentPosition(y) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))
-    expect(focusables.at(-1)).toHaveAccessibleName('Country (optional)')
+    expect(focusables.at(-1)).toHaveAccessibleName(/^When and where/)
     focusables.at(-1)!.focus()
     fireEvent.keyDown(focusables.at(-1)!, { key: 'Tab' })
     expect(close).toHaveFocus()
