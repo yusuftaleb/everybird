@@ -19,7 +19,7 @@ const species = buildSpeciesIndex(shipped.species)
 vi.mock('@/lib/map/shapes', async (orig) => ({ ...(await orig<typeof import('@/lib/map/shapes')>()), loadMapCountries: async () => (globalThis as { __world?: unknown }).__world }))
 vi.mock('@/lib/flag', () => ({ flagSrc: (iso: string) => (iso ? `/flags/${iso}.svg` : null) }))
 type Rec = ReturnType<typeof import('./fixtures/tree-image-harness').recorder>
-const frame = vi.hoisted(() => ({ last: null as null | { rec: Rec; clips: Pt[][]; bars: number; L: { collage: { x: number; y: number; w: number; h: number }; name?: { y: number; size: number } } } }))
+const frame = vi.hoisted(() => ({ last: null as null | { rec: Rec; clips: Pt[][]; bars: number; L: { collage: { x: number; y: number; w: number; h: number }; name?: { y: number; size: number }; filter?: { y: number; size: number } } } }))
 vi.mock('@/lib/share/view-image', async (orig) => {
   const real = await orig<typeof import('@/lib/share/view-image')>()
   const { cardLayout } = await import('@/lib/share/image')
@@ -28,14 +28,14 @@ vi.mock('@/lib/share/view-image', async (orig) => {
     ...real,
     renderViewImage: async (opts: ShareImageOpts, paint: (ctx: CanvasRenderingContext2D, card: unknown, area: unknown) => void) => {
       const print = opts.format === 'print' || opts.format === 'printLandscape'
-      const L = cardLayout(opts.format, { name: !!opts.name, filter: false, latest: false, count: 0, countSize: 'hide' }, print ? printDesign(opts.printSize ?? 'A2', opts.format === 'printLandscape') : undefined)
+      const L = cardLayout(opts.format, { name: !!opts.name, filter: !!opts.filterLabel && !print, latest: false, count: 0, countSize: 'hide' }, print ? printDesign(opts.printSize ?? 'A2', opts.format === 'printLandscape') : undefined)
       const rec = h.recorder()
       const clips: Pt[][] = []
       let bars = 0
       const c = rec.ctx as unknown as Record<string, unknown>
       c.rect = (x: number, y: number, w: number, hh: number) => { clips.push([[x, y], [x + w, y], [x + w, y + hh], [x, y + hh]]) }
       c.roundRect = () => { bars++ }
-      const card = { L, name: opts.name?.trim() || undefined, colors: { ink: '#000000', line: '#999999', muted: '#666666', paper: '#ffffff', hairline: '#dddddd', accent: '#cc0000', surface: '#eeeeee' }, fonts: h.FONTS, transparent: false }
+      const card = { L, name: opts.name?.trim() || undefined, label: print ? undefined : opts.filterLabel, colors: { ink: '#000000', line: '#999999', muted: '#666666', paper: '#ffffff', hairline: '#dddddd', accent: '#cc0000', surface: '#eeeeee' }, fonts: h.FONTS, transparent: false }
       paint(rec.ctx, card, { ...L.collage })
       frame.last = { rec, clips, bars, L }
       return new Blob(['map'])
@@ -71,11 +71,11 @@ const FORMATS: Case[] = [
 ]
 const label = ({ format, size }: Case) => `${format}${size ? ` ${size}` : ''}`
 
-async function draw(c: Case, opts: { n: number; name?: string; totals?: readonly ('species' | 'countries')[]; theme?: 'light' | 'dark' }) {
+async function draw(c: Case, opts: { n: number; name?: string; filterLabel?: string; totals?: readonly ('species' | 'countries')[]; theme?: 'light' | 'dark' }) {
   const list = listOf(opts.n)
   await renderMapImage({
     format: c.format, ...(c.size ? { printSize: c.size } : {}), entries: list, species, theme: opts.theme ?? 'light', strings: en.ui, latest: false,
-    ...(opts.name ? { name: opts.name } : {}), at: { names }, state: { list, filter: {}, seen: undefined, sci: false }, t: en.ui,
+    ...(opts.name ? { name: opts.name } : {}), ...(opts.filterLabel ? { filterLabel: opts.filterLabel } : {}), at: { names }, state: { list, filter: {}, seen: undefined, sci: false }, t: en.ui,
     ...(opts.totals ? { totals: opts.totals } : {}),
   } as unknown as Parameters<typeof renderMapImage>[0])
   return frame.last!
@@ -148,6 +148,27 @@ describe('the Map image: totals at the top right, the top countries in two colum
     expect(seen.band).toBeGreaterThan(0)
     expect(seen.under).toBeGreaterThan(0)
     expect(seen.clipped).toBeGreaterThan(0)
+  })
+})
+
+describe('the totals sit on a head line: the title, else the filter caption (2026-11-24)', () => {
+  const numsTop = (rec: Awaited<ReturnType<typeof draw>>['rec']) => Math.min(...rec.texts.filter((x) => x.font.startsWith('700') && x.font.endsWith('px count')).map((x) => yRange(x.box)[0]))
+  it('a caption and no title: beside the caption, not on a band under it', async () => {
+    const { rec, L } = await draw({ format: 'story' }, { n: 12, filterLabel: 'Cormorants' })
+    expect(numsTop(rec)).toBeLessThan(L.collage.y)
+    expect(Math.abs(numsTop(rec) - L.filter!.y)).toBeLessThan(20)
+  })
+  it('a short title and a caption: beside the title', async () => {
+    const { rec, L } = await draw({ format: 'story' }, { n: 12, name: 'Ada', filterLabel: 'Cormorants' })
+    expect(Math.abs(numsTop(rec) - L.name!.y)).toBeLessThan(20)
+  })
+  it('a title too long to share its line and a caption: down beside the caption', async () => {
+    const { rec, L } = await draw({ format: 'story' }, { n: 12, name: 'All the birds of my whole life so far', filterLabel: 'Cormorants' })
+    expect(Math.abs(numsTop(rec) - L.filter!.y)).toBeLessThan(20)
+  })
+  it('a title and no caption: beside the title, as before', async () => {
+    const { rec, L } = await draw({ format: 'story' }, { n: 12, name: 'Ada' })
+    expect(Math.abs(numsTop(rec) - L.name!.y)).toBeLessThan(20)
   })
 })
 

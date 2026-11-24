@@ -179,21 +179,26 @@ export function viewTotals(ctx: CanvasRenderingContext2D, card: PreparedCard, fu
     return Math.max(nw, lw)
   }
   const groupW = (k: number) => totals.reduce((sum, x, i) => sum + widthOf(x, k) + (i ? T.between * k : 0), 0)
-  const title = card.name && card.L.name ? card.name : undefined
-  ctx.font = font.name(card.L.name?.size ?? 60)
-  const titleW = title ? ctx.measureText(title).width : undefined
-  const place = totalsPlace(groupW(1), titleW, full.w)
+  // The line they sit beside (Yusuf, 2026-11-24): the title's; with no title, or one too long to share its line, the
+  // filter caption's (when drawn on one line); else a band of their own under the head.
+  const lines = [
+    card.name && card.L.name ? { text: card.name, t: card.L.name, f: font.name } : undefined,
+    card.label && card.L.filter && !(card.labelLines && card.labelLines.length > 1) ? { text: card.label, t: card.L.filter, f: font.filter } : undefined,
+  ].filter((x) => x !== undefined)
+  const widthAt = (x: (typeof lines)[number]) => { ctx.font = x.f(x.t.size); return ctx.measureText(x.text).width }
+  const head = lines.find((x) => totalsPlace(groupW(1), widthAt(x), full.w).band)
+  const place = totalsPlace(groupW(1), head ? widthAt(head) : undefined, full.w)
   const tk = place.k
   const numCap = T.num * tk * 0.72, labelCap = T.label * tk * 0.72
   const groupH = totals.length ? numCap + T.gap * tk + labelCap : 0
   // The title's caps' top (paintCard draws it from its em box's top; its baseline that far below, 0.8 of the size
   // where the canvas can't say).
   let groupTop = full.y
-  if (place.band && title && card.L.name) {
-    ctx.font = font.name(card.L.name.size)
+  if (place.band && head) {
+    ctx.font = head.f(head.t.size)
     ctx.textBaseline = 'top'
     const drop = Math.abs(ctx.measureText('H').alphabeticBaseline ?? 0)
-    groupTop = card.L.name.y + (Number.isFinite(drop) && drop > 0 ? drop : 0.8 * card.L.name.size) - 0.72 * card.L.name.size
+    groupTop = head.t.y + (Number.isFinite(drop) && drop > 0 ? drop : 0.8 * head.t.size) - 0.72 * head.t.size
   }
   const draw = () => {
     ctx.textBaseline = 'alphabetic'
