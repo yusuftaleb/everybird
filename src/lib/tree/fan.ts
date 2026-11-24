@@ -59,7 +59,7 @@ export type LabelSpan = { name: number; count: number; on: boolean; ar?: number 
 export type LabelSizes = { base: number; floor: number; dot: number; rMin?: number; rMax?: number; below?: number; stFloor?: number; fill?: boolean; gap?: number; keepCounts?: boolean }
 /** On screen (round 6, for big steps): 13px names, never under 11px; the whole width; and, last before refusing, the
  *  sticker's box down to the name's line. */
-export const SCREEN_SIZES: LabelSizes = { base: 13, floor: 11, dot: 3.5, stFloor: LABEL_LINE, fill: true }
+export const SCREEN_SIZES: LabelSizes = { base: 13, floor: 11, dot: 3.5, stFloor: LABEL_LINE, fill: true, keepCounts: true }
 /** The screen's Radial with its time scale: the least opening at the top (16°), where its ages are written. */
 export const RADIAL_GAP = (16 * Math.PI) / 180
 
@@ -199,8 +199,8 @@ export const SCREEN_SHRINK = 0.5 / 1080
 
 /**
  * The screen's Fan or Radial (round 6, item 12: the layout picked is always drawn, as in Share and Print). At
- * SCREEN_SIZES when every name fits there (13px down to the 11px floor, the counts and the sticker's box giving way
- * first); else at the largest size under the floor that names every tip, down to SCREEN_SHRINK of the width, the tips'
+ * SCREEN_SIZES when every name fits there (13px down to the 11px floor, the sticker's box giving way first; every
+ * count is kept, Yusuf 2026-11-24, so the names shrink rather than lose one); else at the largest size under the floor that names every tip, down to SCREEN_SHRINK of the width, the tips'
  * dots shrinking with the names (`dotK`). Its `px` under `sizes.floor` is what the small-names note reads. Undefined only
  * when not even that fits (a column too narrow for the drawing at all).
  */

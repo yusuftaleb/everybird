@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { attach, matcher, nexusTree, relabel, taxOnlyBits, type Addition } from '../scripts/build-data/build-tree'
 import { buildSpeciesIndex } from '@/lib/species/load'
 import type { SpeciesRow } from '@/lib/species/types'
-import { FAN_R_MAX, FAN_R_MIN, LABEL_GAP, LABEL_LINE, LABEL_STICKER, RADIAL_GAP, SCREEN_SIZES, drawFan, fanAngle, fanLabel, fanRing, fitRound, inOpening, ringLabels, type FanShape, type LabelSizes, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
+import { FAN_R_MAX, FAN_R_MIN, LABEL_GAP, LABEL_LINE, LABEL_STICKER, RADIAL_GAP, SCREEN_SIZES, drawFan, fanAngle, fanLabel, fanRing, fitRound, fitScreen, inOpening, ringLabels, type FanShape, type LabelSizes, type LabelSpan, type RoundFit } from '@/lib/tree/fan'
 import { HEAD_H, MAX_TIPS, ROW_H, foldSplit, groupSticker, isClade, levelView, taxonCover, type LevelView, type TreeRow } from '@/lib/tree/levels'
 import { closeDeep, openBranch, treeBranch } from '@/lib/tree/path'
 import { ageTicks, bitAt, cladeTree, drawTree, formatAge, isLeaf, leavesOf, oldestLineage, packBits, parseNewick, type TreeFile } from '@/lib/tree/tree'
@@ -326,13 +326,17 @@ describe('every tip named on the Fan and Radial (fitRound)', () => {
     expect(fixed.counts[44]).toBe(false)
     expect(fixed.counts.slice(1, 44).every(Boolean)).toBe(true)
     expect(fixed.cx).toBe(544)
-    // On screen the labels' reach is centred (round 6): the off-list tip's count goes first, and that is enough.
-    const f = fitRound(sp, 'fan', { w: 1088 })!
+    // With counts allowed to go and the labels' reach centred (round 6): the off-list tip's count goes first, and that is enough.
+    const f = fitRound(sp, 'fan', { w: 1088 }, { ...SCREEN_SIZES, keepCounts: false })!
     expect(f.px).toBe(SCREEN_SIZES.floor)
     expect(f.counts[0]).toBe(true)
     expect(f.counts[44]).toBe(false)
     expect(f.counts.slice(1, 44).every(Boolean)).toBe(true)
     whole(sp, f, 'fan', 1088)
+    // The screen keeps every count (Yusuf, 2026-11-24): the sticker boxes, then the names, shrink instead.
+    const kept = fitScreen(sp, 'fan', 1088)!
+    expect(kept.counts.every(Boolean)).toBe(true)
+    expect(kept.px).toBeLessThanOrEqual(SCREEN_SIZES.floor)
   })
   it('on screen the drawing uses the whole width: a long label on one side takes the room the other side does not need', () => {
     // A long name at the fan's left end and short ones elsewhere.
@@ -679,7 +683,7 @@ describe('public/data/tree.v1.json', () => {
       const spans = tips.map((r) => ({ name: em(r.row.famCom || r.row.fam, 'satoshi-700') + (r.with ? 15 / 13 : 0), count: ((em(`${r.on} of ${r.total}`, 'geist-mono-500') + 0.48) * 11) / 13, on: r.on > 0 }))
       // Before round 6's fit (the centre mid-width, the sticker's box never smaller) neither layout could.
       expect(fitRound(spans, 'circle', { w: 1088 }, { base: 13, floor: 11, dot: 3.5 })).toBeUndefined()
-      const f = fitRound(spans, 'circle', { w: 1088 }, { ...SCREEN_SIZES, gap: RADIAL_GAP })!
+      const f = fitRound(spans, 'circle', { w: 1088 }, { ...SCREEN_SIZES, gap: RADIAL_GAP, keepCounts: false })!
       expect(f.px).toBeGreaterThanOrEqual(11)
       expect(f.st).toBeGreaterThanOrEqual(11 * LABEL_LINE - 1e-6)
       // The Fan cannot: 141 labels a line apart along a half circle need a radius over half the width.
