@@ -179,13 +179,15 @@ export function viewTotals(ctx: CanvasRenderingContext2D, card: PreparedCard, fu
     return Math.max(nw, lw)
   }
   const groupW = (k: number) => totals.reduce((sum, x, i) => sum + widthOf(x, k) + (i ? T.between * k : 0), 0)
-  // The line they sit beside: the filter caption's when drawn on one line, else the title's (Yusuf, 2026-11-24: with
-  // the caption switch the totals stay on a head line rather than a band of their own under it).
-  const caption = card.label && card.L.filter && !(card.labelLines && card.labelLines.length > 1) ? { text: card.label, t: card.L.filter, f: font.filter } : undefined
-  const head = caption ?? (card.name && card.L.name ? { text: card.name, t: card.L.name, f: font.name } : undefined)
-  ctx.font = head ? head.f(head.t.size) : font.name(60)
-  const titleW = head ? ctx.measureText(head.text).width : undefined
-  const place = totalsPlace(groupW(1), titleW, full.w)
+  // The line they sit beside (Yusuf, 2026-11-24): the title's; with no title, or one too long to share its line, the
+  // filter caption's (when drawn on one line); else a band of their own under the head.
+  const lines = [
+    card.name && card.L.name ? { text: card.name, t: card.L.name, f: font.name } : undefined,
+    card.label && card.L.filter && !(card.labelLines && card.labelLines.length > 1) ? { text: card.label, t: card.L.filter, f: font.filter } : undefined,
+  ].filter((x) => x !== undefined)
+  const widthAt = (x: (typeof lines)[number]) => { ctx.font = x.f(x.t.size); return ctx.measureText(x.text).width }
+  const head = lines.find((x) => totalsPlace(groupW(1), widthAt(x), full.w).band)
+  const place = totalsPlace(groupW(1), head ? widthAt(head) : undefined, full.w)
   const tk = place.k
   const numCap = T.num * tk * 0.72, labelCap = T.label * tk * 0.72
   const groupH = totals.length ? numCap + T.gap * tk + labelCap : 0

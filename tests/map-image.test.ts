@@ -151,17 +151,19 @@ describe('the Map image: totals at the top right, the top countries in two colum
   })
 })
 
-describe('the totals sit on a head line: the filter caption when drawn, else the title (2026-11-24)', () => {
+describe('the totals sit on a head line: the title, else the filter caption (2026-11-24)', () => {
   const numsTop = (rec: Awaited<ReturnType<typeof draw>>['rec']) => Math.min(...rec.texts.filter((x) => x.font.startsWith('700') && x.font.endsWith('px count')).map((x) => yRange(x.box)[0]))
   it('a caption and no title: beside the caption, not on a band under it', async () => {
     const { rec, L } = await draw({ format: 'story' }, { n: 12, filterLabel: 'Cormorants' })
-    expect(L.filter).toBeDefined()
     expect(numsTop(rec)).toBeLessThan(L.collage.y)
     expect(Math.abs(numsTop(rec) - L.filter!.y)).toBeLessThan(20)
   })
-  it('a title and a caption: beside the caption, the line under the title', async () => {
+  it('a short title and a caption: beside the title', async () => {
     const { rec, L } = await draw({ format: 'story' }, { n: 12, name: 'Ada', filterLabel: 'Cormorants' })
-    expect(numsTop(rec)).toBeGreaterThan(L.name!.y + 40)
+    expect(Math.abs(numsTop(rec) - L.name!.y)).toBeLessThan(20)
+  })
+  it('a title too long to share its line and a caption: down beside the caption', async () => {
+    const { rec, L } = await draw({ format: 'story' }, { n: 12, name: 'All the birds of my whole life so far', filterLabel: 'Cormorants' })
     expect(Math.abs(numsTop(rec) - L.filter!.y)).toBeLessThan(20)
   })
   it('a title and no caption: beside the title, as before', async () => {
