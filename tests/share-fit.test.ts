@@ -147,7 +147,7 @@ describe('the option rows and Print\'s actions', () => {
     const over: string[] = []
     for (const [lang, m] of Object.entries(LANG)) {
       const s = m.ui.share
-      for (const label of [s.showLatest, s.print.showNames, s.transparent, m.ui.collage.controls.lifersOnly, m.ui.collage.tree.showOldest]) {
+      for (const label of [s.showLatest, s.showCaption, s.print.showNames, s.transparent, m.ui.collage.controls.lifersOnly, m.ui.collage.tree.showOldest]) {
         if (measured(label, 16) + 12 + 34 > COLUMNS.desktop) over.push(`${lang} "${label}" at the 420px column`)
         if (measured(label, 15) + 12 + 34 > COLUMNS.narrow) over.push(`${lang} "${label}" at the 300px column`)
         if (measured(label, 14) + 12 + 34 > COLUMNS.phone) over.push(`${lang} "${label}" on a phone`)

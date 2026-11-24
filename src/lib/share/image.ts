@@ -35,11 +35,10 @@
 // The print poster ('print', print.ts) is the same card 1080 units wide and as tall as its size (printDesignH), with
 // 64px margins all round, in the dialog's theme, packed once per shape (printPackH); prepareCard's `scale` (device px per unit)
 // picks its sticker tier (printStickerUrl: 1024 with the 384 fallback for big tiles), and the poster paints it in strips.
-// Its head and foot are quieter than an image's: the head is the title alone (the collage title, else the filter in
-// words, in Accent), with the count at its right under "Beside title"; the foot is the images' one line under the
-// hairline, smaller (POSTER_FOOT). The
-// latest lifer (with "Show latest lifer"), or the Tree's oldest lineage (latestAs), is the share images' one-line row
-// above the hairline (paintRow, round 6, item 24), its room taken from the content above it.
+// Its head and foot are quieter than an image's: the collage title in Ink (else the filter in words, in Accent),
+// then, under a typed title, the filter in words as on the images; the count at its right under "Beside title". The
+// foot is the images' one line under the hairline, smaller (POSTER_FOOT). The latest lifer (with "Show latest
+// lifer"), or the Tree's oldest lineage (latestAs), is the share images' one-line row above the hairline (paintRow, round 6, item 24), its room taken from the content above it.
 import { SHARE_ORIGIN } from '@/lib/share/origin'
 import { BIRD_PATH, OUTLINE_SCALE } from '@/lib/bird-outline'
 import { PRINT_FROM, printStickerUrl, stickerUrl } from '@/lib/sticker-url'
@@ -352,12 +351,12 @@ export function cardLayout(format: CardFormat, c: CardContent, dims?: readonly [
   const { top: T, bottom: B } = SAFE[format]
   const X = sideMargin(format)
   // Top: only the name and the filter in words; with neither, the collage starts at the safe line. "Beside title" puts the
-  // count on the name's line, so that line is there without a name too. A poster's head is one line, its title (the
-  // name, else the filter in words: draftCard), so it has no filter line.
+  // count on the name's line, so that line is there without a name too. A poster without a name heads with the filter in
+  // words on the name's line (draftCard); with one, the filter line sits under it as on the images.
   const print = isPrint(format)
   const titleCount = c.countSize === 'title'
   const name = c.name || titleCount || (print && c.filter) ? { y: TITLE_TOP[format], size: 60 } : undefined
-  const filter = c.filter && !print ? { y: name ? name.y + 76 : T, size: 34 } : undefined
+  const filter = c.filter && (!print || c.name) ? { y: name ? name.y + 76 : T, size: 34 } : undefined
   const headBottom = filter ? filter.y + filter.size : name ? name.y + name.size : undefined
   // Bottom, upwards: the footer (the wordmark, the link and the date on one line), a hairline, the latest lifer row.
   // The story's footer sits 4px higher so its descenders ("y", "(") clear the bottom safe line too.
@@ -954,6 +953,8 @@ export type PreparedCard = {
   namesDropped?: true
   /** No Paper fill (ShareImageOpts.transparent). */
   transparent?: true
+  /** A poster headed by its filter in words (no title): the head is in Accent, as a caption; a typed title is Ink. */
+  headAccent?: true
 }
 type CardDraft = Omit<PreparedCard, 'brandW' | 'credit' | 'labelLines' | 'headDrop'>
 
@@ -1016,9 +1017,9 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const filterText = opts.filterLabel?.trim() || goalLabel || undefined
   const named = opts.name?.trim() || undefined
   const content: CardContent = { name: !!named, filter: !!filterText, latest: !!latest, count: shown.length, target: goal?.target, countSize: opts.countSize, ...(opts.tight ? { tight: true } : {}) }
-  // A poster's head is its title alone: the name, else the filter in words.
+  // A poster without a name heads with the filter in words; with one, the filter line goes under it.
   const name = print ? named ?? filterText : named
-  const label = print ? undefined : filterText
+  const label = print && !named ? undefined : filterText
   const stamp = stampDate(opts.now ?? new Date(), stampStrings(strings))
   const printSize = opts.printSize ?? 'A2'
   const L = cardLayout(format, content, print ? printDesign(printSize, format === 'printLandscape') : undefined)
@@ -1082,7 +1083,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const countNum = K.size > 0 ? numText : ''
   const countLabel = K.size > 0 ? labelText : ''
   const countLine = L.titleCount ? { num: numText, label: labelText } : undefined
-  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, ...(countLine ? { countLine } : {}), footerLine: FOOTER_LINE, stamp, latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}), ...(namesDropped ? { namesDropped: true as const } : {}), ...(opts.transparent ? { transparent: true as const } : {}) }
+  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, ...(countLine ? { countLine } : {}), footerLine: FOOTER_LINE, stamp, latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}), ...(namesDropped ? { namesDropped: true as const } : {}), ...(opts.transparent ? { transparent: true as const } : {}), ...(print && !named ? { headAccent: true as const } : {}) }
 }
 
 export function captionMeasurer(): TextMeasurer {
@@ -1132,8 +1133,9 @@ function placeFooter(d: CardDraft): PreparedCard {
   const textW = (px: number) => measure(font.footer(px), px, footerLine, 0.6) + (d.stamp ? DATE_GAP + measure(font.footer(px), px, d.stamp, 0.6) : 0)
   const credit = fitFooter(textW, brandW, maxW, L.footer.credit, isPrint(d.format) ? POSTER_FOOT.min : CREDIT_MIN)
   // The filter label (H6): on two lines, broken at its " · ", before it shrinks; the second line takes the head's gap
-  // and the collage's top moves down by it (clearHead).
-  const lines = d.label && L.filter ? labelLines(d.label, (t) => measure(font.filter(L.filter!.size), L.filter!.size, t, 0.5), maxW) : []
+  // and the collage's top moves down by it (clearHead). Not over a poster's names: clearHead moves them without
+  // shrinking them, so they could meet; the one line shrinks, then ellipsizes, instead.
+  const lines = d.label && L.filter && !d.captions?.length ? labelLines(d.label, (t) => measure(font.filter(L.filter!.size), L.filter!.size, t, 0.5), maxW) : []
   const placed = { ...d, brandW, credit }
   return lines.length > 1 ? clearHead({ ...placed, labelLines: lines, headDrop: FILTER_LINE_H * (lines.length - 1) }) : placed
 }
@@ -1242,7 +1244,7 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
     ctx.fillStyle = color
     ctx.fillText(out, x, t.y)
   }
-  // The head: the name (a poster's title, in Accent), with "Beside title" the count on its baseline at the right (alone,
+  // The head: the name (in Ink; a poster headed by its filter alone, in Accent), with "Beside title" the count on its baseline at the right (alone,
   // at the left, without a name), in the big count's type: the number in Ink (Cabinet 700, -0.02em), then its label in
   // Muted (Geist Mono, upper case, tracked 0.06em), as under the count in the middle.
   let nameW = maxW
@@ -1275,7 +1277,7 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
     nameW = maxW - w - 32
   }
   // A title shrinks to 24 before any ellipsis (H6: a 40-character title beside a goal, a long CJK title).
-  if (name && L.name) draw(name, font.name, L.name, 24, isPrint(card.format) ? C.accent : C.ink, X0, nameW)
+  if (name && L.name) draw(name, font.name, L.name, 24, card.headAccent ? C.accent : C.ink, X0, nameW)
   if (label && L.filter) {
     const F = L.filter
     ;(card.labelLines ?? [label]).forEach((line, i) => draw(line, font.filter, { y: F.y + i * FILTER_LINE_H, size: F.size }, 24, C.accent))

@@ -1,5 +1,5 @@
 // The Count menu's "Beside title" (the count on the title's line in the big count's type, no hole in the middle) and the
-// poster's quiet head and foot (the title alone in Accent; one line under the hairline, the wordmark and the credit; the
+// poster's quiet head and foot (the title in Accent, the filter in words under a typed title; one line under the hairline, the wordmark and the credit; the
 // latest lifer the images' one-line row above it, round 6, item 24).
 // Drawn on the recording canvas of tests/fixtures/share-image-harness.ts, synthetic birds only.
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -75,10 +75,11 @@ describe('the count beside the title', () => {
 describe('the poster\'s head and foot', () => {
   const poster = (opts: Partial<image.ShareImageOpts>) => draw({ format: 'print', printSize: 'A4', ...opts })
 
-  it('heads the poster with its title alone, in Accent: the name, else the filter in words', async () => {
+  it('heads the poster with its title in Ink, the filter in words under it in Accent; without a title, the filter is the heading', async () => {
     const named = texts(await poster({ name: 'Ada’s birds', filterLabel: 'Perching birds' }))
-    expect(named.find((l) => l.startsWith('fillText("Ada’s birds"'))).toContain(`fillStyle: "${C.accent}"`)
-    expect(named.some((l) => l.startsWith('fillText("Perching birds"'))).toBe(false)
+    expect(named.find((l) => l.startsWith('fillText("Ada’s birds"'))).toContain(`fillStyle: "${C.ink}"`)
+    // The share images' filter line: 34 units, 76 under the title's top.
+    expect(named.find((l) => l.startsWith('fillText("Perching birds"'))).toMatch(/, 64, 140\) \{fillStyle: "#92140c", font: "500 34px/)
     const filtered = texts(await poster({ filterLabel: 'Perching birds' }))
     expect(filtered.find((l) => l.startsWith('fillText("Perching birds"'))).toMatch(/, 64, 64\) \{fillStyle: "#92140c", font: "700 60px/)
   })
@@ -144,10 +145,31 @@ describe('the poster\'s head and foot', () => {
   it('lays the foot out under a hairline, inside the bottom margin, the collage above it', () => {
     for (const landscape of [false, true]) {
       const L = image.cardLayout(landscape ? 'printLandscape' : 'print', { name: true, filter: true, latest: true, count: 300 }, printDesign('A2', landscape))
-      expect(L.filter).toBeUndefined()
+      expect(L.filter).toEqual({ y: 140, size: 34 })
       expect(L.footer.y + L.footer.size).toBeCloseTo(L.H - 64, 6)
       expect(L.rule.y).toBeLessThan(L.footer.y)
       expect(L.collage.y + L.collage.h).toBeLessThan(L.rule.y)
+    }
+  })
+
+  it('reserves the filter line under a typed title: the collage starts lower, and the pack is made for that frame', () => {
+    for (const landscape of [false, true]) {
+      const format = landscape ? 'printLandscape' : 'print'
+      const dims = printDesign('A2', landscape)
+      const titled = image.cardLayout(format, { name: true, filter: false, latest: true, count: 300 }, dims)
+      const both = image.cardLayout(format, { name: true, filter: true, latest: true, count: 300 }, dims)
+      const filterOnly = image.cardLayout(format, { name: false, filter: true, latest: true, count: 300 }, dims)
+      // The images' head: title 60 at the top margin, the filter 34 at 76 under it, the head's gap below.
+      expect(both.name).toEqual({ y: 64, size: 60 })
+      expect(both.filter).toEqual({ y: 140, size: 34 })
+      expect(both.collage.y).toBe(140 + 34 + image.GAPS[format].head)
+      expect(both.collage.y + both.collage.h).toBe(titled.collage.y + titled.collage.h)
+      expect(both.collage.y - titled.collage.y).toBe(50)
+      // Without a title the filter is the heading, on the title's line.
+      expect(filterOnly.filter).toBeUndefined()
+      expect(filterOnly.collage).toEqual(titled.collage)
+      const spec = (c: image.CardContent) => image.imagePackSpec(format, c, 'A2')
+      expect(spec({ name: true, filter: true, latest: true, count: 300 }).aspect).toBeGreaterThan(spec({ name: true, filter: false, latest: true, count: 300 }).aspect)
     }
   })
 

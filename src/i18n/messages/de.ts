@@ -496,6 +496,7 @@ export const de: Messages = {
       nameOptional: '(optional)',
       nameHelper: 'Erscheint als Titel deiner Collage und beim Teilen.',
       showLatest: 'Neueste Art zeigen',
+      showCaption: 'Filtertext zeigen',
       treeSmall: 'Die Namen sind in dieser Größe klein. <print>Auf einem Poster werden sie größer gedruckt.</print>',
       shareImage: 'Bild teilen',
       download: 'Bild herunterladen',

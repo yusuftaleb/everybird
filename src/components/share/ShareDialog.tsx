@@ -313,6 +313,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // The Tree and Map images have no Count row: their count is the medium one.
   const countSize: CountSize = rows.count ? countSizeChoice : 'medium'
   const [showLatest, setShowLatest] = useState(true)
+  const [showCaption, setShowCaption] = useState(true)
   const [showNames, setShowNames] = useState(false)
   const [namesFitFailKey, setNamesFitFailKey] = useState<string | null>(null)
   const [fontsTick, setFontsTick] = useState(0)
@@ -360,7 +361,9 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
     () => (goalActive ? { ...(yearGoal !== undefined ? { year: yearGoal } : {}), target: validTarget, basis: goalBasis(seen) } : undefined),
     [goalActive, yearGoal, validTarget, seen],
   )
-  const cardLabel = yearGoal !== undefined ? undefined : label
+  // Show filter caption off: no filter in words on the card (the birds stay filtered; a year goal's own line stays).
+  const captionLabel = yearGoal !== undefined ? undefined : label
+  const cardLabel = showCaption ? captionLabel : undefined
   /** The goal as saved: the year left out for All time. */
   const goalOf = (y: GoalYear, target: number): BigYear => (y === 'all' ? { target } : { year: y, target })
   const hasLatest = useMemo(() => cardEntries.some((e) => e.date), [cardEntries])
@@ -497,7 +500,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
   // Try again (a failed render, stickers that didn't load) renders the same image anew: `retry` is in the key.
   const [retry, setRetry] = useState(0)
   const renderAgain = () => setRetry((n) => n + 1)
-  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${compare ? `compare|${what}|${compare.key}` : viewKey}|${arrangement}|${trueSize}|${sci}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}|${retry}`
+  const key = `${print ? `print|${size}|${landscape}|${effectiveShowNames}` : shape}|${compare ? `compare|${what}|${compare.key}` : viewKey}|${arrangement}|${trueSize}|${sci}|${trimmed}|${theme}|${withLatest}|${showCaption}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}|${retry}`
   // The filters leave no birds and no goal is drawn (H8): the box says so, with Clear filters, instead of a "0 SPECIES"
   // card; nothing renders, and Share image, Download and Make poster are off with that reason. A goal's "0 / 300" stays.
   const empty = !compare && !!fk && cardEntries.length === 0 && !cardGoal
@@ -627,7 +630,7 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
 
   // The poster: one make at a time, for `posterKey`. A new key or closing the dialog cancels the make and drops the
   // poster (its encoder ends with it). Export in batches' ZIP is cancelled by a new key too (in Share, `key`: the image's).
-  const posterKey = print ? `print|${viewKey}|${arrangement}|${trueSize}|${sci}|${size}|${landscape}|${effectiveShowNames}|${trimmed}|${theme}|${withLatest}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}` : key
+  const posterKey = print ? `print|${viewKey}|${arrangement}|${trueSize}|${sci}|${size}|${landscape}|${effectiveShowNames}|${trimmed}|${theme}|${withLatest}|${showCaption}|${lang}|${names}|${fk}|${goalKey}|${countSize}|${transparent}` : key
   const [poster, setPoster] = useState<{ key: string; p: Poster } | null>(null)
   const [making, setMaking] = useState<{ key: string; done: number; total: number } | null>(null)
   // Export in batches: closed until its row is pressed (or the names note's "export in batches").
@@ -1299,6 +1302,8 @@ export default function ShareDialog({ state, dispatch, species, regions, view, a
         ))
       case 'latest':
         return hasLatest ? switchRow(showLatest, t.share.showLatest, () => setShowLatest((v) => !v)) : null
+      case 'caption':
+        return captionLabel ? switchRow(showCaption, t.share.showCaption, () => setShowCaption((v) => !v), 'share-caption') : null
       case 'names':
         return [
           namesSwitch,

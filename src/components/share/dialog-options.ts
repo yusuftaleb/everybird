@@ -78,6 +78,8 @@ type DialogRows = {
   count: boolean
   goal: boolean
   latest: boolean
+  /** Show filter caption: wherever the card draws the filter in words (the collage, the Map, the Tree; not Compare). */
+  caption: boolean
   /** The Tree's: its layout (the dock's Layout menu) and Show oldest lineage. */
   treeLayout: boolean
   oldest: boolean
@@ -111,6 +113,7 @@ export function dialogRows(subject: Subject, print: boolean): DialogRows {
     count: collage,
     goal: collage && !print,
     latest: collage,
+    caption: subject !== 'compare',
     treeLayout: subject === 'tree',
     oldest: subject === 'tree',
     timeScale: subject === 'tree',
@@ -126,17 +129,18 @@ export function dialogRows(subject: Subject, print: boolean): DialogRows {
 }
 
 /** One row of the options list. */
-export type OptionRow = 'what' | 'size' | 'arrangement' | 'treeLayout' | 'colours' | 'count' | 'totals' | 'latest' | 'names' | 'lifersOnly' | 'timeScale' | 'sci' | 'oldest' | 'transparent' | 'goal'
+export type OptionRow = 'what' | 'size' | 'arrangement' | 'treeLayout' | 'colours' | 'count' | 'totals' | 'latest' | 'caption' | 'names' | 'lifersOnly' | 'timeScale' | 'sci' | 'oldest' | 'transparent' | 'goal'
 
 /**
  * The options list, top to bottom (round 6, the maintainer's layout): Compare's What or Print's Poster size first, the choices
  * (Arrangement, Appearance, then Count or the views' Totals), then the switches, Transparent background last of them, and Share's Goal at the end.
  * Show latest lifer is listed wherever the image can draw one; the dialog leaves it out when no bird in view has a date.
+ * Show filter caption likewise, left out when nothing is filtered (or a year goal's line takes its place).
  */
 export function optionRows(rows: DialogRows, print: boolean): OptionRow[] {
   const order: [OptionRow, boolean][] = [
     ['what', rows.what], ['size', print], ['arrangement', rows.arrangement], ['treeLayout', rows.treeLayout], ['colours', true], ['count', rows.count], ['totals', rows.totals.length > 0],
-    ['latest', rows.latest], ['names', rows.names], ['lifersOnly', rows.lifersOnly], ['timeScale', rows.timeScale], ['sci', rows.sci], ['oldest', rows.oldest],
+    ['latest', rows.latest], ['caption', rows.caption], ['names', rows.names], ['lifersOnly', rows.lifersOnly], ['timeScale', rows.timeScale], ['sci', rows.sci], ['oldest', rows.oldest],
     ['transparent', true], ['goal', rows.goal],
   ]
   return order.filter(([, on]) => on).map(([r]) => r)

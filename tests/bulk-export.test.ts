@@ -386,12 +386,23 @@ describe('bulk export', () => {
     await run({ filterLabel: 'Canada' })
     expect(seenOpts.map((o) => o.filterLabel)).toEqual(['Canada · Ostriches', 'Canada · Ducks'])
     seenOpts.length = 0
+    // Show filter caption off: the dialog passes no view label, so each poster keeps its group alone.
+    await run({ filterLabel: undefined })
+    expect(seenOpts.map((o) => o.filterLabel)).toEqual(['Ostriches', 'Ducks'])
+    seenOpts.length = 0
     const goal = { year: 2027, target: 300, basis: 'lifer' as const }
     await run({ goal })
     expect(seenOpts).toEqual([
       { filterLabel: '2027 lifers · Ostriches', goal },
       { filterLabel: '2027 lifers · Ducks', goal },
     ])
+  })
+
+  it('reserves each titled poster\'s group line under its title', () => {
+    const o = { size: 'A2' as const, landscape: false, countSize: 'medium' as const, showNames: false, species: buildSpeciesIndex([row('a', 1, 'O1', 'F1', 'Ostriches')]) }
+    const list = [entry('a')]
+    expect(bulkPackSpec(list, { ...o, named: true })).toEqual(imagePackSpec('print', { name: true, filter: true, latest: true, count: 1, countSize: 'medium' }, 'A2'))
+    expect(bulkPackSpec(list, { ...o, named: true }).aspect).toBeGreaterThan(imagePackSpec('print', { name: true, filter: false, latest: true, count: 1, countSize: 'medium' }, 'A2').aspect)
   })
 
   it('sizes each group\'s count hole for the year goal\'s target', () => {
