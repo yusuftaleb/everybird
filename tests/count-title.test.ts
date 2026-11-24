@@ -75,9 +75,9 @@ describe('the count beside the title', () => {
 describe('the poster\'s head and foot', () => {
   const poster = (opts: Partial<image.ShareImageOpts>) => draw({ format: 'print', printSize: 'A4', ...opts })
 
-  it('heads the poster with its title in Accent, the filter in words under it; without a title, the filter is the heading', async () => {
+  it('heads the poster with its title in Ink, the filter in words under it in Accent; without a title, the filter is the heading', async () => {
     const named = texts(await poster({ name: 'Ada’s birds', filterLabel: 'Perching birds' }))
-    expect(named.find((l) => l.startsWith('fillText("Ada’s birds"'))).toContain(`fillStyle: "${C.accent}"`)
+    expect(named.find((l) => l.startsWith('fillText("Ada’s birds"'))).toContain(`fillStyle: "${C.ink}"`)
     // The share images' filter line: 34 units, 76 under the title's top.
     expect(named.find((l) => l.startsWith('fillText("Perching birds"'))).toMatch(/, 64, 140\) \{fillStyle: "#92140c", font: "500 34px/)
     const filtered = texts(await poster({ filterLabel: 'Perching birds' }))

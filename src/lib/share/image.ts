@@ -35,7 +35,7 @@
 // The print poster ('print', print.ts) is the same card 1080 units wide and as tall as its size (printDesignH), with
 // 64px margins all round, in the dialog's theme, packed once per shape (printPackH); prepareCard's `scale` (device px per unit)
 // picks its sticker tier (printStickerUrl: 1024 with the 384 fallback for big tiles), and the poster paints it in strips.
-// Its head and foot are quieter than an image's: the title in Accent (the collage title, else the filter in words),
+// Its head and foot are quieter than an image's: the collage title in Ink (else the filter in words, in Accent),
 // then, under a typed title, the filter in words as on the images; the count at its right under "Beside title". The
 // foot is the images' one line under the hairline, smaller (POSTER_FOOT). The latest lifer (with "Show latest
 // lifer"), or the Tree's oldest lineage (latestAs), is the share images' one-line row above the hairline (paintRow, round 6, item 24), its room taken from the content above it.
@@ -953,6 +953,8 @@ export type PreparedCard = {
   namesDropped?: true
   /** No Paper fill (ShareImageOpts.transparent). */
   transparent?: true
+  /** A poster headed by its filter in words (no title): the head is in Accent, as a caption; a typed title is Ink. */
+  headAccent?: true
 }
 type CardDraft = Omit<PreparedCard, 'brandW' | 'credit' | 'labelLines' | 'headDrop'>
 
@@ -1081,7 +1083,7 @@ async function draftCard(opts: ShareImageOpts, scale: number): Promise<CardDraft
   const countNum = K.size > 0 ? numText : ''
   const countLabel = K.size > 0 ? labelText : ''
   const countLine = L.titleCount ? { num: numText, label: labelText } : undefined
-  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, ...(countLine ? { countLine } : {}), footerLine: FOOTER_LINE, stamp, latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}), ...(namesDropped ? { namesDropped: true as const } : {}), ...(opts.transparent ? { transparent: true as const } : {}) }
+  return { format, L, colors, fit, tiles, lifer, K, countNum, countLabel, ...(countLine ? { countLine } : {}), footerLine: FOOTER_LINE, stamp, latest, name, label, fonts: cardFonts(), ...(captions ? { captions } : {}), ...(namesDropped ? { namesDropped: true as const } : {}), ...(opts.transparent ? { transparent: true as const } : {}), ...(print && !named ? { headAccent: true as const } : {}) }
 }
 
 export function captionMeasurer(): TextMeasurer {
@@ -1242,7 +1244,7 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
     ctx.fillStyle = color
     ctx.fillText(out, x, t.y)
   }
-  // The head: the name (a poster's title, in Accent), with "Beside title" the count on its baseline at the right (alone,
+  // The head: the name (in Ink; a poster headed by its filter alone, in Accent), with "Beside title" the count on its baseline at the right (alone,
   // at the left, without a name), in the big count's type: the number in Ink (Cabinet 700, -0.02em), then its label in
   // Muted (Geist Mono, upper case, tracked 0.06em), as under the count in the middle.
   let nameW = maxW
@@ -1275,7 +1277,7 @@ export function paintCard(ctx: CanvasRenderingContext2D, card: PreparedCard, img
     nameW = maxW - w - 32
   }
   // A title shrinks to 24 before any ellipsis (H6: a 40-character title beside a goal, a long CJK title).
-  if (name && L.name) draw(name, font.name, L.name, 24, isPrint(card.format) ? C.accent : C.ink, X0, nameW)
+  if (name && L.name) draw(name, font.name, L.name, 24, card.headAccent ? C.accent : C.ink, X0, nameW)
   if (label && L.filter) {
     const F = L.filter
     ;(card.labelLines ?? [label]).forEach((line, i) => draw(line, font.filter, { y: F.y + i * FILTER_LINE_H, size: F.size }, 24, C.accent))
