@@ -179,9 +179,12 @@ export function viewTotals(ctx: CanvasRenderingContext2D, card: PreparedCard, fu
     return Math.max(nw, lw)
   }
   const groupW = (k: number) => totals.reduce((sum, x, i) => sum + widthOf(x, k) + (i ? T.between * k : 0), 0)
-  const title = card.name && card.L.name ? card.name : undefined
-  ctx.font = font.name(card.L.name?.size ?? 60)
-  const titleW = title ? ctx.measureText(title).width : undefined
+  // The line they sit beside: the filter caption's when drawn on one line, else the title's (Yusuf, 2026-11-24: with
+  // the caption switch the totals stay on a head line rather than a band of their own under it).
+  const caption = card.label && card.L.filter && !(card.labelLines && card.labelLines.length > 1) ? { text: card.label, t: card.L.filter, f: font.filter } : undefined
+  const head = caption ?? (card.name && card.L.name ? { text: card.name, t: card.L.name, f: font.name } : undefined)
+  ctx.font = head ? head.f(head.t.size) : font.name(60)
+  const titleW = head ? ctx.measureText(head.text).width : undefined
   const place = totalsPlace(groupW(1), titleW, full.w)
   const tk = place.k
   const numCap = T.num * tk * 0.72, labelCap = T.label * tk * 0.72
@@ -189,11 +192,11 @@ export function viewTotals(ctx: CanvasRenderingContext2D, card: PreparedCard, fu
   // The title's caps' top (paintCard draws it from its em box's top; its baseline that far below, 0.8 of the size
   // where the canvas can't say).
   let groupTop = full.y
-  if (place.band && title && card.L.name) {
-    ctx.font = font.name(card.L.name.size)
+  if (place.band && head) {
+    ctx.font = head.f(head.t.size)
     ctx.textBaseline = 'top'
     const drop = Math.abs(ctx.measureText('H').alphabeticBaseline ?? 0)
-    groupTop = card.L.name.y + (Number.isFinite(drop) && drop > 0 ? drop : 0.8 * card.L.name.size) - 0.72 * card.L.name.size
+    groupTop = head.t.y + (Number.isFinite(drop) && drop > 0 ? drop : 0.8 * head.t.size) - 0.72 * head.t.size
   }
   const draw = () => {
     ctx.textBaseline = 'alphabetic'
