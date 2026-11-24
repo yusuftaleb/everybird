@@ -197,6 +197,39 @@ describe('print captions', () => {
     expect(drawnA).toEqual(drawnB)
   })
 
+  it('a titled poster with names keeps a long filter caption on one line, its names inside the collage, below it, apart', async () => {
+    installStubs()
+    const { species, entries } = makeSpeciesAndEntries(4, (i) => `Caption Bird ${i}`)
+    const pack: image.ImagePack = {
+      W: 400,
+      H: 500,
+      boxes: new Map([
+        ['bird0', [0, 0, 80, 80]],
+        ['bird1', [320, 0, 80, 80]],
+        ['bird2', [0, 380, 80, 80]],
+        ['bird3', [320, 380, 80, 80]],
+      ]),
+    }
+    image.clearStickerCache()
+    const card = await image.prepareCard({
+      format: 'print', printSize: 'A4', showNames: true, entries, species, pack, theme: 'light', strings: en.ui,
+      name: 'A test list', filterLabel: 'Perching birds · Seen in Canada + Egypt + Kenya · Threatened · Mar 2020 to Jun 2021',
+    })
+    expect(card.labelLines).toBeUndefined()
+    expect(card.captions).toHaveLength(4)
+    const a = card.L.collage, top = card.L.filter!.y + card.L.filter!.size
+    for (const t of card.tiles) expect(t.y).toBeGreaterThanOrEqual(top)
+    for (const c of card.captions!) {
+      expect(c.y).toBeGreaterThanOrEqual(top)
+      expect(c.y + c.h).toBeLessThanOrEqual(a.y + a.h + 1e-6)
+    }
+    const caps = card.captions!
+    for (let i = 0; i < caps.length; i++) for (let j = i + 1; j < caps.length; j++) {
+      const p = caps[i], q = caps[j]
+      expect(rectsOverlap(p.x, p.y, p.x + p.w, p.y + p.h, q.x, q.y, q.x + q.w, q.y + q.h)).toBe(false)
+    }
+  })
+
   it('falls back to uncaptioned fit in prepareCard when provided pack fails caption verification', async () => {
     installStubs()
     const { species, entries } = makeSpeciesAndEntries(2, (i) => `Tight Bird ${i}`)

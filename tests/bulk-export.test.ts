@@ -398,6 +398,13 @@ describe('bulk export', () => {
     ])
   })
 
+  it('reserves each titled poster\'s group line under its title', () => {
+    const o = { size: 'A2' as const, landscape: false, countSize: 'medium' as const, showNames: false, species: buildSpeciesIndex([row('a', 1, 'O1', 'F1', 'Ostriches')]) }
+    const list = [entry('a')]
+    expect(bulkPackSpec(list, { ...o, named: true })).toEqual(imagePackSpec('print', { name: true, filter: true, latest: true, count: 1, countSize: 'medium' }, 'A2'))
+    expect(bulkPackSpec(list, { ...o, named: true }).aspect).toBeGreaterThan(imagePackSpec('print', { name: true, filter: false, latest: true, count: 1, countSize: 'medium' }, 'A2').aspect)
+  })
+
   it('sizes each group\'s count hole for the year goal\'s target', () => {
     const species = buildSpeciesIndex([row('a', 1)])
     const opts = { size: 'A2' as const, landscape: false, named: false, countSize: 'medium' as const, showNames: false, species }

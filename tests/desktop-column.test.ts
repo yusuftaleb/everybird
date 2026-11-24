@@ -155,13 +155,15 @@ describe('everything on the desktop is inside the central column, clear of the t
 // take back the two lines' room kept under them); the wide and the posters' layouts unchanged (one line already).
 // tests/share-image-golden.test.ts's logs show each difference. Draws retaken for fix/r6-batch-pack: fitPack centres the
 // group (birds and count) in the collage area, and the harness's hand-made ring is uneven, so it moves and grows a little.
+// Print and printLandscape retaken for the filter caption under a typed title: with a name and a filter, the poster draws
+// the filter line under the title and its collage starts lower (every other combination unchanged).
 const BEFORE: Record<Exclude<CardFormat, 'desktop'>, { layout: string; draws: string }> = {
   story: { layout: '676ee017ba756e1d43b7a9101ee614f821a6e1ec', draws: 'c076a38c8d41dc7b70a56c70e7d59cf43f6ecaaf' },
   post: { layout: '6c59c39f1adc6c0d653d2656051e0b453757df1d', draws: '1e7412f8c0738599746a1da2bb046335760eb9a6' },
   square: { layout: '189278b3cb75de85353316f85e8a7d7825ff67a4', draws: '9e3078f3eb45ad400a5ec08ec5fe091a340c1ac1' },
   wide: { layout: '08fbc77c3a7dddb33e4fcb3a29470b3c95206cc9', draws: '654fffae8da0ab0331a6901d008ee27a3e9176a7' },
-  print: { layout: '539e3566a02bffc91eef031e75e05d75616f1d1e', draws: 'a419068881ed80b3eaa61d6c105901f4aa65dee1' },
-  printLandscape: { layout: 'be645517b968335ba79d09e666410a687dbfb1e8', draws: 'bc578a95f24705ebe6ac17eec3a33a7dbe34dfc7' },
+  print: { layout: 'df1e3131f0bea201d5de8ff6b49da7d5ad7e2bca', draws: '150292a970d61679538fa3d10d494360d498fc04' },
+  printLandscape: { layout: '07858e69cd1dea2405ad41893abf2c50e31458ba', draws: '2a4cc3c6ec7f50f7e09821552d30caf3daf3a51a' },
 }
 const sha = (s: string) => createHash('sha1').update(s).digest('hex')
 

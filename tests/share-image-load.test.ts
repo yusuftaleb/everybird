@@ -269,9 +269,8 @@ describe('painting in ranges (the poster strips)', () => {
       strokes += s
       for (const x of want) drawnIn.set(x, (drawnIn.get(x) ?? 0) + 1)
     }
-    // The poster's head is its title alone (the name; the filter only when there is no name).
-    expect(texts).toEqual(expect.arrayContaining(['A test list', 'Everybird', card.footerLine, card.K.number]))
-    expect(texts).not.toContain('Perching birds')
+    // The poster's head: the title, the filter in words under it.
+    expect(texts).toEqual(expect.arrayContaining(['A test list', 'Perching birds', 'Everybird', card.footerLine, card.K.number]))
     // Every tile drawn in at least one band, and in exactly the bands it meets.
     for (const x of all) expect(drawnIn.get(x)).toBe(bands.filter((b) => tileInRange(x, b)).length)
     expect(all.every((x) => (drawnIn.get(x) ?? 0) >= 1)).toBe(true)
