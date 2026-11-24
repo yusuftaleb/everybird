@@ -636,6 +636,8 @@ export const EN_UI = {
     /** The title field's description (read by screen readers): it is saved with the list and names the collage page. */
     nameHelper: 'Shown as your collage’s title and on shares.',
     showLatest: 'Show latest lifer',
+    /** Off: the filter in words ("Flamingos · Seen in Brazil") is left off the image or poster; the birds stay filtered. */
+    showCaption: 'Show filter caption',
     /** The Tree image's note when its names are under the readable size; <print> opens Print. */
     treeSmall: 'Names are small at this size. <print>A poster prints them larger.</print>',
     shareImage: 'Share image',

@@ -410,6 +410,29 @@ describe('share dialog', () => {
     expect(screen.queryByRole('switch', { name: 'Show latest lifer' })).toBeNull()
   })
 
+  it('"Show filter caption": only with a filter; off draws no filter in words and packs without its line, the birds still filtered', async () => {
+    render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    expect(screen.queryByRole('switch', { name: 'Show filter caption' })).toBeNull()
+    cleanup()
+    renders.length = 0
+    vi.mocked(image.renderShareImage).mockClear()
+    vi.mocked(image.packForImage).mockClear()
+    const st = { ...stateWith([entry('ostric2'), { ...entry('emu1'), place: { country: 'KE' } }]), filter: { countries: ['CA'] } }
+    render(<ShareDialog state={st} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
+    const sw = screen.getByRole('switch', { name: 'Show filter caption' })
+    expect(sw).toHaveAttribute('aria-checked', 'true')
+    await waitFor(() => expect(renders).toHaveLength(1))
+    expect(vi.mocked(image.renderShareImage).mock.calls[0][0].filterLabel).toBe('Canada')
+    fireEvent.click(sw)
+    expect(sw).toHaveAttribute('aria-checked', 'false')
+    await waitFor(() => expect(renders).toHaveLength(2))
+    const off = vi.mocked(image.renderShareImage).mock.calls.at(-1)![0]
+    expect(off.filterLabel).toBeUndefined()
+    expect(off.entries.map((e) => e.code)).toEqual(['ostric2'])
+    expect(vi.mocked(image.packForImage).mock.calls.at(-1)![2]).toEqual(
+      image.imagePackSpec('story', { name: false, filter: false, latest: true, count: 1 }, undefined, undefined, 'free'))
+  })
+
   it('each open starts with the switch on', () => {
     const { unmount } = render(<ShareDialog state={stateWith([entry('ostric2')])} dispatch={() => {}} species={species} regions={regions} onClose={() => {}} />)
     fireEvent.click(screen.getByRole('switch', { name: 'Show latest lifer' }))

@@ -495,6 +495,7 @@ export const zhHant: Messages = {
       nameOptional: '（選填）',
       nameHelper: '會顯示為你的拼貼標題，也會出現在分享內容上。',
       showLatest: '顯示最新鳥種',
+      showCaption: '顯示篩選條件',
       treeSmall: '此尺寸下名稱較小。<print>印成海報時名稱會更大。</print>',
       shareImage: '分享圖片',
       download: '下載圖片',

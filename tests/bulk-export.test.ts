@@ -386,6 +386,10 @@ describe('bulk export', () => {
     await run({ filterLabel: 'Canada' })
     expect(seenOpts.map((o) => o.filterLabel)).toEqual(['Canada · Ostriches', 'Canada · Ducks'])
     seenOpts.length = 0
+    // Show filter caption off: the dialog passes no view label, so each poster keeps its group alone.
+    await run({ filterLabel: undefined })
+    expect(seenOpts.map((o) => o.filterLabel)).toEqual(['Ostriches', 'Ducks'])
+    seenOpts.length = 0
     const goal = { year: 2027, target: 300, basis: 'lifer' as const }
     await run({ goal })
     expect(seenOpts).toEqual([

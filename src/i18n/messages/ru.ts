@@ -510,6 +510,7 @@ export const ru: Messages = {
       nameOptional: '(необязательно)',
       nameHelper: 'Показывается как название твоего коллажа и при публикации.',
       showLatest: 'Последний новый вид',
+      showCaption: 'Подпись фильтра',
       treeSmall: 'В этом размере названия мелкие. <print>На постере они будут крупнее.</print>',
       shareImage: 'Поделиться',
       download: 'Скачать изображение',

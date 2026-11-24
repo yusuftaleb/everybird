@@ -495,6 +495,7 @@ export const ja: Messages = {
       nameOptional: '（任意）',
       nameHelper: 'コラージュのタイトルとして、共有時にも表示されます。',
       showLatest: '最新のライファーを表示',
+      showCaption: '絞り込み条件を表示',
       treeSmall: 'このサイズでは名前が小さくなります。<print>ポスターなら大きく印刷できます。</print>',
       shareImage: '画像を共有',
       download: '画像をダウンロード',
